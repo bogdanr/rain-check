@@ -71,7 +71,18 @@ jobs:
           done
           test "$missing" -eq 0
 
-      - name: Build the site
+      - name: Build and verify at the root base path
+        # src/check_site.py serves dist/ from the root of a local HTTP server,
+        # so it can only exercise a root-base build: a build whose assets live
+        # under /<repo>/ would 404 every one of them and the globe would never
+        # draw. Verification therefore runs against a root build, and the
+        # published build is produced afterwards from the same inputs - the two
+        # differ only in the URL prefix baked into the HTML.
+        run: |
+          python src/report.py
+          python src/check_site.py
+
+      - name: Build the site for publication
         # A project site is served from /<repo>/, so the base path is derived
         # from the repository name rather than hardcoded - renaming the repo
         # (this one was renamed once already) would otherwise 404 every asset.
@@ -79,14 +90,6 @@ jobs:
           python src/report.py \
             --base "/${GITHUB_REPOSITORY#*/}/" \
             --origin "https://${GITHUB_REPOSITORY%%/*}.github.io"
-
-      - name: Verify the built site
-        # The full suite: land/sea rendering, theme contrast, every marker
-        # clickable, all three themes reachable at phone widths, city switching,
-        # no-JS fallback, and a byte-identical rebuild. Publishing a page whose
-        # globe is unreadable or whose theme control is off-screen is exactly
-        # the class of bug that is invisible in review.
-        run: python src/check_site.py
 
       - uses: actions/upload-pages-artifact@v3
         with:
