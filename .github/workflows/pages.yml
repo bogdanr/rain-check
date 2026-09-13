@@ -18,7 +18,7 @@ on:
     paths:
       - 'src/**'
       - 'data/processed/**'
-      - 'data/raw/capital_coverage.json'
+      - 'data/raw/**'
       - 'figures/**'
       - 'requirements-site.txt'
       - '.github/workflows/pages.yml'
@@ -59,10 +59,14 @@ jobs:
         # difference between a five second fix and a confused afternoon.
         run: |
           missing=0
-          for f in data/processed/capitals_metrics.parquet \
+          for f in data/processed/verification_pop.parquet \
+                   data/processed/verification_leads.parquet \
+                   data/processed/capitals_metrics.parquet \
                    data/processed/capitals_pop.parquet \
                    data/processed/capitals_diagnostics.parquet \
-                   data/raw/capital_coverage.json; do
+                   data/raw/capital_coverage.json \
+                   data/raw/station_observations.parquet \
+                   data/raw/station_hourly.parquet; do
             if [ ! -f "$f" ]; then echo "missing artefact: $f"; missing=1; fi
           done
           test "$missing" -eq 0

@@ -10,8 +10,15 @@ data/cache/
 # stays ignored and the Pages build fails on a fresh checkout while working
 # perfectly on the machine where the file happens to exist untracked.
 data/raw/*
-# ...except the capital coverage probe. It is an *input* to the page build, not
-# a cached download: src/city_report.py reads it to explain which capitals were
-# excluded and why.
+# ...except the few files the *page build* reads directly instead of
+# recomputing. They are inputs to rendering rather than cached downloads, so a
+# fresh checkout must carry them or the Pages build fails:
+#   coverage probes      - which cities were excluded and why
+#                          (src/city_report.py, src/report.py:137,167)
+#   station observations - the two-gauge disagreement floor (src/report.py:224)
+#   station hourly       - per-station detection rates (src/report.py:207)
 !data/raw/capital_coverage.json
+!data/raw/city_coverage.json
+!data/raw/station_observations.parquet
+!data/raw/station_hourly.parquet
 *.log
