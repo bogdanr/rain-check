@@ -1,0 +1,21 @@
+# Dependencies for rebuilding the published page from committed artefacts.
+#
+# This is deliberately *not* the full analysis environment. CI does not re-run
+# the study: it reads the parquet tables in data/processed/ and the PNGs in
+# figures/ committed alongside the code, and rebuilds dist/ from them. That
+# keeps deploys fast and, more importantly, keeps them honest - a copy edit
+# cannot silently change a published number, because nothing is recomputed.
+#
+# Versions are pinned because the build must be byte-reproducible; a float
+# formatting change between pandas releases would otherwise surface as a
+# spurious diff in the rendered tables.
+
+# -- page rebuild -----------------------------------------------------------
+numpy==2.5.3
+pandas==3.0.5
+pyarrow==25.0.1          # parquet reader for data/processed/*.parquet
+matplotlib==3.11.2       # imported by the analysis modules report.py pulls in
+
+# -- verification (src/check_site.py) ---------------------------------------
+playwright==1.62.0       # drives a real browser: globe, themes, city switching
+pillow==12.3.0           # pixel sampling for the land/sea and contrast checks

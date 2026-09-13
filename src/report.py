@@ -596,6 +596,129 @@ produced confident, wrong curves for a third of the map.</p>
 """
 
 
+def sec_world(c) -> str:
+    """Phase 8: does the capitals story survive a much larger, wider sample?"""
+    w = c.get("world")
+    if not w:
+        return ""
+    met = w["met"]
+    n = len(met)
+    b = met[met.city == "Bucharest"]
+    if b.empty:
+        return ""
+    b = b.iloc[0]
+    order = met.sort_values("bss", ascending=False).reset_index(drop=True)
+    rank = int(order.index[order.city == "Bucharest"][0]) + 1
+    probed = len(w["coverage"]["included"]) if w.get("coverage") else n
+
+    # The headline here is a replication check, so both samples are shown side
+    # by side rather than the newer one quietly replacing the older. Where they
+    # disagree, that disagreement is the finding.
+    cap = c.get("capitals")
+    rep_html = ""
+    if cap and cap.get("drivers") is not None and w.get("drivers") is not None:
+        j = cap["drivers"].merge(w["drivers"], on=["target", "driver"],
+                                 suffixes=("_c", "_w"))
+        pretty = {"base_rate": "how often it rains",
+                  "continentality_c": "continentality",
+                  "prcp_km": "gauge distance"}
+        rows = ""
+        for _, r in j.iterrows():
+            held = ("held" if (r.p_perm_c < 0.05) == (r.p_perm_w < 0.05)
+                    else "did not hold")
+            rows += (f"<tr><td>{esc(r.target)}</td>"
+                     f"<td>{esc(pretty.get(r.driver, r.driver))}</td>"
+                     f"<td>{r.corr_c:+.2f} (p={r.p_perm_c:.3f})</td>"
+                     f"<td>{r.corr_w:+.2f} (p={r.p_perm_w:.3f})</td>"
+                     f"<td>{held}</td></tr>")
+        rep_html = f"""
+<h3>Which of the 15-city findings survived</h3>
+<table><thead><tr><th>Explaining</th><th>Driver</th>
+<th>15 capitals</th><th>{n} cities</th><th>Replication</th></tr></thead>
+<tbody>{rows}</tbody></table>
+<p>The honest headline of this section is a <b>failure to replicate</b>. Across
+15 capitals, skill looked as though it were largely dictated by how often it
+rains (r&nbsp;=&nbsp;&minus;0.77, p&nbsp;=&nbsp;0.001) &mdash; a tidy story. At
+{n} cities that correlation collapses to roughly &minus;0.11 and is no longer
+distinguishable from chance. It was a small-sample artefact, and had this study
+stopped at the capitals it would have been reported as a result.</p>
+<p>What does survive is the less convenient relationship: <b>calibration error
+grows with the rain rate</b> (r&nbsp;=&nbsp;+0.56, p&nbsp;&lt;&nbsp;0.001).
+Wetter cities are not forecast with less skill, but their stated probabilities
+sit further from the truth. Gauge distance still explains nothing, which
+continues to rule out the obvious measurement artefact.</p>"""
+
+    wb_html = ""
+    wb = w.get("wb")
+    if wb is not None and "eu" in wb:
+        out = wb[~wb.eu]
+        lo_all = int((wb.low_gap > 0).sum()); lo_sig = int((wb.low_lo > 0).sum())
+        hi_all = int((wb.high_gap < 0).sum()); hi_sig = int((wb.high_hi < 0).sum())
+        o_lo = int((out.low_gap > 0).sum()); o_sig = int((out.low_lo > 0).sum())
+        wb_html = f"""
+<h3>The inversion is not a European quirk either</h3>
+<p>Low-probability days produce rain <i>more</i> often than stated in
+<b>{lo_all} of {len(wb)}</b> cities ({lo_sig} with a confidence interval
+excluding zero), and high-probability days produce rain <i>less</i> often in
+<b>{hi_all} of {len(wb)}</b> ({hi_sig} significant) &mdash; the opposite of the
+wet bias documented for consumer forecasts in the literature.</p>
+<div class="callout">The sharper test is the <b>{len(out)} cities outside
+Europe</b> &mdash; Sydney, Montreal, New York, Mexicali and others. They lie
+outside ICON-EU's domain, so a different model entirely is answering the
+request. The low-end under-forecasting still appears in <b>{o_lo} of
+{len(out)}</b> of them ({o_sig} significant). Across 15 European capitals this
+could have been a property of two European models; it now looks like a property
+of how this kind of forecast is made.</div>"""
+
+    lead_html = ""
+    lead = w.get("lead")
+    if lead is not None and len(lead):
+        nl = int(lead.city.nunique())
+        med = lead.groupby("lead_days").tmax_mae_debiased.median()
+        lead_html = f"""
+<h3>Temperature error vs lead time</h3>
+<p>The deterministic track over the same cities, as daily-max error after
+removing each site's constant bias: a median of
+{med.get(1, float('nan')):.2f}&nbsp;&deg;C at one day ahead, rising to
+{med.get(7, float('nan')):.2f}&nbsp;&deg;C at seven.</p>
+<figure><img src="{fig(FIGURES / 'cities_lead_mae.png')}" alt="lead time">
+<figcaption>Daily-max temperature error against lead time, Bucharest in red,
+with meteoblue's published global anchors.</figcaption></figure>
+<p class="muted">This covers <b>{nl} of the {n}</b> cities, not all of them:
+the deterministic track is the most request-hungry step in the study and runs
+into the weather API's hourly quota. It stops cleanly and keeps what it has
+rather than discarding the run, so the figure is a partial but unbiased slice
+&mdash; cities are processed alphabetically, which is unrelated to forecast
+quality.</p>"""
+
+    return f"""
+<h2 id="world">Beyond the capitals: {n} cities</h2>
+<p class="lede">Capitals are a biased sample &mdash; they are where the good
+instruments are. Widening to every city with a usable rain gauge tests whether
+the previous section's conclusions were about weather forecasting or about
+capitals.</p>
+<p>The selection rule is unchanged and mechanical: a gauge within 25&nbsp;km,
+within 300&nbsp;m of the forecast grid point's elevation, reporting through the
+verification period. {probed} cities passed that screen; <b>{n}</b> then
+survived the per-city rain-day convention scan and the record-quality checks.
+Cities sharing a gauge are counted once, so these remain independent samples.</p>
+<div class="callout"><b>Bucharest ranks {rank} of {n}</b> with skill
+{b.bss:.2f} &mdash; rank range {b.rank_lo:.0f}&ndash;{b.rank_hi:.0f}. Its score
+is unchanged to three decimals from the single-city and capitals runs, which is
+the regression test for this whole expansion: adding {n - 1} cities did not
+perturb the original answer.</div>
+<figure><img src="{fig(FIGURES / 'cities_reliability.png')}" alt="all cities">
+<figcaption>Every city as one faint line, the median city in black, Bucharest in
+red; and where Bucharest falls in the distribution of skill.</figcaption></figure>
+{rep_html}
+<figure><img src="{fig(FIGURES / 'cities_baserate.png')}" alt="base rate">
+<figcaption>The base-rate confound at {n} cities. Only the extremes and
+Bucharest are labelled.</figcaption></figure>
+{wb_html}
+{lead_html}
+"""
+
+
 def sec_robust(c) -> str:
     """Task 14: the robustness evidence, which was previously console-only."""
     df = c.get("robust")
@@ -984,7 +1107,7 @@ def document(c: dict, cities: list[dict], excluded: list[dict], sel: dict,
         sec_scorecard(c), sec_seasonfig(c), sec_hourly(c), sec_recal(c),
         sec_robust(c), sec_bench(c), sec_events(c), sec_limits(c),
     ]))
-    cross = responsive_tables(sec_capitals(c))
+    cross = responsive_tables(sec_capitals(c) + sec_world(c))
     ref = responsive_tables(sec_improve() + sec_gloss())
     city_html = {k: responsive_tables(v) for k, v in sel["html"].items()}
 

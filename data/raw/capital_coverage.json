@@ -1,0 +1,377 @@
+{
+  "excluded": {
+    "Andorra la Vella": {
+      "grid_elev_m": 1025.0,
+      "nearest_km": 12.9,
+      "reason": "station elevation differs from the forecast grid point by more than 300 m",
+      "station": "SPE00156495",
+      "station_elev_m": 2451.0,
+      "station_name": "SALORIA"
+    },
+    "Athens": {
+      "nearest_km": 304.9,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Belgrade": {
+      "nearest_km": 157.9,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Bern": {
+      "nearest_km": 40.5,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Bratislava": {
+      "nearest_km": 57.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Brussels": {
+      "nearest_km": 48.5,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Copenhagen": {
+      "nearest_km": 28.2,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Kyiv": {
+      "nearest_km": 93.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Lisbon": {
+      "nearest_km": 201.2,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Ljubljana": {
+      "nearest_km": 162.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "London": {
+      "nearest_km": 40.1,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Minsk": {
+      "nearest_km": 62.6,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Nicosia": {
+      "nearest_km": 211.1,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Prague": {
+      "nearest_km": 87.4,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Pristina": {
+      "nearest_km": 135.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Riga": {
+      "nearest_km": 92.3,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Rome": {
+      "nearest_km": 187.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Skopje": {
+      "nearest_km": 180.9,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Sofia": {
+      "nearest_km": 172.0,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Tirana": {
+      "nearest_km": 105.2,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Vaduz": {
+      "grid_elev_m": 464.0,
+      "nearest_km": 17.7,
+      "reason": "station elevation differs from the forecast grid point by more than 300 m",
+      "station": "SZ000002220",
+      "station_elev_m": 2502.0,
+      "station_name": "SAENTIS"
+    },
+    "Valletta": {
+      "nearest_km": 169.8,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Vilnius": {
+      "nearest_km": 67.6,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Warsaw": {
+      "nearest_km": 84.4,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    },
+    "Zagreb": {
+      "nearest_km": 161.2,
+      "reason": "no PRCP station within 25 km reporting through 2026"
+    }
+  },
+  "included": {
+    "Amsterdam": {
+      "country": "NL",
+      "grid_elev_m": 5.0,
+      "lat": 52.3676,
+      "lon": 4.9041,
+      "prcp_elev_m": -1.0,
+      "prcp_km": 4.6,
+      "prcp_station": "NLE00101920",
+      "prcp_station_name": "SCHELLINGWOUDE",
+      "timezone": "Europe/Amsterdam",
+      "tmax_km": 9.6,
+      "tmax_station": "NLE00152485",
+      "tmax_station_name": "SCHIPHOL"
+    },
+    "Berlin": {
+      "country": "DE",
+      "grid_elev_m": 37.0,
+      "lat": 52.52,
+      "lon": 13.405,
+      "prcp_elev_m": 48.0,
+      "prcp_km": 5.7,
+      "prcp_station": "GME00111445",
+      "prcp_station_name": "BERLIN-TEMPELHOF",
+      "timezone": "Europe/Berlin",
+      "tmax_km": 5.7,
+      "tmax_station": "GME00111445",
+      "tmax_station_name": "BERLIN-TEMPELHOF"
+    },
+    "Bucharest": {
+      "country": "RO",
+      "grid_elev_m": 72.0,
+      "lat": 44.4268,
+      "lon": 26.1025,
+      "prcp_elev_m": 82.0,
+      "prcp_km": 1.1,
+      "prcp_station": "ROE00100899",
+      "prcp_station_name": "BUCURESTI FILARET",
+      "timezone": "Europe/Bucharest",
+      "tmax_km": 10.1,
+      "tmax_station": "ROE00108889",
+      "tmax_station_name": "BUCURESTI-BANEASA"
+    },
+    "Budapest": {
+      "country": "HU",
+      "grid_elev_m": 113.0,
+      "lat": 47.4979,
+      "lon": 19.0402,
+      "prcp_elev_m": 153.0,
+      "prcp_km": 2.1,
+      "prcp_station": "HUE00100247",
+      "prcp_station_name": "BUDAPEST",
+      "timezone": "Europe/Budapest",
+      "tmax_km": 2.1,
+      "tmax_station": "HUE00100247",
+      "tmax_station_name": "BUDAPEST"
+    },
+    "Chisinau": {
+      "country": "MD",
+      "grid_elev_m": 41.0,
+      "lat": 47.0105,
+      "lon": 28.8638,
+      "prcp_elev_m": 173.0,
+      "prcp_km": 1.2,
+      "prcp_station": "MD000033815",
+      "prcp_station_name": "KISINEV",
+      "timezone": "Europe/Chisinau",
+      "tmax_km": 1.2,
+      "tmax_station": "MD000033815",
+      "tmax_station_name": "KISINEV"
+    },
+    "Dublin": {
+      "country": "IE",
+      "grid_elev_m": 11.0,
+      "lat": 53.3498,
+      "lon": -6.2603,
+      "prcp_elev_m": 49.0,
+      "prcp_km": 4.2,
+      "prcp_station": "EI000003969",
+      "prcp_station_name": "DUBLIN PHOENIX PARK",
+      "timezone": "Europe/Dublin",
+      "tmax_km": 4.2,
+      "tmax_station": "EI000003969",
+      "tmax_station_name": "DUBLIN PHOENIX PARK"
+    },
+    "Helsinki": {
+      "country": "FI",
+      "grid_elev_m": 8.0,
+      "lat": 60.1699,
+      "lon": 24.9384,
+      "prcp_elev_m": 4.0,
+      "prcp_km": 0.7,
+      "prcp_station": "FI000000304",
+      "prcp_station_name": "HELSINKI KAISANIEMI AWS",
+      "timezone": "Europe/Helsinki",
+      "tmax_km": 0.7,
+      "tmax_station": "FI000000304",
+      "tmax_station_name": "HELSINKI KAISANIEMI AWS"
+    },
+    "Luxembourg": {
+      "country": "LU",
+      "grid_elev_m": 316.0,
+      "lat": 49.6116,
+      "lon": 6.1319,
+      "prcp_elev_m": 376.0,
+      "prcp_km": 5.4,
+      "prcp_station": "LU000006590",
+      "prcp_station_name": "LUXEMBOURG AIRPORT",
+      "timezone": "Europe/Luxembourg",
+      "tmax_km": 5.4,
+      "tmax_station": "LU000006590",
+      "tmax_station_name": "LUXEMBOURG AIRPORT"
+    },
+    "Madrid": {
+      "country": "ES",
+      "grid_elev_m": 666.0,
+      "lat": 40.4168,
+      "lon": -3.7038,
+      "prcp_elev_m": 667.0,
+      "prcp_km": 2.3,
+      "prcp_station": "SP000003195",
+      "prcp_station_name": "MADRID - RETIRO",
+      "timezone": "Europe/Madrid",
+      "tmax_km": 2.3,
+      "tmax_station": "SP000003195",
+      "tmax_station_name": "MADRID - RETIRO"
+    },
+    "Monaco": {
+      "country": "MC",
+      "grid_elev_m": 74.0,
+      "lat": 43.7384,
+      "lon": 7.4246,
+      "prcp_elev_m": 2.0,
+      "prcp_km": 20.0,
+      "prcp_station": "FRE00104120",
+      "prcp_station_name": "NICE",
+      "timezone": "Europe/Monaco",
+      "tmax_km": 20.0,
+      "tmax_station": "FRE00104120",
+      "tmax_station_name": "NICE"
+    },
+    "Oslo": {
+      "country": "NO",
+      "grid_elev_m": 21.0,
+      "lat": 59.9139,
+      "lon": 10.7522,
+      "prcp_elev_m": 94.0,
+      "prcp_km": 3.6,
+      "prcp_station": "NOE00134274",
+      "prcp_station_name": "OSLO - BLINDERN PLU",
+      "timezone": "Europe/Oslo",
+      "tmax_km": 3.6,
+      "tmax_station": "NOM00001492",
+      "tmax_station_name": "OSLO BLINDERN"
+    },
+    "Paris": {
+      "country": "FR",
+      "grid_elev_m": 36.0,
+      "lat": 48.8566,
+      "lon": 2.3522,
+      "prcp_elev_m": 89.0,
+      "prcp_km": 15.6,
+      "prcp_station": "FRM00007149",
+      "prcp_station_name": "ORLY",
+      "timezone": "Europe/Paris",
+      "tmax_km": 4.0,
+      "tmax_station": "FRM00007156",
+      "tmax_station_name": "PARIS-MONTSOURIS"
+    },
+    "Podgorica": {
+      "country": "ME",
+      "grid_elev_m": 46.0,
+      "lat": 42.4304,
+      "lon": 19.2594,
+      "prcp_elev_m": 49.0,
+      "prcp_km": 1.7,
+      "prcp_station": "MJE00175553",
+      "prcp_station_name": "PODGORICA",
+      "timezone": "Europe/Podgorica",
+      "tmax_km": 1.7,
+      "tmax_station": "MJE00175553",
+      "tmax_station_name": "PODGORICA"
+    },
+    "Reykjavik": {
+      "country": "IS",
+      "grid_elev_m": 7.0,
+      "lat": 64.1466,
+      "lon": -21.9426,
+      "prcp_elev_m": 52.0,
+      "prcp_km": 2.9,
+      "prcp_station": "IC000004030",
+      "prcp_station_name": "REYKJAVIK",
+      "timezone": "Atlantic/Reykjavik",
+      "tmax_km": 2.9,
+      "tmax_station": "IC000004030",
+      "tmax_station_name": "REYKJAVIK"
+    },
+    "Sarajevo": {
+      "country": "BA",
+      "grid_elev_m": 543.0,
+      "lat": 43.8563,
+      "lon": 18.4131,
+      "prcp_elev_m": 630.0,
+      "prcp_km": 1.5,
+      "prcp_station": "BKM00014654",
+      "prcp_station_name": "SARAJEVO",
+      "timezone": "Europe/Sarajevo",
+      "tmax_km": 1.5,
+      "tmax_station": "BKM00014654",
+      "tmax_station_name": "SARAJEVO"
+    },
+    "Stockholm": {
+      "country": "SE",
+      "grid_elev_m": 24.0,
+      "lat": 59.3293,
+      "lon": 18.0686,
+      "prcp_elev_m": 44.0,
+      "prcp_km": 1.3,
+      "prcp_station": "SWE00138886",
+      "prcp_station_name": "STOCKHOLM_A",
+      "timezone": "Europe/Stockholm",
+      "tmax_km": 1.3,
+      "tmax_station": "SWE00138886",
+      "tmax_station_name": "STOCKHOLM_A"
+    },
+    "Tallinn": {
+      "country": "EE",
+      "grid_elev_m": 10.0,
+      "lat": 59.437,
+      "lon": 24.7536,
+      "prcp_elev_m": 33.0,
+      "prcp_km": 9.6,
+      "prcp_station": "ENE00175051",
+      "prcp_station_name": "TALLINN",
+      "timezone": "Europe/Tallinn",
+      "tmax_km": 9.6,
+      "tmax_station": "ENE00175051",
+      "tmax_station_name": "TALLINN"
+    },
+    "Vienna": {
+      "country": "AT",
+      "grid_elev_m": 179.0,
+      "lat": 48.2082,
+      "lon": 16.3738,
+      "prcp_elev_m": 199.0,
+      "prcp_km": 3.3,
+      "prcp_station": "AU000005901",
+      "prcp_station_name": "WIEN",
+      "timezone": "Europe/Vienna",
+      "tmax_km": 3.3,
+      "tmax_station": "AU000005901",
+      "tmax_station_name": "WIEN"
+    }
+  },
+  "probed": "2026-09-13",
+  "rules": {
+    "max_elev_diff_m": 300.0,
+    "max_station_km": 25.0,
+    "min_pairs": 500,
+    "note": "min_pairs is enforced downstream, when daily records are joined; it cannot be checked from the inventory alone.",
+    "window_years": [
+      2024,
+      2026
+    ]
+  }
+}

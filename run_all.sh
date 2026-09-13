@@ -40,7 +40,16 @@ echo "== 9/10 forecast provenance audit, then the like-for-like ranking =="
 (cd src && ../$PY pop_provenance.py)
 (cd src && ../$PY capitals.py pinned)
 
-echo "== 10/10 build the HTML report =="
+echo "== 10/11 beyond the capitals: probe every city with a usable gauge =="
+# GHCN's per-year bulk files replace ~16 GB of per-station downloads, so the
+# expanded set costs one 422 MB fetch rather than one request per station.
+(cd src && ../$PY probe_cities.py)
+(cd src && ../$PY ghcn_bulk.py)
+# The Track A leg of this run is API-heavy and can trip Open-Meteo's hourly
+# limit; `world metrics` recomputes everything else from cache if that happens.
+(cd src && ../$PY capitals.py world)
+
+echo "== 11/11 build the HTML report =="
 (cd src && ../$PY report.py)
 
 echo

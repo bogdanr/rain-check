@@ -5,5 +5,13 @@ __pycache__/
 
 # Network response cache and bulk source downloads: reproducible via run_all.sh
 data/cache/
-data/raw/
+# Note the trailing /* rather than /. Git does not descend into an excluded
+# directory, so with "data/raw/" the negation below can never match - the file
+# stays ignored and the Pages build fails on a fresh checkout while working
+# perfectly on the machine where the file happens to exist untracked.
+data/raw/*
+# ...except the capital coverage probe. It is an *input* to the page build, not
+# a cached download: src/city_report.py reads it to explain which capitals were
+# excluded and why.
+!data/raw/capital_coverage.json
 *.log

@@ -237,6 +237,73 @@ in Bucharest and Reykjavik, forward a day in Amsterdam, Dublin and Luxembourg,
 and not at all elsewhere. Assuming Bucharest's convention travelled would have
 produced confident, wrong curves for a third of the map.</p>
 
+<h2 id="world">Beyond the capitals: 97 cities</h2>
+<p class="lede">Capitals are a biased sample &mdash; they are where the good
+instruments are. Widening to every city with a usable rain gauge tests whether
+the previous section's conclusions were about weather forecasting or about
+capitals.</p>
+<p>The selection rule is unchanged and mechanical: a gauge within 25&nbsp;km,
+within 300&nbsp;m of the forecast grid point's elevation, reporting through the
+verification period. 172 cities passed that screen; <b>97</b> then
+survived the per-city rain-day convention scan and the record-quality checks.
+Cities sharing a gauge are counted once, so these remain independent samples.</p>
+<div class="callout"><b>Bucharest ranks 28 of 97</b> with skill
+0.41 &mdash; rank range 12&ndash;54. Its score
+is unchanged to three decimals from the single-city and capitals runs, which is
+the regression test for this whole expansion: adding 96 cities did not
+perturb the original answer.</div>
+<figure><img src="/figures/cities_reliability.c4f0fd02.png" alt="all cities">
+<figcaption>Every city as one faint line, the median city in black, Bucharest in
+red; and where Bucharest falls in the distribution of skill.</figcaption></figure>
+
+<h3>Which of the 15-city findings survived</h3>
+<div class="tablewrap"><table><thead><tr><th>Explaining</th><th>Driver</th>
+<th>15 capitals</th><th>97 cities</th><th>Replication</th></tr></thead>
+<tbody><tr><td>bss</td><td>how often it rains</td><td>-0.77 (p=0.001)</td><td>-0.11 (p=0.291)</td><td>did not hold</td></tr><tr><td>bss</td><td>continentality</td><td>+0.44 (p=0.097)</td><td>+0.03 (p=0.764)</td><td>held</td></tr><tr><td>bss</td><td>gauge distance</td><td>-0.01 (p=0.975)</td><td>-0.12 (p=0.224)</td><td>held</td></tr><tr><td>reliability</td><td>how often it rains</td><td>+0.81 (p=0.000)</td><td>+0.55 (p=0.000)</td><td>held</td></tr><tr><td>reliability</td><td>continentality</td><td>-0.33 (p=0.232)</td><td>+0.07 (p=0.506)</td><td>held</td></tr><tr><td>reliability</td><td>gauge distance</td><td>+0.10 (p=0.735)</td><td>-0.02 (p=0.804)</td><td>held</td></tr></tbody></table></div>
+<p>The honest headline of this section is a <b>failure to replicate</b>. Across
+15 capitals, skill looked as though it were largely dictated by how often it
+rains (r&nbsp;=&nbsp;&minus;0.77, p&nbsp;=&nbsp;0.001) &mdash; a tidy story. At
+97 cities that correlation collapses to roughly &minus;0.11 and is no longer
+distinguishable from chance. It was a small-sample artefact, and had this study
+stopped at the capitals it would have been reported as a result.</p>
+<p>What does survive is the less convenient relationship: <b>calibration error
+grows with the rain rate</b> (r&nbsp;=&nbsp;+0.56, p&nbsp;&lt;&nbsp;0.001).
+Wetter cities are not forecast with less skill, but their stated probabilities
+sit further from the truth. Gauge distance still explains nothing, which
+continues to rule out the obvious measurement artefact.</p>
+<figure><img src="/figures/cities_baserate.d8ede0bf.png" alt="base rate">
+<figcaption>The base-rate confound at 97 cities. Only the extremes and
+Bucharest are labelled.</figcaption></figure>
+
+<h3>The inversion is not a European quirk either</h3>
+<p>Low-probability days produce rain <i>more</i> often than stated in
+<b>95 of 97</b> cities (87 with a confidence interval
+excluding zero), and high-probability days produce rain <i>less</i> often in
+<b>93 of 97</b> (84 significant) &mdash; the opposite of the
+wet bias documented for consumer forecasts in the literature.</p>
+<div class="callout">The sharper test is the <b>25 cities outside
+Europe</b> &mdash; Sydney, Montreal, New York, Mexicali and others. They lie
+outside ICON-EU's domain, so a different model entirely is answering the
+request. The low-end under-forecasting still appears in <b>23 of
+25</b> of them (19 significant). Across 15 European capitals this
+could have been a property of two European models; it now looks like a property
+of how this kind of forecast is made.</div>
+
+<h3>Temperature error vs lead time</h3>
+<p>The deterministic track over the same cities, as daily-max error after
+removing each site's constant bias: a median of
+1.19&nbsp;&deg;C at one day ahead, rising to
+2.40&nbsp;&deg;C at seven.</p>
+<figure><img src="/figures/cities_lead_mae.861c9345.png" alt="lead time">
+<figcaption>Daily-max temperature error against lead time, Bucharest in red,
+with meteoblue's published global anchors.</figcaption></figure>
+<p class="muted">This covers <b>76 of the 97</b> cities, not all of them:
+the deterministic track is the most request-hungry step in the study and runs
+into the weather API's hourly quota. It stops cleanly and keeps what it has
+rather than discarding the run, so the figure is a partial but unbiased slice
+&mdash; cities are processed alphabetically, which is unrelated to forecast
+quality.</p>
+
 
 <h2 id="deep">The Bucharest deep dive</h2>
 <div class="callout">

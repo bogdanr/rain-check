@@ -292,16 +292,30 @@ def track_a(cities: dict[str, City]) -> pd.DataFrame:
 
         frames = []
         variables = [f"temperature_2m_previous_day{d}" for d in TRACK_A_LEADS]
-        for s, e in _chunks(POP_ARCHIVE_START, ARCHIVE_END):
-            payload = fetch_json(API_PREVIOUS_RUNS, {
-                "latitude": round(city.latitude, 4),
-                "longitude": round(city.longitude, 4),
-                "timezone": "UTC", "models": PRIMARY_MODEL,
-                "hourly": ",".join(variables),
-                "start_date": s, "end_date": e,
-            })
-            if not is_error(payload):
-                frames.append(_hourly_frame(payload))
+        # Track A over a large city set is the most request-hungry step in the
+        # study and reliably outruns Open-Meteo's hourly quota. Crashing here
+        # would throw away every city already computed, so the limit is treated
+        # as "stop cleanly and keep the partial table": cached responses make a
+        # later re-run resume from exactly this point.
+        try:
+            for s, e in _chunks(POP_ARCHIVE_START, ARCHIVE_END):
+                payload = fetch_json(API_PREVIOUS_RUNS, {
+                    "latitude": round(city.latitude, 4),
+                    "longitude": round(city.longitude, 4),
+                    "timezone": "UTC", "models": PRIMARY_MODEL,
+                    "hourly": ",".join(variables),
+                    "start_date": s, "end_date": e,
+                })
+                if not is_error(payload):
+                    frames.append(_hourly_frame(payload))
+        except RuntimeError as exc:
+            if "429" not in str(exc) and "limit" not in str(exc).lower():
+                raise
+            print(f"\n  API hourly limit reached at {name}. Keeping the "
+                  f"{len({r['city'] for r in rows})} cities already measured; "
+                  f"re-run `capitals.py world leads` in the next hour to "
+                  f"continue from here.")
+            break
         if not frames:
             print(f"  {name:12s} no Track A archive")
             continue
@@ -340,7 +354,8 @@ def plot_track_a(la: pd.DataFrame) -> None:
                 color="#d62728" if hero else "#9aa6b2",
                 label="Bucharest" if hero else None, zorder=3 if hero else 2)
     med = la.groupby("lead_days").tmax_mae_debiased.median()
-    ax.plot(med.index, med.values, "k-", lw=2.2, label="capital median")
+    noun = "capital" if CITY_SET == "capitals" else "city"
+    ax.plot(med.index, med.values, "k-", lw=2.2, label=f"{noun} median")
     ax.scatter([1, 6], [METEOBLUE_MLM_DAY1, METEOBLUE_MLM_DAY6], marker="s",
                color="#2ca02c", zorder=4,
                label="meteoblue post-processed (published)")
@@ -348,7 +363,9 @@ def plot_track_a(la: pd.DataFrame) -> None:
                zorder=4, label="best raw model, day 1 (published)")
     ax.set_xlabel("Lead time (days)")
     ax.set_ylabel("Daily-max temperature MAE after removing site bias (C)")
-    ax.set_title("Temperature error vs lead time across European capitals\n"
+    where = ("European capitals" if CITY_SET == "capitals"
+             else f"{la.city.nunique()} cities worldwide")
+    ax.set_title(f"Temperature error vs lead time across {where}\n"
                  "with meteoblue's published global anchors", fontsize=10.5)
     ax.grid(alpha=0.25); ax.legend(fontsize=8.5)
     path = figure("lead_mae")
@@ -885,7 +902,10 @@ def main() -> None:
         plot_pinned(pin, published)
         return
 
-    if mode == "metrics" and daily_path.exists():
+    # `leads` joins `metrics` on the cached path: the Track A leg is the only
+    # part that still needs the network, and rebuilding the whole PoP side just
+    # to reach it wastes half an hour of lag scans on data already on disk.
+    if mode in ("metrics", "leads") and daily_path.exists():
         daily = pd.read_parquet(daily_path)
         diag = pd.read_parquet(artefact("diagnostics"))
     else:

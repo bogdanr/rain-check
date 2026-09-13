@@ -1,0 +1,99 @@
+# Rebuild the report page from committed artefacts and publish it to Pages.
+#
+# CI deliberately does not re-run the study. run_all.sh needs days of archive
+# downloads and would make every deploy a fresh experiment whose numbers could
+# drift from the ones that were reviewed. Instead the analysis outputs -
+# data/processed/*.parquet, data/raw/capital_coverage.json and figures/*.png -
+# are committed, and this workflow only re-renders the page around them. A
+# change to the copy or the CSS therefore cannot move a published statistic.
+#
+# Re-running the analysis stays a deliberate, local act: `./run_all.sh`, then
+# commit the changed artefacts and review the diff like any other change.
+
+name: Deploy report to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'data/processed/**'
+      - 'data/raw/capital_coverage.json'
+      - 'figures/**'
+      - 'requirements-site.txt'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it: a half-published
+# site is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-site.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-site.txt
+
+      - name: Install Chromium for verification
+        run: python -m playwright install --with-deps chromium
+
+      - name: Fail early if an analysis artefact is missing
+        # Without this the build dies deep inside pandas with a stack trace
+        # about a missing column. Naming the actual missing file is the
+        # difference between a five second fix and a confused afternoon.
+        run: |
+          missing=0
+          for f in data/processed/capitals_metrics.parquet \
+                   data/processed/capitals_pop.parquet \
+                   data/processed/capitals_diagnostics.parquet \
+                   data/raw/capital_coverage.json; do
+            if [ ! -f "$f" ]; then echo "missing artefact: $f"; missing=1; fi
+          done
+          test "$missing" -eq 0
+
+      - name: Build the site
+        # A project site is served from /<repo>/, so the base path is derived
+        # from the repository name rather than hardcoded - renaming the repo
+        # (this one was renamed once already) would otherwise 404 every asset.
+        run: |
+          python src/report.py \
+            --base "/${GITHUB_REPOSITORY#*/}/" \
+            --origin "https://${GITHUB_REPOSITORY%%/*}.github.io"
+
+      - name: Verify the built site
+        # The full suite: land/sea rendering, theme contrast, every marker
+        # clickable, all three themes reachable at phone widths, city switching,
+        # no-JS fallback, and a byte-identical rebuild. Publishing a page whose
+        # globe is unreadable or whose theme control is off-screen is exactly
+        # the class of bug that is invisible in review.
+        run: python src/check_site.py
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

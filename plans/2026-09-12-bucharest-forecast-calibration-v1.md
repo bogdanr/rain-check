@@ -507,7 +507,58 @@ persistent cold bias (-0.88 C at lead 1) that shrinks with lead time. ICON-EU
 beats ECMWF IFS 0.25 at every common lead (1.26 vs 1.59 C at lead 1), though
 the gap narrows by lead 4.
 
-### Limitations
+### Phase 9 - Beyond the capitals: every city with a usable gauge (DONE)
+
+Capitals are where the good instruments are, which makes them a biased sample
+for a question about forecast quality. Population was considered as the
+expansion axis and rejected on measurement: only 55 of the world's 573 cities
+over 1M have a usable gauge, and nothing in the results is explained by city
+size. The binding constraint is observations, so the selection rule is the one
+already in use, applied without a population floor.
+
+**The ceiling, measured not assumed:** 8,055 of the 26,569 GeoNames cities have
+a PRCP gauge within 25 km reporting through the verification period. The real
+limit was never the data - it was the cost of fetching it.
+
+| Step | Outcome |
+|---|---|
+| 40. Bulk GHCN extractor (`src/ghcn_bulk.py`) | Three `by_year` files (422 MB) replace ~16 GB of per-station downloads. Verified **byte-identical** to the per-station path for Bucharest - zero differing days - before adoption |
+| 41. `src/probe_cities.py` | Dedupes **by station, not by city**: two cities sharing a gauge are not independent samples. Country cap stops the US/Germany/Japan swamping the set. 172 cities, 42 countries |
+| 42. `capitals.py world` | Same module, same analysis; only the registry and output prefix differ (`CITY_SET`). A forked copy would drift, and the whole value of the expansion rests on identical computation |
+| 43. Large-set figures | A 172-panel grid is a wall, not a plot. `plot_many` overlays every city as one faint line with the median in black |
+
+**97 cities survived** the per-city convention scan and record checks, 25 of
+them outside Europe. Bucharest ranks **28 of 97**, rank interval 12-54, with
+BSS **0.409 - unchanged to three decimals** from the single-city and capitals
+runs. That invariance is the regression test for the whole expansion.
+
+**The most important result is a failure to replicate.** The Phase 7 headline -
+that skill is largely dictated by how often it rains (r = -0.77, p = 0.001 at
+n=15) - **collapses to r = -0.11, p = 0.29 at n=97**. It was a small-sample
+artefact of a geographically narrow set. Had the study stopped at the capitals,
+it would have been published as a result. What survives is less convenient:
+calibration error grows with the rain rate (r = +0.81 -> +0.56, still p < 0.001).
+Gauge distance still explains nothing (r = -0.12, p = 0.22), which continues to
+rule out the obvious measurement artefact.
+
+**The universality claim now has an independent test.** Across the 15 capitals,
+`best_match` resolved only ever to ICON-EU or ECMWF, so the wet-bias inversion
+could have been a property of two European models. The 25 non-European cities
+lie outside ICON-EU's domain and are served by a different model entirely. The
+inversion holds in **23 of 25** of them (19 significant) - Sydney, Melbourne,
+Montreal, New York, Mexicali. Overall: low-end under-forecasting in 95/97
+cities, high-end over-forecasting in 93/97.
+
+**Track A across the world set is deliberately partial.** The deterministic leg
+is the most request-hungry step in the study and repeatedly outran Open-Meteo's
+hourly quota. The fix was not to retry harder but to make the step *resumable*:
+a quota error now stops cleanly, keeps every city already measured, and prints
+how to continue, with cached responses letting a re-run pick up from exactly
+that city. Result: **76 of 97 cities**, median daily-max error 1.19 C at lead 1
+rising to 2.40 C at lead 7. Cities are processed alphabetically, which is
+unrelated to forecast quality, so the slice is partial but not biased. The
+report states the 76/97 coverage rather than implying full coverage.
+
 
 - The headline reliability diagram is at **one short lead time only**. It does
   not answer "how far ahead can I trust the forecast" for probabilities; Track C
@@ -543,8 +594,32 @@ the gap narrows by lead 4.
 - **The multi-city temperature comparison is on daily maxima, meteoblue's is on
   hourly temperature.** The two curves are neighbours, useful as a sanity band,
   and not the same statistic.
+- **The 97-city set is not a sample of the world's cities**, and no result
+  should be read as a global average. It is the set that survived a gauge
+  requirement, and it is heavily European (72 of 97) because that is where
+  dense, currently-reporting GHCN precipitation lives. 77 of the 172 probed
+  cities were dropped after their data arrived - mostly too few usable pairs,
+  or a rain-day convention that no lag scan could resolve.
+- **Phase 7's base-rate finding did not replicate and should not be quoted.**
+  The r = -0.77 skill/base-rate correlation was an artefact of n=15. This is
+  recorded rather than deleted because the failure is more informative than the
+  original claim: it shows the capitals set was too small to support
+  cross-city explanations at all.
+- **"Outside ICON-EU's domain" is an inference about routing, not a per-city
+  measurement.** The provenance audit was run on the capitals; for the 25
+  non-European cities the model identity is inferred from domain geography.
+  The independence of that test would be firmer with a provenance run over the
+  wider set.
 
 ## Verification Criteria
+
+- Bucharest's Brier score, BSS and reliability are **identical to three
+  decimals** in the single-city, 15-capital and 97-city runs. Any drift means
+  the registry refactor changed the computation rather than widening it.
+- The bulk GHCN extractor reproduces the per-station loader **exactly** for
+  Bucharest (zero differing days) before it is used for anything else.
+- Every Phase 7 cross-city claim is re-run at n=97 and labelled held or not
+  held, with both correlations and p-values shown side by side.
 
 - Several hundred matched forecast-observation pairs per lead day, with
   missing-data counts reported.
