@@ -107,7 +107,19 @@ STANDALONE = False
 # now overdue: the next time this number wants to move, move the content
 # instead - the consulting, glossary and provider sections are the bottom
 # third of the page and are the obvious candidates for lazy rendering.
-FIRST_LOAD_BUDGET_KB = 478
+#
+# Lowered from 478 to 410 (2026-09-15), the first time this number has gone
+# down. 478 was reached by the raises above and then breached in CI, because
+# the published build carries a `/rain-check/` prefix on every root-relative
+# URL and there are hundreds of them - about 3 KB that a root-base build never
+# sees, so the gate was reading 3 KB optimistic on the only build that ships.
+# Rather than raise it a fifth time, the standing instruction above was
+# followed: the three cross-city charts are now fetched on approach rather than
+# inlined (see `lazy_chart`), the config ships packed, and chart coordinates
+# carry one decimal. That is ~83 KB off, to 395 KB at root and 398 KB as
+# published. The budget is set just above the published figure, not the local
+# one, so the headroom quoted here is headroom the deploy actually has.
+FIRST_LOAD_BUDGET_KB = 410
 
 
 def fig(path: Path) -> str:
@@ -115,6 +127,45 @@ def fig(path: Path) -> str:
     if STANDALONE or SITE is None:
         return embed_png(path)
     return SITE.add_file("figures", path)
+
+
+def lazy_chart(svg: str, name: str) -> str:
+    """A cross-city chart the reader downloads only if they scroll to it.
+
+    The three of these are ~73 KB of markup - a third of `index.html` - and they
+    sit two thirds of the way down a long page, identical on all 109 city pages.
+    Inlined, every cold visit paid for them whether or not the reader ever got
+    that far, and every city switch re-downloaded them inside the next page.
+    Shipped as one hashed asset each and fetched on approach, they cost nothing
+    up front and are cached once for the whole site.
+
+    They cannot become `<img>` tags: the page's CSS themes them and the reader
+    hovers and clicks the cities in them. Injecting the same SVG text into the
+    document keeps both, because it is the same node it always was.
+
+    Without JavaScript the `<noscript>` PNG stands in - the same figure drawn by
+    matplotlib for the standalone report - so the no-JS reader sees the chart
+    rather than a hole where one was promised.
+    """
+    if not svg:
+        return ""
+    if STANDALONE or SITE is None:
+        return svg
+
+    url = SITE.add_text("charts", f"{name}.svg", svg)
+    # Read back from the SVG rather than repeating them here: `city_charts`
+    # owns these numbers, and a box reserved at the wrong shape would shift the
+    # page under the reader at the moment the chart lands.
+    box = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', svg)
+    label = re.search(r'aria-label="([^"]*)"', svg)
+    ratio = f"{box.group(1)}/{box.group(2)}" if box else "560/400"
+
+    png = FIGURES / f"{name}.png"
+    fallback = (f'<noscript><img loading="lazy" src="{fig(png)}" '
+                f'alt="{label.group(1) if label else ""}"></noscript>'
+                if png.exists() else "")
+    return (f'<div class="lazychart" data-chart-src="{url}" '
+            f'style="--ar:{ratio}">{fallback}</div>')
 
 
 def compute() -> dict:
@@ -734,7 +785,7 @@ of how this kind of forecast is made.</div>"""
 removing each site's constant bias: a median of
 {med.get(1, float('nan')):.2f}&nbsp;&deg;C at one day ahead, rising to
 {med.get(7, float('nan')):.2f}&nbsp;&deg;C at seven.</p>
-<figure>{city_charts.lead_mae_lines(lead)}
+<figure>{lazy_chart(city_charts.lead_mae_lines(lead), 'cities_lead_mae')}
 <figcaption>Daily-max temperature error against lead time. One line per city,
 <i>median</i> in black, <b>your selected city</b> picked out.</figcaption></figure>
 <p class="muted">This covers <b>{nl} of the {n}</b> cities, not all of them:
@@ -760,7 +811,7 @@ Cities sharing a gauge are counted once, so these remain independent samples.</p
 is unchanged to three decimals from the single-city and capitals runs, which is
 the regression test for this whole expansion: adding {n - 1} cities did not
 perturb the original answer.</div>
-<figure>{city_charts.reliability_spaghetti(w["pop"], met) if w.get("pop") is not None else ''}
+<figure>{lazy_chart(city_charts.reliability_spaghetti(w['pop'], met), 'cities_reliability') if w.get('pop') is not None else ''}
 <figcaption>Every city's calibration curve at once. Hover any line to name it;
 the black line is the median city and the highlighted one is whichever city you
 have selected above.</figcaption></figure>
@@ -768,7 +819,7 @@ have selected above.</figcaption></figure>
 <span><b>&#9679;</b> your selection</span>
 <span>each faint line = one city</span></p>
 {rep_html}
-<figure>{city_charts.baserate_scatter(met)}
+<figure>{lazy_chart(city_charts.baserate_scatter(met), 'cities_baserate')}
 <figcaption>The base-rate confound at {n} cities: skill against how often it
 rains. The vertical spread at any given rain frequency is what killed the
 capitals-era correlation.</figcaption></figure>
@@ -1301,15 +1352,27 @@ def main() -> None:
 
     # Marker/selector data: the numeric summary only, no HTML. Rounded to the
     # precision the globe actually renders - a tooltip shows two decimals and a
-    # dot is placed to the nearest ten metres, so shipping seventeen significant
-    # figures of float noise for every city is pure first-load weight. The
+    # dot lands within a hundred metres at any zoom the globe allows, which is
+    # far inside one pixel, so shipping seventeen significant figures of float
+    # noise for every city is pure first-load weight. The
     # per-city city count is gone too: it is the length of this very list.
     lite = [{"slug": p["slug"], "name": p["name"], "country": p["country"],
-             "lat": round(p["lat"], 4), "lon": round(p["lon"], 4),
+             "lat": round(p["lat"], 3), "lon": round(p["lon"], 3),
              "bss": round(p["bss"], 4), "n": p["n"],
              "base_rate": round(p["base_rate"], 4),
              "rank_lo": round(p["rank_lo"], 1),
              "rank_hi": round(p["rank_hi"], 1)} for p in payloads]
+
+    # The same records, column-oriented, for the browser. JSON objects repeat
+    # every key name in every record, so at 109 cities the ten names above are
+    # written 109 times - some 6 KB of the first load spent on the word
+    # "base_rate". The rows carry the values in the order the columns name them
+    # and `app.js` rebuilds the objects before anything reads them. `lite`
+    # itself stays as it is: the server-rendered fallback list is written from
+    # it, and that code is clearer against records.
+    city_cols = ["slug", "name", "country", "lat", "lon", "bss", "n",
+                 "base_rate", "rank_lo", "rank_hi"]
+    city_rows = [[c[k] for k in city_cols] for c in lite]
 
     if STANDALONE:
         SITE = None
@@ -1357,6 +1420,12 @@ def main() -> None:
     city_urls = {p["slug"]: site.add_json("data/cities", f"{p['slug']}.json", p)
                  for p in payloads}
 
+    # Only the eight-character digest varies across these URLs - the directory
+    # and the slug are both already known to the client - so the config carries
+    # the digests alone and `app.js` reassembles the path. Shipping the full
+    # URL 109 times was ~3.5 KB of repeated prefix on every page.
+    city_hashes = {slug: url.rsplit(".", 2)[1] for slug, url in city_urls.items()}
+
     og = site.add_file("figures", FIGURES / "capitals_reliability.png")
 
     for p in payloads:
@@ -1365,8 +1434,9 @@ def main() -> None:
         cfg = {
             "base": site.base,
             "defaultSlug": default_slug,
-            "cities": lite,
-            "cityUrls": city_urls,
+            "cityCols": city_cols,
+            "cityRows": city_rows,
+            "cityHashes": city_hashes,
             "landUrl": assets["land"],
             "landDetailUrl": assets["landDetail"],
             "reliefUrl": assets["relief"],

@@ -432,6 +432,14 @@ a { color: var(--accent); }
    faint so that the median and the selected city are the two things the eye
    actually lands on. Hover lifts a single line out of the crowd. */
 .citychart { display: block; max-width: 560px; margin: 0 auto; }
+/* The box a cross-city chart arrives into. It is reserved at the chart's own
+   aspect ratio - Python passes it in --ar, read back from the viewBox - so
+   nothing below moves when the SVG lands. A page that reflows under a reader
+   who has just started reading is worse than a chart arriving a moment late. */
+.lazychart {
+  display: block; max-width: 560px; margin: 0 auto; aspect-ratio: var(--ar);
+}
+.lazychart img { width: 100%; height: auto; }
 .citychart .cc-line polyline {
   stroke: var(--muted); stroke-width: 1; opacity: .28; fill: none;
   vector-effect: non-scaling-stroke;

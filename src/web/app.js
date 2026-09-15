@@ -13,6 +13,22 @@
   'use strict';
 
   var cfg = JSON.parse(document.getElementById('site-config').textContent);
+
+  // The config arrives packed: the city table column-oriented, and the payload
+  // URLs as bare digests. At 109 cities, repeating ten key names and a shared
+  // path prefix in JSON cost about 10 KB of every cold load for no information.
+  // Unpack once, here, so nothing below this point knows it was ever packed.
+  cfg.cities = (cfg.cityRows || []).map(function (row) {
+    var c = {};
+    cfg.cityCols.forEach(function (k, i) { c[k] = row[i]; });
+    return c;
+  });
+  cfg.cityUrls = {};
+  Object.keys(cfg.cityHashes || {}).forEach(function (slug) {
+    cfg.cityUrls[slug] = cfg.base + 'data/cities/' + slug + '.' +
+                         cfg.cityHashes[slug] + '.json';
+  });
+
   var root = document.documentElement;
   var cache = {};                      // slug -> payload
   // The page this script loaded on, not necessarily the default city: every
@@ -171,6 +187,56 @@
     $$('.chartkey b').forEach(function (b) {
       b.textContent = name || 'your selection';
     });
+  }
+
+  function cityName(slug) {
+    var c = cfg.cities.filter(function (x) { return x.slug === slug; })[0];
+    return c ? c.name : '';
+  }
+
+  /* Fetch the cross-city charts when the reader gets near them.
+   *
+   * Each is ~25 KB of SVG sitting two thirds of the way down the page; inlined,
+   * they were a third of the document that every cold visit downloaded whether
+   * or not the reader ever scrolled that far. Python emits them as hashed
+   * assets and this brings them in on approach - into the live document, not an
+   * <img>, so the page CSS themes them and the per-city hover and highlight
+   * keep working exactly as when they were inline.
+   *
+   * A wide rootMargin means the request starts well before the chart is on
+   * screen, so in normal reading it has arrived by the time it is looked at. */
+  function initLazyCharts() {
+    var boxes = $$('.lazychart');
+    if (!boxes.length) return;
+
+    function load(box) {
+      if (box.dataset.state) return;
+      box.dataset.state = 'loading';
+      fetch(box.dataset.chartSrc).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      }).then(function (svg) {
+        box.innerHTML = svg;
+        box.dataset.state = 'ready';
+        // The selection happened before this chart existed, so it has to be
+        // applied now rather than waiting for the next city switch.
+        highlightCharts(current, cityName(current));
+      }).catch(function () {
+        // Leave the reserved box and its <noscript> alternative alone, and let
+        // the next approach try again rather than failing permanently.
+        box.dataset.state = '';
+      });
+    }
+
+    if (!window.IntersectionObserver) { boxes.forEach(load); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        load(e.target);
+      });
+    }, { rootMargin: '800px 0px' });
+    boxes.forEach(function (b) { io.observe(b); });
   }
 
   function cityUrl(slug) {
@@ -770,11 +836,11 @@
     initPalette();
     initRail();
     initGlobe();
+    initLazyCharts();
 
     // The first city is server-rendered, so renderCity() has not run for it and
     // the charts would open with nothing picked out.
-    var start = (cfg.inline && cfg.inline.name) ||
-                (cfg.cities.filter(function (c) { return c.slug === current; })[0] || {}).name;
+    var start = (cfg.inline && cfg.inline.name) || cityName(current);
     highlightCharts(current, start);
 
     // Hover-prefetch: by the time a click lands the payload is usually already

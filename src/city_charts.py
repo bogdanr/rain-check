@@ -34,6 +34,18 @@ from sitebuild import slugify
 SPAGHETTI_BINS = 5
 
 
+def _n(v) -> str:
+    """A coordinate as short text: one decimal, and no trailing `.0`.
+
+    The viewBox is 560 units wide and renders at most 560 pixels, so a tenth of
+    a unit is already a tenth of a pixel and a second decimal is invisible. The
+    two characters in `58.0` are not: these three charts carry some 5,000
+    numbers between them, and every one is shipped to every reader.
+    """
+    s = f"{float(v):.1f}"
+    return s[:-2] if s.endswith(".0") else s
+
+
 def _frame(w, h, pad):
     l, r, t, b = pad
     return (lambda v, lo, hi: l + (v - lo) / (hi - lo) * (w - l - r),
@@ -50,16 +62,16 @@ def _axes(p, w, h, pad, xticks, yticks, fx, fy, xlab, ylab):
     p.append(f'<rect class="chart-plot" x="{l}" y="{t}" '
              f'width="{w-l-r}" height="{h-t-b}"/>')
     for v, lab in xticks:
-        x = fx(v)
-        p.append(f'<line class="chart-grid" x1="{x:.1f}" y1="{t}" '
-                 f'x2="{x:.1f}" y2="{h-b}"/>')
-        p.append(f'<text class="chart-axis" x="{x:.1f}" y="{h-b+16}" '
+        x = _n(fx(v))
+        p.append(f'<line class="chart-grid" x1="{x}" y1="{t}" '
+                 f'x2="{x}" y2="{h-b}"/>')
+        p.append(f'<text class="chart-axis" x="{x}" y="{h-b+16}" '
                  f'font-size="11" text-anchor="middle">{lab}</text>')
     for v, lab in yticks:
         y = fy(v)
-        p.append(f'<line class="chart-grid" x1="{l}" y1="{y:.1f}" '
-                 f'x2="{w-r}" y2="{y:.1f}"/>')
-        p.append(f'<text class="chart-axis" x="{l-8}" y="{y+4:.1f}" '
+        p.append(f'<line class="chart-grid" x1="{l}" y1="{_n(y)}" '
+                 f'x2="{w-r}" y2="{_n(y)}"/>')
+        p.append(f'<text class="chart-axis" x="{l-8}" y="{_n(y+4)}" '
                  f'font-size="11" text-anchor="end">{lab}</text>')
     p.append(f'<text class="chart-label" x="{(l+w-r)/2:.0f}" y="{h-6}" '
              f'font-size="12.5" text-anchor="middle">{esc(xlab)}</text>')
@@ -94,8 +106,8 @@ def reliability_spaghetti(pop: pd.DataFrame, met: pd.DataFrame) -> str:
     _axes(p, W, H, pad, ticks, ticks, fx, fy,
           "What the forecast promised", "How often it actually rained")
 
-    p.append(f'<line class="chart-ideal" x1="{fx(0):.1f}" y1="{fy(0):.1f}" '
-             f'x2="{fx(1):.1f}" y2="{fy(1):.1f}" stroke-dasharray="5,4" '
+    p.append(f'<line class="chart-ideal" x1="{_n(fx(0))}" y1="{_n(fy(0))}" '
+             f'x2="{_n(fx(1))}" y2="{_n(fy(1))}" stroke-dasharray="5,4" '
              f'stroke-width="1.3"/>')
 
     curves = []
@@ -107,7 +119,7 @@ def reliability_spaghetti(pop: pd.DataFrame, met: pd.DataFrame) -> str:
                                     n_bins=SPAGHETTI_BINS)
         except Exception:
             continue
-        pts = " ".join(f"{fx(r.mean_prob):.1f},{fy(r.obs_freq):.1f}"
+        pts = " ".join(f"{_n(fx(r.mean_prob))},{_n(fy(r.obs_freq))}"
                        for _, r in tbl.iterrows())
         curves.append(tbl[["mean_prob", "obs_freq"]].assign(
             bin=range(len(tbl)), city=name))
@@ -122,7 +134,7 @@ def reliability_spaghetti(pop: pd.DataFrame, met: pd.DataFrame) -> str:
         allc = pd.concat(curves)
         med = allc.groupby("bin").agg(x=("mean_prob", "median"),
                                       y=("obs_freq", "median")).dropna()
-        pts = " ".join(f"{fx(r.x):.1f},{fy(r.y):.1f}" for _, r in med.iterrows())
+        pts = " ".join(f"{_n(fx(r.x))},{_n(fy(r.y))}" for _, r in med.iterrows())
         p.append(f'<polyline class="cc-median" points="{pts}" fill="none"/>')
 
     # The selected city is re-drawn on top by the browser, but it also needs a
@@ -163,15 +175,14 @@ def baserate_scatter(met: pd.DataFrame) -> str:
 
     # Zero skill: below this line a forecast has not beaten climatology.
     if y_lo < 0 < y_hi:
-        p.append(f'<line class="chart-base" x1="{fx(0):.1f}" y1="{fy(0):.1f}" '
-                 f'x2="{fx(x_hi):.1f}" y2="{fy(0):.1f}" stroke-dasharray="4,4"/>')
+        p.append(f'<line class="chart-base" x1="{_n(fx(0))}" y1="{_n(fy(0))}" '
+                 f'x2="{_n(fx(x_hi))}" y2="{_n(fy(0))}" stroke-dasharray="4,4"/>')
 
     p.append('<g class="cc-dots">')
     for _, r in d.iterrows():
         tip = (f"{r.city}&#10;skill {r.bss:.2f}&#10;"
                f"rain on {r.base_rate:.0%} of days&#10;{int(r.n)} days")
-        body = (f'<circle cx="{fx(r.base_rate):.1f}" cy="{fy(r.bss):.1f}" '
-                f'r="5"/>')
+        body = f'<circle cx="{_n(fx(r.base_rate))}" cy="{_n(fy(r.bss))}" r="5"/>'
         p.append(_city_g(r.city, "cc-dot", body, tip))
     p.append('</g><g class="cc-top"></g></svg>')
     return "".join(p)
@@ -207,7 +218,7 @@ def lead_mae_lines(lead: pd.DataFrame) -> str:
     p.append('<g class="cc-lines">')
     for name, g in d.groupby("city"):
         g = g.sort_values("lead_days")
-        pts = " ".join(f"{fx(r.lead_days):.1f},{fy(getattr(r, col)):.1f}"
+        pts = " ".join(f"{_n(fx(r.lead_days))},{_n(fy(getattr(r, col)))}"
                        for r in g.itertuples())
         one = g[g.lead_days == 1]
         tip = (f"{name}&#10;day 1: {one[col].iloc[0]:.2f} \u00b0C"
@@ -217,7 +228,7 @@ def lead_mae_lines(lead: pd.DataFrame) -> str:
     p.append('</g>')
 
     med = d.groupby("lead_days")[col].median()
-    pts = " ".join(f"{fx(k):.1f},{fy(v):.1f}" for k, v in med.items())
+    pts = " ".join(f"{_n(fx(k))},{_n(fy(v))}" for k, v in med.items())
     p.append(f'<polyline class="cc-median" points="{pts}" fill="none"/>')
     p.append('<g class="cc-top"></g></svg>')
     return "".join(p)

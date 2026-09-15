@@ -84,6 +84,22 @@ def serve(directory: Path) -> tuple[str, socketserver.TCPServer]:
 
 
 # ---------------------------------------------------------------------------
+def _unpack(cfg: dict) -> None:
+    """Rebuild the city records and payload URLs the config ships packed.
+
+    `report.py` sends the city table column-oriented and the payload URLs as
+    bare digests, to keep ~10 KB of repeated key names and path prefixes off
+    every cold load; `app.js` expands them on arrival. Doing the same here means
+    the checks below go on reading the shapes they always read, and - more to
+    the point - they are then verifying the same unpacking the browser does,
+    from the same bytes.
+    """
+    cfg["cities"] = [dict(zip(cfg["cityCols"], row)) for row in cfg["cityRows"]]
+    cfg["cityUrls"] = {
+        slug: f"{cfg['base']}data/cities/{slug}.{digest}.json"
+        for slug, digest in cfg["cityHashes"].items()}
+
+
 def check_structure(dist: Path, r: Result) -> dict:
     index = dist / "index.html"
     if not r.add(index.exists(), "index.html exists"):
@@ -93,6 +109,7 @@ def check_structure(dist: Path, r: Result) -> dict:
     cfg = json.loads(re.search(
         r'<script id="site-config" type="application/json">(.*?)</script>',
         html, re.S).group(1))
+    _unpack(cfg)
 
     slugs = [c["slug"] for c in cfg["cities"]]
     default = cfg["defaultSlug"]
@@ -674,6 +691,38 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
               "figures arrive at their value without counting up")
         mctx.close()
 
+        # --- deferred cross-city charts --------------------------------------
+        # These three are fetched on approach rather than inlined, which is most
+        # of what keeps the first load under budget. Two things have to hold for
+        # that to be a saving rather than a loss: the document must not carry
+        # them, and scrolling must actually produce them - fully wired, with the
+        # selected city picked out, exactly as when they were inline.
+        cpage = ctx.new_page()
+        cpage.goto(base_url + "/", wait_until="networkidle")
+        charts = cpage.locator(".lazychart")
+        boxes = charts.count()
+        r.add(boxes >= 1, "cross-city charts are deferred, not inlined",
+              f"{boxes} deferred, "
+              f"{cpage.locator('#main > section .citychart').count()} inline")
+        # One at a time: a single jump to the last one leaves the ones above it
+        # off screen and unobserved, which would read as a failure when it is
+        # only a test that scrolled past them.
+        arrived = 0
+        for i in range(boxes):
+            charts.nth(i).scroll_into_view_if_needed()
+            try:
+                cpage.wait_for_function(
+                    "i => !!document.querySelectorAll('.lazychart')[i]"
+                    "      .querySelector('svg.citychart')", arg=i, timeout=10000)
+                arrived += 1
+            except Exception:
+                break
+        r.add(arrived == boxes, "every deferred chart arrives on scroll",
+              f"{arrived} of {boxes}")
+        r.add(cpage.locator(".lazychart svg .cc.on").count() == arrived,
+              "an arriving chart picks out the selected city")
+        cpage.close()
+
         r.add(not errors, "no console or page errors", "; ".join(errors[:3]))
         ctx.close()
         browser.close()
@@ -700,6 +749,12 @@ def check_nojs(base_url: str, cfg: dict, r: Result) -> None:
               "globe falls back to a full list of capitals")
         r.add(page.locator("#city-curve svg").count() >= 1,
               "calibration chart is server-rendered SVG, not drawn by script")
+        # The cross-city charts are the one thing on the page that genuinely
+        # needs script to arrive, so they carry a <noscript> alternative: the
+        # same figure as a PNG. Without this the deferral would quietly cost the
+        # no-JS reader three charts the text refers to.
+        r.add(page.locator(".lazychart noscript, .lazychart img").count() >= 1,
+              "deferred charts fall back to figures without JavaScript")
         browser.close()
 
 
