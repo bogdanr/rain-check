@@ -5,6 +5,7 @@ Usage:
     python src/collect_archive.py hist_pop
     python src/collect_archive.py era5
     python src/collect_archive.py all
+    python src/collect_archive.py all-providers [city]   # Phase 1, Task 3
 """
 
 from __future__ import annotations
@@ -24,10 +25,14 @@ from config import (
     LEAD_DAYS,
     LONGITUDE,
     PRIMARY_MODEL,
+    PROVIDER_MODELS,
+    PROVIDER_SPACING_S,
     RAW,
+    City,
+    load_capitals,
 )
 from constants import POP_ARCHIVE_START
-from fetch import fetch_json, is_error, reason
+from fetch import fetch_json, is_error, network_calls, reason
 
 BASE = {"latitude": LATITUDE, "longitude": LONGITUDE, "timezone": "UTC"}
 
@@ -90,6 +95,102 @@ def collect_hist_pop() -> pd.DataFrame:
     return df
 
 
+def collect_provider_pop(city: City, model: str, *, force: bool = False
+                         ) -> tuple[pd.DataFrame, int]:
+    """Task 3: hourly PoP for one pinned model at one city, resumable.
+
+    The per-chunk HTTP responses are cached by fetch.py, so an interrupted
+    archive walk resumes from the first missing chunk. The assembled parquet
+    is the unit of completion: if it exists and is fresh the model is skipped
+    entirely, which is what makes a multi-day, multi-model collection
+    idempotent. Returns (series, fetched) - `fetched` is True only when this
+    call issued at least one network request, so the caller can spend its
+    politeness pauses only where they are actually needed. The second element is
+    the number of network requests issued, so the caller can scale its pause
+    to the size of the burst.
+    """
+    out = RAW / f"provider_pop_{city.name.lower().replace(' ', '_')}_{model}.parquet"
+    if out.exists() and not force:
+        df = pd.read_parquet(out)
+        # A finished series is only reused while it reaches ARCHIVE_END. Once
+        # the archive advances past the stored last day, re-walk the chunks:
+        # every chunk except the current tail is a cache hit (no network, no
+        # throttle), so refreshing costs one request per stale series per day.
+        last = df.time.max().date() if len(df) else None
+        if last is None:
+            # Empty parquet = a cached "no archive data here" verdict: the
+            # provider deterministically serves nothing for this pair, so
+            # there is nothing to refresh and nothing to be polite about.
+            print(f"  {city.name} {model}: cached no-data verdict")
+            return df, 0
+        if last >= date.fromisoformat(ARCHIVE_END) - timedelta(days=1):
+            print(f"  {city.name} {model}: cached ({out.name})")
+            return df, 0
+        print(f"  {city.name} {model}: refreshing (stored through {last})")
+
+    start = max(POP_ARCHIVE_START,
+                PROVIDER_MODELS[model].archive_depth) \
+        if model in PROVIDER_MODELS else POP_ARCHIVE_START
+    variables = ["precipitation_probability", "precipitation"]
+    frames = []
+    net0 = network_calls()
+    for s, e in _chunks(start, ARCHIVE_END):
+        payload = fetch_json(API_HISTORICAL_FORECAST, {
+            "latitude": round(city.latitude, 4),
+            "longitude": round(city.longitude, 4),
+            "timezone": "UTC", "hourly": ",".join(variables),
+            "models": model, "start_date": s, "end_date": e,
+        })
+        if is_error(payload):
+            print(f"  {city.name} {model} {s}..{e}: SKIP ({reason(payload)})")
+            continue
+        frames.append(_hourly_frame(payload))
+    if not frames:
+        print(f"  {city.name} {model}: no archive data - skipping")
+        # Persist the verdict so later runs skip this pair without a pause.
+        pd.DataFrame({"model": pd.Series(dtype=str)}).to_parquet(out, index=False)
+        return pd.DataFrame(), network_calls() - net0
+    df = pd.concat(frames).drop_duplicates(subset="time").sort_values("time")
+    df["model"] = model
+    df.to_parquet(out, index=False)
+    print(f"wrote {out}  rows={len(df)}  "
+          f"PoP non-null={int(df.precipitation_probability.notna().sum())}")
+    return df, network_calls() - net0
+
+
+def collect_all_providers(city_name: str | None = None) -> None:
+    """Task 3: loop PROVIDER_MODELS with polite spacing between models.
+
+    Stays under Open-Meteo's hourly limit the same way the Track A leg does:
+    fetch.py throttles and backs off per request, and PROVIDER_SPACING_S adds
+    a pause between each model's burst of chunk requests. A rate-limit failure
+    on one model does not abort the rest - the cache makes a later re-run
+    resume exactly where this one stopped.
+    """
+    import time
+
+    cities = load_capitals()
+    if city_name:
+        cities = {k: v for k, v in cities.items() if k == city_name}
+    for city in sorted(cities.values(), key=lambda c: c.name):
+        print(f"\n=== providers @ {city.name} ===")
+        for i, model in enumerate(PROVIDER_MODELS):
+            try:
+                _, n_req = collect_provider_pop(city, model)
+            except RuntimeError as exc:
+                if "429" not in str(exc) and "limit" not in str(exc).lower():
+                    raise
+                print(f"  {city.name} {model}: hourly limit reached - "
+                      f"re-run later to resume from here")
+                n_req = 99
+            # Pause only after a real burst. A fully cached walk (0 requests)
+            # or a one-chunk freshness refresh needs no pause beyond
+            # fetch.py's per-request throttle; 5 s x models x cities of
+            # unconditional sleep was the dominant cost of warm runs.
+            if n_req > 2 and i < len(PROVIDER_MODELS) - 1:
+                time.sleep(PROVIDER_SPACING_S)
+
+
 def collect_era5() -> pd.DataFrame:
     """Task 4: ERA5 secondary ground truth, aggregated on local calendar days."""
     payload = fetch_json(API_HISTORICAL_WEATHER, {
@@ -115,6 +216,8 @@ if __name__ == "__main__":
         collect_hist_pop()
     elif cmd == "era5":
         collect_era5()
+    elif cmd == "all-providers":
+        collect_all_providers(sys.argv[2] if len(sys.argv) > 2 else None)
     elif cmd == "all":
         collect_previous_runs()
         collect_hist_pop()

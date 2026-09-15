@@ -25,6 +25,7 @@ Usage:  python src/ghcn_bulk.py
 from __future__ import annotations
 
 import gzip
+import sys
 
 import pandas as pd
 
@@ -40,6 +41,7 @@ COLUMNS = ["id", "date", "element", "value", "m_flag", "q_flag", "s_flag",
 CHUNK = 2_000_000
 
 STORE = RAW / "ghcn_bulk.parquet"
+CENSUS = RAW / "ghcn_census.parquet"
 
 
 def ensure_downloaded() -> None:
@@ -129,5 +131,72 @@ def load(station: str, store: pd.DataFrame | None = None) -> pd.DataFrame:
     return store[store.station == station].copy()
 
 
+# --------------------------------------------------------------------------
+# Station census: how many days each gauge actually reports
+# --------------------------------------------------------------------------
+# The GHCN inventory records only the first and last year a station reported an
+# element. That is a much weaker statement than it looks: a gauge listed as
+# covering 2024-2026 may have filed 37 days in the whole window. Every city
+# dropped for "too few usable pairs" was dropped for exactly this reason, and
+# the probe could not see it coming, because the fact is not in the inventory.
+#
+# It is, however, already on disk: the per-year files hold every station on
+# Earth, so counting reporting days per station costs one pass and no network.
+# With that count the probe can require a gauge that reports, not merely one
+# that exists.
+def census(force: bool = False) -> pd.DataFrame:
+    """Reporting days per station within the evaluation window, all stations."""
+    if CENSUS.exists() and not force:
+        return pd.read_parquet(CENSUS)
+
+    from config import OBS_END
+    from constants import POP_ARCHIVE_START
+
+    lo = POP_ARCHIVE_START.replace("-", "")
+    hi = OBS_END.replace("-", "")
+    ensure_downloaded()
+    print(f"  counting reporting days per station over {lo}..{hi}")
+
+    counts: dict[str, pd.Series] = {}
+    for year in YEARS:
+        path = YEAR_DIR / f"{year}.csv.gz"
+        with gzip.open(path, "rt") as fh:
+            for chunk in pd.read_csv(fh, names=COLUMNS, header=None,
+                                     usecols=[0, 1, 2, 5],
+                                     dtype={"id": str, "date": str,
+                                            "element": str, "q_flag": str},
+                                     chunksize=CHUNK, low_memory=False):
+                sel = chunk[chunk.q_flag.isna()
+                            & (chunk.date >= lo) & (chunk.date <= hi)]
+                for elem in ("PRCP", "TMAX"):
+                    part = sel.id[sel.element == elem].value_counts()
+                    if not len(part):
+                        continue
+                    counts[elem] = (part if elem not in counts
+                                    else counts[elem].add(part, fill_value=0))
+        print(f"    {year}: "
+              + ", ".join(f"{e} {len(counts.get(e, ())):,}" for e in
+                          ("PRCP", "TMAX")) + " stations so far")
+
+    out = pd.DataFrame({
+        "prcp_days": counts.get("PRCP", pd.Series(dtype=float)),
+        "tmax_days": counts.get("TMAX", pd.Series(dtype=float)),
+    }).fillna(0).astype(int)
+    out = out.rename_axis("station").reset_index()
+    out.to_parquet(CENSUS, index=False)
+    print(f"\nwrote {CENSUS}  stations={len(out):,}")
+    return out
+
+
+def dense_stations(min_days: int) -> tuple[set[str], set[str]]:
+    """Station ids reporting at least `min_days` of PRCP / of TMAX."""
+    c = census()
+    return (set(c.station[c.prcp_days >= min_days]),
+            set(c.station[c.tmax_days >= min_days]))
+
+
 if __name__ == "__main__":
-    extract()
+    if len(sys.argv) > 1 and sys.argv[1] == "census":
+        census(force=True)
+    else:
+        extract()

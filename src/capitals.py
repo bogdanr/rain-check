@@ -22,6 +22,8 @@ almost entirely in the observations, and in not fooling ourselves:
 
 Usage:  python src/capitals.py            # full run (cached after the first)
         python src/capitals.py metrics    # skip fetching, recompute metrics
+        python src/capitals.py pinned     # Task 39: two-model like-for-like
+        python src/capitals.py providers  # Phase 1 Task 4: all PROVIDER_MODELS
 """
 
 from __future__ import annotations
@@ -48,6 +50,8 @@ from config import (
     N_PROB_BINS,
     OBS_END,
     PRIMARY_MODEL,
+    PROVIDER_COVERAGE,
+    PROVIDER_MODELS,
     PROCESSED,
     RAIN_THRESHOLD_MM,
     RANDOM_SEED,
@@ -744,23 +748,66 @@ def plot_baserate(met: pd.DataFrame) -> None:
 PIN_MODELS = ["icon_eu", "ecmwf_ifs025"]
 
 
-def pinned_ranking() -> pd.DataFrame:
+def provider_models_with_coverage() -> list[str]:
+    """Task 4: the PROVIDER_MODELS the archive probe found usable anywhere.
+
+    The probe (src/probe_providers.py) decides per city which models have a
+    usable PoP archive; a model enters the multi-model run if it is usable in
+    at least one city - build() then drops it per city where it is not, and
+    the league table marks it unavailable rather than hiding it. Without the
+    probe file, fall back to the two established pinned models so the module
+    degrades to today's behaviour instead of guessing.
+    """
+    if not PROVIDER_COVERAGE.exists():
+        return list(PIN_MODELS)
+    import json
+    v = json.loads(PROVIDER_COVERAGE.read_text())
+    return [m for m in PROVIDER_MODELS
+            if any(c.get(m, {}).get("available")
+                   for c in v["cities"].values())]
+
+
+def pinned_ranking(models: list[str] | None = None,
+                   *, persist_daily: bool = False) -> pd.DataFrame:
+    """Per-model verification for every city, generalised over the model list.
+
+    `models=None` keeps the original two-model Task 39 behaviour byte-for-byte.
+    The multi-provider run (Task 4 of the 2026-09-14 plan) passes the full
+    PROVIDER_MODELS set filtered by the archive probe, and additionally keeps
+    the matched daily series so the league table and its threshold-sensitivity
+    runs (src/league.py, src/league_robustness.py) can recompute metrics on
+    identical windows without touching the network again.
+    """
+    models = models if models is not None else PIN_MODELS
     cities = registry()
-    frames = []
-    for model in PIN_MODELS:
+    frames, dailies = [], []
+    for model in models:
         print(f"\n--- pinned: {model} ---")
         daily, diag = build(cities, model=model)
         if daily.empty:
             print(f"  no data for {model}")
             continue
+        if persist_daily:
+            dailies.append(daily.assign(model=model))
         met = metrics(daily, diag)
         met["model"] = model
+
+        # Wet bias per model, so the Task 26 inversion test can be asked per
+        # provider in the league table, not only per city.
+        wb = wet_bias_across_cities(daily).assign(model=model)
+        # Merge on city AND model: both frames carry a model column, and an
+        # on="city" merge would suffix them into model_x/model_y, dropping the
+        # column the league table and report_pinned group by.
+        met = met.merge(wb, on=["city", "model"], how="left")
         frames.append(met)
 
     if not frames:
         raise SystemExit("no pinned data collected")
     out = pd.concat(frames, ignore_index=True)
     out.to_parquet(artefact("pinned"), index=False)
+    if persist_daily and dailies:
+        pd.concat(dailies, ignore_index=True).to_parquet(
+            artefact("pinned_daily"), index=False)
     return out
 
 
@@ -900,6 +947,16 @@ def main() -> None:
         pin = pinned_ranking()
         report_pinned(pin, published, prov)
         plot_pinned(pin, published)
+        return
+
+    # Phase 1 Task 4: per-model verification over every PROVIDER_MODELS entry
+    # the archive probe found usable. Same statistics as `pinned`, more models,
+    # plus the matched daily series kept on disk for the league table.
+    if mode == "providers":
+        models = provider_models_with_coverage()
+        print(f"=== providers: per-model verification over {len(models)} "
+              f"models: {', '.join(models)}")
+        pinned_ranking(models, persist_daily=True)
         return
 
     # `leads` joins `metrics` on the cached path: the Track A leg is the only

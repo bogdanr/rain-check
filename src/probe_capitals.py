@@ -16,9 +16,21 @@ station to Andorra la Vella is Saloria at 2451 m and to Vaduz is Saentis at
 2502 m. Verifying a valley city against a mountain-top gauge would not measure
 forecast quality, it would measure the lapse rate.
 
-A fourth rule - at least MIN_PAIRS usable forecast/observation pairs after QC -
-cannot be tested from the inventory alone and is enforced later, when the daily
-records are actually joined.
+The rules are applied to every station in range, not to the nearest one only.
+That distinction is the whole of `pick_station` below, and it matters twice
+over. Andorra la Vella was excluded because its *nearest* gauge is on a
+mountain - but La Seu d'Urgell, 17 km down the same valley and 176 m from the
+grid point, was there all along. And a gauge can satisfy every rule above while
+filing 37 days of data in two years, because the inventory records only the
+first and last year a station reported, never how often. Preferring the nearest
+gauge that actually reports (MIN_STATION_DAYS) over the nearest gauge that
+merely exists recovers eleven cities in the world run that were previously
+dropped downstream for having too little data to verify against.
+
+The binding rule - at least MIN_PAIRS usable forecast/observation pairs after
+QC - is still enforced later, when the daily records are actually joined; the
+reporting-day count is a close predictor of it (the two agree to within about
+three days) but not a substitute.
 
 Usage:  python src/probe_capitals.py
 """
@@ -28,6 +40,7 @@ from __future__ import annotations
 import json
 import math
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -39,6 +52,14 @@ from config import RAW
 MAX_STATION_KM = 25.0
 MAX_ELEV_DIFF_M = 300.0
 MIN_PAIRS = 500          # enforced downstream, recorded here for one-place rules
+
+# A station is "reporting" if it filed at least this many days over the window.
+# Set just above MIN_PAIRS: the join costs a handful of days to missing forecast
+# hours and to the day-convention shift, so a gauge with 525 days reliably
+# clears 500 pairs, and one with 500 does not. Across the cities that survive
+# every other rule, pairs = reporting days - 3 with a correlation of 0.999.
+MIN_STATION_DAYS = 525
+
 WINDOW_START_YEAR = 2024
 WINDOW_END_YEAR = 2026
 
@@ -154,59 +175,101 @@ def _km(lat1, lon1, lat2, lon2):
     return math.hypot(x, y)
 
 
+def _km_vec(frame: pd.DataFrame, lat: float, lon: float):
+    """Distance from (lat, lon) to every row of `frame`, vectorised."""
+    dy = (frame.lat.values - lat) * 110.574
+    dx = (frame.lon.values - lon) * 111.320 * math.cos(math.radians(lat))
+    return np.hypot(dx, dy)
+
+
+def station_frame(stations: pd.DataFrame, ids: set[str], days: pd.Series
+                  ) -> pd.DataFrame:
+    """Stations qualifying on the inventory, carrying their reporting-day count."""
+    f = stations[stations.id.isin(ids)].reset_index(drop=True)
+    f["days"] = f.id.map(days).fillna(0).astype(int)
+    return f
+
+
+def pick_station(frame: pd.DataFrame, lat: float, lon: float,
+                 ref_elev: float | None):
+    """The best gauge for one location, or `(None, why)` if there is none.
+
+    "Best" is not "nearest". Every station inside the distance and elevation
+    envelope is a candidate; among those that actually report often enough the
+    nearest wins, and only if none of them does are we forced back onto the
+    fullest sparse record. Ranking by distance alone picked a gauge with 20
+    days of data for Houston while a complete one sat 9.8 km away, and picked a
+    mountain top for Andorra while a valley station sat 17 km away.
+    """
+    km = _km_vec(frame, lat, lon)
+    near = km <= MAX_STATION_KM
+    if not near.any():
+        return None, (f"no station within {MAX_STATION_KM:.0f} km reporting "
+                      f"through {WINDOW_END_YEAR}")
+
+    ok = near
+    if ref_elev is not None:
+        ok = near & (abs(frame.elev_m.values - ref_elev) <= MAX_ELEV_DIFF_M)
+    if not ok.any():
+        return None, (f"every station within {MAX_STATION_KM:.0f} km differs "
+                      f"from the forecast grid point by more than "
+                      f"{MAX_ELEV_DIFF_M:.0f} m in elevation")
+
+    cand = frame[ok].assign(km=km[ok])
+    reporting = cand[cand.days >= MIN_STATION_DAYS]
+    if len(reporting):
+        return reporting.nsmallest(1, "km").iloc[0], ""
+    # Nothing in range reports often enough. Keep the fullest record anyway and
+    # let the downstream pair count exclude the city with a measured reason,
+    # rather than guessing here from a count that is only a good predictor.
+    return cand.sort_values(["days", "km"], ascending=[False, True]).iloc[0], ""
+
+
 # --------------------------------------------------------------------------
 def probe() -> dict:
+    import ghcn_bulk
+
     st, inv = load_stations(), load_inventory()
     grid = grid_elevations(CAPITALS)
+    cen = ghcn_bulk.census().set_index("station")
 
     covering = inv[(inv.year_first <= WINDOW_START_YEAR)
                    & (inv.year_last >= WINDOW_END_YEAR)]
     by_elem = {e: set(g.id) for e, g in covering.groupby("elem")}
-
-    def nearest(elem: str, lat: float, lon: float):
-        cand = st[st.id.isin(by_elem.get(elem, set()))].copy()
-        if cand.empty:
-            return None
-        cand["km"] = [
-            _km(lat, lon, a, b) for a, b in zip(cand.lat.values, cand.lon.values)]
-        row = cand.nsmallest(1, "km").iloc[0]
-        return row
+    frames = {
+        "PRCP": station_frame(st, by_elem.get("PRCP", set()), cen.prcp_days),
+        "TMAX": station_frame(st, by_elem.get("TMAX", set()), cen.tmax_days),
+    }
 
     included, excluded = {}, {}
     for city, (lat, lon, tz, country) in CAPITALS.items():
-        prcp = nearest("PRCP", lat, lon)
-        if prcp is None or prcp.km > MAX_STATION_KM:
-            excluded[city] = {
-                "reason": "no PRCP station within "
-                          f"{MAX_STATION_KM:.0f} km reporting through "
-                          f"{WINDOW_END_YEAR}",
-                "nearest_km": None if prcp is None else round(float(prcp.km), 1),
-            }
-            continue
-
         gelev = grid.get(city)
-        if gelev is not None and abs(prcp.elev_m - gelev) > MAX_ELEV_DIFF_M:
+        prcp, why = pick_station(frames["PRCP"], lat, lon, gelev)
+        if prcp is None:
+            nearest = frames["PRCP"].iloc[int(_km_vec(
+                frames["PRCP"], lat, lon).argmin())]
             excluded[city] = {
-                "reason": "station elevation differs from the forecast grid "
-                          f"point by more than {MAX_ELEV_DIFF_M:.0f} m",
-                "station": prcp.id, "station_name": prcp["name"],
-                "station_elev_m": float(prcp.elev_m),
-                "grid_elev_m": float(gelev),
-                "nearest_km": round(float(prcp.km), 1),
+                "reason": why,
+                "nearest_km": round(float(_km(lat, lon, nearest.lat,
+                                              nearest.lon)), 1),
+                "station": nearest.id, "station_name": nearest["name"],
+                "station_elev_m": float(nearest.elev_m),
+                "grid_elev_m": None if gelev is None else float(gelev),
             }
             continue
 
-        tmax = nearest("TMAX", lat, lon)
-        has_temp = tmax is not None and tmax.km <= MAX_STATION_KM
+        tmax, _ = pick_station(frames["TMAX"], lat, lon, gelev)
         included[city] = {
             "lat": lat, "lon": lon, "timezone": tz, "country": country,
             "grid_elev_m": None if gelev is None else float(gelev),
             "prcp_station": prcp.id, "prcp_station_name": prcp["name"],
             "prcp_km": round(float(prcp.km), 1),
             "prcp_elev_m": float(prcp.elev_m),
-            "tmax_station": tmax.id if has_temp else None,
-            "tmax_station_name": tmax["name"] if has_temp else None,
-            "tmax_km": round(float(tmax.km), 1) if has_temp else None,
+            "prcp_days": int(prcp.days),
+            "tmax_station": tmax.id if tmax is not None else None,
+            "tmax_station_name": tmax["name"] if tmax is not None else None,
+            "tmax_km": round(float(tmax.km), 1) if tmax is not None else None,
+            "tmax_days": int(tmax.days) if tmax is not None else None,
         }
 
     return {
@@ -215,9 +278,11 @@ def probe() -> dict:
             "max_station_km": MAX_STATION_KM,
             "max_elev_diff_m": MAX_ELEV_DIFF_M,
             "min_pairs": MIN_PAIRS,
+            "min_station_days": MIN_STATION_DAYS,
             "window_years": [WINDOW_START_YEAR, WINDOW_END_YEAR],
             "note": ("min_pairs is enforced downstream, when daily records are "
-                     "joined; it cannot be checked from the inventory alone."),
+                     "joined; min_station_days is the inventory-time proxy for "
+                     "it, and decides which of the gauges in range is used."),
         },
         "included": included,
         "excluded": excluded,
@@ -237,18 +302,25 @@ def main() -> None:
     df = pd.DataFrame(inc).T
     if len(df):
         cols = ["prcp_km", "prcp_station_name", "prcp_elev_m", "grid_elev_m",
-                "tmax_km"]
+                "prcp_days", "tmax_km"]
         print(df[cols].sort_values("prcp_km").to_string())
+
+    thin = {c: v for c, v in inc.items() if v["prcp_days"] < MIN_STATION_DAYS}
+    if thin:
+        print(f"\nno gauge in range reports {MIN_STATION_DAYS}+ days; kept the "
+              f"fullest, expect these to fail the pair count downstream:")
+        for city, v in sorted(thin.items()):
+            print(f"  {city:20s} {v['prcp_station_name']} - "
+                  f"{v['prcp_days']} days")
 
     print(f"\n{len(exc)} excluded:")
     for city, why in sorted(exc.items()):
-        extra = ""
-        if why.get("station_elev_m") is not None:
-            extra = (f" (station {why['station_name']} at "
+        if "elevation" in why["reason"]:
+            extra = (f" (nearest is {why['station_name']} at "
                      f"{why['station_elev_m']:.0f} m vs grid "
                      f"{why['grid_elev_m']:.0f} m)")
-        elif why.get("nearest_km") is not None:
-            extra = f" (nearest is {why['nearest_km']} km)"
+        else:
+            extra = f" (nearest is {why['nearest_km']} km away)"
         print(f"  {city:20s} {why['reason']}{extra}")
 
     no_temp = [c for c, v in inc.items() if v["tmax_station"] is None]

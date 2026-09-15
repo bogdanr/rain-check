@@ -1,0 +1,2398 @@
+{
+  "cities": {
+    "Amsterdam": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 3,
+        "non_null_fraction": 1.0
+      }
+    },
+    "Andorra la Vella": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Berlin": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Bucharest": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Budapest": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Chisinau": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Dublin": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 3,
+        "non_null_fraction": 1.0
+      }
+    },
+    "Helsinki": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Luxembourg": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 11,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 3,
+        "non_null_fraction": 1.0
+      }
+    },
+    "Madrid": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Monaco": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 11,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Oslo": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 3,
+        "non_null_fraction": 1.0
+      }
+    },
+    "Paris": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 11,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 3,
+        "non_null_fraction": 1.0
+      }
+    },
+    "Podgorica": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Reykjavik": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Sarajevo": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Stockholm": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Tallinn": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "meteoswiss_icon_ch2": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    },
+    "Vienna": {
+      "bom_access_global_ensemble": {
+        "available": false,
+        "n_members": 18,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_aifs025_single": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_aifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_aifs_europe."
+      },
+      "ecmwf_ifs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 51,
+        "non_null_fraction": 1.0
+      },
+      "ecmwf_ifs04": {
+        "available": false,
+        "n_members": 1,
+        "non_null_fraction": 0.0,
+        "why": "members present but only 0% of hours carry precipitation"
+      },
+      "ecmwf_ifs_europe": {
+        "available": false,
+        "why": "Data corrupted at path ''. Cannot initialize MultiDomains from invalid String value ecmwf_ifs_europe."
+      },
+      "gem_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "gfs025": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs05": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "gfs_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 31,
+        "non_null_fraction": 1.0
+      },
+      "icon_d2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 20,
+        "non_null_fraction": 1.0
+      },
+      "icon_eu": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_global": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "icon_seamless": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 40,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch1": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 11,
+        "non_null_fraction": 1.0
+      },
+      "meteoswiss_icon_ch2": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 21,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_global_ensemble_20km": {
+        "available": true,
+        "n_hours": 24,
+        "n_members": 18,
+        "non_null_fraction": 1.0
+      },
+      "ukmo_uk_ensemble_2km": {
+        "available": false,
+        "why": "unparseable body, out of model domain (Expecting value: line 1 column 13 (char 12))"
+      }
+    }
+  },
+  "probed": [
+    "Bucharest|ecmwf_ifs025",
+    "Bucharest|ecmwf_aifs025",
+    "Bucharest|icon_global",
+    "Bucharest|icon_eu",
+    "Bucharest|icon_d2",
+    "Bucharest|gfs025",
+    "Bucharest|gfs05",
+    "Bucharest|gem_global",
+    "Bucharest|ukmo_global_ensemble_20km",
+    "Bucharest|ukmo_uk_ensemble_2km",
+    "Bucharest|bom_access_global_ensemble",
+    "Bucharest|icon_seamless",
+    "Bucharest|gfs_seamless",
+    "Bucharest|ecmwf_ifs04",
+    "Bucharest|ecmwf_aifs025_single",
+    "Bucharest|ecmwf_ifs_europe",
+    "Bucharest|ecmwf_aifs_europe",
+    "Bucharest|meteoswiss_icon_ch1",
+    "Bucharest|meteoswiss_icon_ch2",
+    "Amsterdam|ecmwf_ifs025",
+    "Amsterdam|ecmwf_aifs025",
+    "Amsterdam|icon_global",
+    "Amsterdam|icon_eu",
+    "Amsterdam|icon_d2",
+    "Amsterdam|gfs025",
+    "Amsterdam|gfs05",
+    "Amsterdam|gem_global",
+    "Amsterdam|ukmo_global_ensemble_20km",
+    "Amsterdam|ukmo_uk_ensemble_2km",
+    "Amsterdam|bom_access_global_ensemble",
+    "Amsterdam|icon_seamless",
+    "Amsterdam|gfs_seamless",
+    "Amsterdam|ecmwf_ifs04",
+    "Amsterdam|ecmwf_aifs025_single",
+    "Amsterdam|ecmwf_ifs_europe",
+    "Amsterdam|ecmwf_aifs_europe",
+    "Amsterdam|meteoswiss_icon_ch1",
+    "Amsterdam|meteoswiss_icon_ch2",
+    "Andorra la Vella|ecmwf_ifs025",
+    "Andorra la Vella|ecmwf_aifs025",
+    "Andorra la Vella|icon_global",
+    "Andorra la Vella|icon_eu",
+    "Andorra la Vella|icon_d2",
+    "Andorra la Vella|gfs025",
+    "Andorra la Vella|gfs05",
+    "Andorra la Vella|gem_global",
+    "Andorra la Vella|ukmo_global_ensemble_20km",
+    "Andorra la Vella|ukmo_uk_ensemble_2km",
+    "Andorra la Vella|bom_access_global_ensemble",
+    "Andorra la Vella|icon_seamless",
+    "Andorra la Vella|gfs_seamless",
+    "Andorra la Vella|ecmwf_ifs04",
+    "Andorra la Vella|ecmwf_aifs025_single",
+    "Andorra la Vella|ecmwf_ifs_europe",
+    "Andorra la Vella|ecmwf_aifs_europe",
+    "Andorra la Vella|meteoswiss_icon_ch1",
+    "Andorra la Vella|meteoswiss_icon_ch2",
+    "Berlin|ecmwf_ifs025",
+    "Berlin|ecmwf_aifs025",
+    "Berlin|icon_global",
+    "Berlin|icon_eu",
+    "Berlin|icon_d2",
+    "Berlin|gfs025",
+    "Berlin|gfs05",
+    "Berlin|gem_global",
+    "Berlin|ukmo_global_ensemble_20km",
+    "Berlin|ukmo_uk_ensemble_2km",
+    "Berlin|bom_access_global_ensemble",
+    "Berlin|icon_seamless",
+    "Berlin|gfs_seamless",
+    "Berlin|ecmwf_ifs04",
+    "Berlin|ecmwf_aifs025_single",
+    "Berlin|ecmwf_ifs_europe",
+    "Berlin|ecmwf_aifs_europe",
+    "Berlin|meteoswiss_icon_ch1",
+    "Berlin|meteoswiss_icon_ch2",
+    "Budapest|ecmwf_ifs025",
+    "Budapest|ecmwf_aifs025",
+    "Budapest|icon_global",
+    "Budapest|icon_eu",
+    "Budapest|icon_d2",
+    "Budapest|gfs025",
+    "Budapest|gfs05",
+    "Budapest|gem_global",
+    "Budapest|ukmo_global_ensemble_20km",
+    "Budapest|ukmo_uk_ensemble_2km",
+    "Budapest|bom_access_global_ensemble",
+    "Budapest|icon_seamless",
+    "Budapest|gfs_seamless",
+    "Budapest|ecmwf_ifs04",
+    "Budapest|ecmwf_aifs025_single",
+    "Budapest|ecmwf_ifs_europe",
+    "Budapest|ecmwf_aifs_europe",
+    "Budapest|meteoswiss_icon_ch1",
+    "Budapest|meteoswiss_icon_ch2",
+    "Chisinau|ecmwf_ifs025",
+    "Chisinau|ecmwf_aifs025",
+    "Chisinau|icon_global",
+    "Chisinau|icon_eu",
+    "Chisinau|icon_d2",
+    "Chisinau|gfs025",
+    "Chisinau|gfs05",
+    "Chisinau|gem_global",
+    "Chisinau|ukmo_global_ensemble_20km",
+    "Chisinau|ukmo_uk_ensemble_2km",
+    "Chisinau|bom_access_global_ensemble",
+    "Chisinau|icon_seamless",
+    "Chisinau|gfs_seamless",
+    "Chisinau|ecmwf_ifs04",
+    "Chisinau|ecmwf_aifs025_single",
+    "Chisinau|ecmwf_ifs_europe",
+    "Chisinau|ecmwf_aifs_europe",
+    "Chisinau|meteoswiss_icon_ch1",
+    "Chisinau|meteoswiss_icon_ch2",
+    "Dublin|ecmwf_ifs025",
+    "Dublin|ecmwf_aifs025",
+    "Dublin|icon_global",
+    "Dublin|icon_eu",
+    "Dublin|icon_d2",
+    "Dublin|gfs025",
+    "Dublin|gfs05",
+    "Dublin|gem_global",
+    "Dublin|ukmo_global_ensemble_20km",
+    "Dublin|ukmo_uk_ensemble_2km",
+    "Dublin|bom_access_global_ensemble",
+    "Dublin|icon_seamless",
+    "Dublin|gfs_seamless",
+    "Dublin|ecmwf_ifs04",
+    "Dublin|ecmwf_aifs025_single",
+    "Dublin|ecmwf_ifs_europe",
+    "Dublin|ecmwf_aifs_europe",
+    "Dublin|meteoswiss_icon_ch1",
+    "Dublin|meteoswiss_icon_ch2",
+    "Helsinki|ecmwf_ifs025",
+    "Helsinki|ecmwf_aifs025",
+    "Helsinki|icon_global",
+    "Helsinki|icon_eu",
+    "Helsinki|icon_d2",
+    "Helsinki|gfs025",
+    "Helsinki|gfs05",
+    "Helsinki|gem_global",
+    "Helsinki|ukmo_global_ensemble_20km",
+    "Helsinki|ukmo_uk_ensemble_2km",
+    "Helsinki|bom_access_global_ensemble",
+    "Helsinki|icon_seamless",
+    "Helsinki|gfs_seamless",
+    "Helsinki|ecmwf_ifs04",
+    "Helsinki|ecmwf_aifs025_single",
+    "Helsinki|ecmwf_ifs_europe",
+    "Helsinki|ecmwf_aifs_europe",
+    "Helsinki|meteoswiss_icon_ch1",
+    "Helsinki|meteoswiss_icon_ch2",
+    "Luxembourg|ecmwf_ifs025",
+    "Luxembourg|ecmwf_aifs025",
+    "Luxembourg|icon_global",
+    "Luxembourg|icon_eu",
+    "Luxembourg|icon_d2",
+    "Luxembourg|gfs025",
+    "Luxembourg|gfs05",
+    "Luxembourg|gem_global",
+    "Luxembourg|ukmo_global_ensemble_20km",
+    "Luxembourg|ukmo_uk_ensemble_2km",
+    "Luxembourg|bom_access_global_ensemble",
+    "Luxembourg|icon_seamless",
+    "Luxembourg|gfs_seamless",
+    "Luxembourg|ecmwf_ifs04",
+    "Luxembourg|ecmwf_aifs025_single",
+    "Luxembourg|ecmwf_ifs_europe",
+    "Luxembourg|ecmwf_aifs_europe",
+    "Luxembourg|meteoswiss_icon_ch1",
+    "Luxembourg|meteoswiss_icon_ch2",
+    "Madrid|ecmwf_ifs025",
+    "Madrid|ecmwf_aifs025",
+    "Madrid|icon_global",
+    "Madrid|icon_eu",
+    "Madrid|icon_d2",
+    "Madrid|gfs025",
+    "Madrid|gfs05",
+    "Madrid|gem_global",
+    "Madrid|ukmo_global_ensemble_20km",
+    "Madrid|ukmo_uk_ensemble_2km",
+    "Madrid|bom_access_global_ensemble",
+    "Madrid|icon_seamless",
+    "Madrid|gfs_seamless",
+    "Madrid|ecmwf_ifs04",
+    "Madrid|ecmwf_aifs025_single",
+    "Madrid|ecmwf_ifs_europe",
+    "Madrid|ecmwf_aifs_europe",
+    "Madrid|meteoswiss_icon_ch1",
+    "Madrid|meteoswiss_icon_ch2",
+    "Monaco|ecmwf_ifs025",
+    "Monaco|ecmwf_aifs025",
+    "Monaco|icon_global",
+    "Monaco|icon_eu",
+    "Monaco|icon_d2",
+    "Monaco|gfs025",
+    "Monaco|gfs05",
+    "Monaco|gem_global",
+    "Monaco|ukmo_global_ensemble_20km",
+    "Monaco|ukmo_uk_ensemble_2km",
+    "Monaco|bom_access_global_ensemble",
+    "Monaco|icon_seamless",
+    "Monaco|gfs_seamless",
+    "Monaco|ecmwf_ifs04",
+    "Monaco|ecmwf_aifs025_single",
+    "Monaco|ecmwf_ifs_europe",
+    "Monaco|ecmwf_aifs_europe",
+    "Monaco|meteoswiss_icon_ch1",
+    "Monaco|meteoswiss_icon_ch2",
+    "Oslo|ecmwf_ifs025",
+    "Oslo|ecmwf_aifs025",
+    "Oslo|icon_global",
+    "Oslo|icon_eu",
+    "Oslo|icon_d2",
+    "Oslo|gfs025",
+    "Oslo|gfs05",
+    "Oslo|gem_global",
+    "Oslo|ukmo_global_ensemble_20km",
+    "Oslo|ukmo_uk_ensemble_2km",
+    "Oslo|bom_access_global_ensemble",
+    "Oslo|icon_seamless",
+    "Oslo|gfs_seamless",
+    "Oslo|ecmwf_ifs04",
+    "Oslo|ecmwf_aifs025_single",
+    "Oslo|ecmwf_ifs_europe",
+    "Oslo|ecmwf_aifs_europe",
+    "Oslo|meteoswiss_icon_ch1",
+    "Oslo|meteoswiss_icon_ch2",
+    "Paris|ecmwf_ifs025",
+    "Paris|ecmwf_aifs025",
+    "Paris|icon_global",
+    "Paris|icon_eu",
+    "Paris|icon_d2",
+    "Paris|gfs025",
+    "Paris|gfs05",
+    "Paris|gem_global",
+    "Paris|ukmo_global_ensemble_20km",
+    "Paris|ukmo_uk_ensemble_2km",
+    "Paris|bom_access_global_ensemble",
+    "Paris|icon_seamless",
+    "Paris|gfs_seamless",
+    "Paris|ecmwf_ifs04",
+    "Paris|ecmwf_aifs025_single",
+    "Paris|ecmwf_ifs_europe",
+    "Paris|ecmwf_aifs_europe",
+    "Paris|meteoswiss_icon_ch1",
+    "Paris|meteoswiss_icon_ch2",
+    "Podgorica|ecmwf_ifs025",
+    "Podgorica|ecmwf_aifs025",
+    "Podgorica|icon_global",
+    "Podgorica|icon_eu",
+    "Podgorica|icon_d2",
+    "Podgorica|gfs025",
+    "Podgorica|gfs05",
+    "Podgorica|gem_global",
+    "Podgorica|ukmo_global_ensemble_20km",
+    "Podgorica|ukmo_uk_ensemble_2km",
+    "Podgorica|bom_access_global_ensemble",
+    "Podgorica|icon_seamless",
+    "Podgorica|gfs_seamless",
+    "Podgorica|ecmwf_ifs04",
+    "Podgorica|ecmwf_aifs025_single",
+    "Podgorica|ecmwf_ifs_europe",
+    "Podgorica|ecmwf_aifs_europe",
+    "Podgorica|meteoswiss_icon_ch1",
+    "Podgorica|meteoswiss_icon_ch2",
+    "Reykjavik|ecmwf_ifs025",
+    "Reykjavik|ecmwf_aifs025",
+    "Reykjavik|icon_global",
+    "Reykjavik|icon_eu",
+    "Reykjavik|icon_d2",
+    "Reykjavik|gfs025",
+    "Reykjavik|gfs05",
+    "Reykjavik|gem_global",
+    "Reykjavik|ukmo_global_ensemble_20km",
+    "Reykjavik|ukmo_uk_ensemble_2km",
+    "Reykjavik|bom_access_global_ensemble",
+    "Reykjavik|icon_seamless",
+    "Reykjavik|gfs_seamless",
+    "Reykjavik|ecmwf_ifs04",
+    "Reykjavik|ecmwf_aifs025_single",
+    "Reykjavik|ecmwf_ifs_europe",
+    "Reykjavik|ecmwf_aifs_europe",
+    "Reykjavik|meteoswiss_icon_ch1",
+    "Reykjavik|meteoswiss_icon_ch2",
+    "Sarajevo|ecmwf_ifs025",
+    "Sarajevo|ecmwf_aifs025",
+    "Sarajevo|icon_global",
+    "Sarajevo|icon_eu",
+    "Sarajevo|icon_d2",
+    "Sarajevo|gfs025",
+    "Sarajevo|gfs05",
+    "Sarajevo|gem_global",
+    "Sarajevo|ukmo_global_ensemble_20km",
+    "Sarajevo|ukmo_uk_ensemble_2km",
+    "Sarajevo|bom_access_global_ensemble",
+    "Sarajevo|icon_seamless",
+    "Sarajevo|gfs_seamless",
+    "Sarajevo|ecmwf_ifs04",
+    "Sarajevo|ecmwf_aifs025_single",
+    "Sarajevo|ecmwf_ifs_europe",
+    "Sarajevo|ecmwf_aifs_europe",
+    "Sarajevo|meteoswiss_icon_ch1",
+    "Sarajevo|meteoswiss_icon_ch2",
+    "Stockholm|ecmwf_ifs025",
+    "Stockholm|ecmwf_aifs025",
+    "Stockholm|icon_global",
+    "Stockholm|icon_eu",
+    "Stockholm|icon_d2",
+    "Stockholm|gfs025",
+    "Stockholm|gfs05",
+    "Stockholm|gem_global",
+    "Stockholm|ukmo_global_ensemble_20km",
+    "Stockholm|ukmo_uk_ensemble_2km",
+    "Stockholm|bom_access_global_ensemble",
+    "Stockholm|icon_seamless",
+    "Stockholm|gfs_seamless",
+    "Stockholm|ecmwf_ifs04",
+    "Stockholm|ecmwf_aifs025_single",
+    "Stockholm|ecmwf_ifs_europe",
+    "Stockholm|ecmwf_aifs_europe",
+    "Stockholm|meteoswiss_icon_ch1",
+    "Stockholm|meteoswiss_icon_ch2",
+    "Tallinn|ecmwf_ifs025",
+    "Tallinn|ecmwf_aifs025",
+    "Tallinn|icon_global",
+    "Tallinn|icon_eu",
+    "Tallinn|icon_d2",
+    "Tallinn|gfs025",
+    "Tallinn|gfs05",
+    "Tallinn|gem_global",
+    "Tallinn|ukmo_global_ensemble_20km",
+    "Tallinn|ukmo_uk_ensemble_2km",
+    "Tallinn|bom_access_global_ensemble",
+    "Tallinn|icon_seamless",
+    "Tallinn|gfs_seamless",
+    "Tallinn|ecmwf_ifs04",
+    "Tallinn|ecmwf_aifs025_single",
+    "Tallinn|ecmwf_ifs_europe",
+    "Tallinn|ecmwf_aifs_europe",
+    "Tallinn|meteoswiss_icon_ch1",
+    "Tallinn|meteoswiss_icon_ch2",
+    "Vienna|ecmwf_ifs025",
+    "Vienna|ecmwf_aifs025",
+    "Vienna|icon_global",
+    "Vienna|icon_eu",
+    "Vienna|icon_d2",
+    "Vienna|gfs025",
+    "Vienna|gfs05",
+    "Vienna|gem_global",
+    "Vienna|ukmo_global_ensemble_20km",
+    "Vienna|ukmo_uk_ensemble_2km",
+    "Vienna|bom_access_global_ensemble",
+    "Vienna|icon_seamless",
+    "Vienna|gfs_seamless",
+    "Vienna|ecmwf_ifs04",
+    "Vienna|ecmwf_aifs025_single",
+    "Vienna|ecmwf_ifs_europe",
+    "Vienna|ecmwf_aifs_europe",
+    "Vienna|meteoswiss_icon_ch1",
+    "Vienna|meteoswiss_icon_ch2"
+  ],
+  "probed_utc": "2026-09-15T07:44:34.398477+00:00",
+  "working_models": [
+    "ecmwf_aifs025",
+    "ecmwf_ifs025",
+    "gem_global",
+    "gfs025",
+    "gfs05",
+    "gfs_seamless",
+    "icon_d2",
+    "icon_eu",
+    "icon_global",
+    "icon_seamless",
+    "meteoswiss_icon_ch1",
+    "meteoswiss_icon_ch2",
+    "ukmo_global_ensemble_20km",
+    "ukmo_uk_ensemble_2km"
+  ]
+}

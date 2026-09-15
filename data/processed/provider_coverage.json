@@ -1,0 +1,5690 @@
+{
+  "cities": {
+    "Amsterdam": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      }
+    },
+    "Andorra la Vella": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Berlin": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Bucharest": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Budapest": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Chisinau": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Dublin": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      }
+    },
+    "Helsinki": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Luxembourg": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      }
+    },
+    "Madrid": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Monaco": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Oslo": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      }
+    },
+    "Paris": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      }
+    },
+    "Podgorica": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Reykjavik": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Sarajevo": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Stockholm": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Tallinn": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    },
+    "Vienna": {
+      "arpae_cosmo_5m": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "ARPAE COSMO models are not available anymore",
+        "windows": {
+          "2024-05": {
+            "error": "ARPAE COSMO models are not available anymore"
+          }
+        }
+      },
+      "dmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "ecmwf_ifs025": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gem_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "gfs_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_d2": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "icon_eu": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "jma_seamless": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "knmi_harmonie_arome_europe": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "meteofrance_arome_france": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arome_france_hd": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      },
+      "meteofrance_arpege_world": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "no window with usable precipitation probability",
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 0
+          }
+        }
+      },
+      "metno_seamless": {
+        "archive_depth_from": "2024-05-01",
+        "available": true,
+        "usable_windows": [
+          "2024-05",
+          "2025-06",
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 336
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_seamless": {
+        "archive_depth_from": "2026-07-01",
+        "available": true,
+        "usable_windows": [
+          "2026-07"
+        ],
+        "windows": {
+          "2024-05": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2025-06": {
+            "n_hours": 336,
+            "n_non_null": 0
+          },
+          "2026-07": {
+            "n_hours": 336,
+            "n_non_null": 336
+          }
+        }
+      },
+      "ukmo_uk_deterministic_2km": {
+        "archive_depth_from": null,
+        "available": false,
+        "usable_windows": [],
+        "why": "No data is available for this location",
+        "windows": {
+          "2024-05": {
+            "error": "No data is available for this location"
+          }
+        }
+      }
+    }
+  },
+  "probed": [
+    "Bucharest|icon_eu",
+    "Paris|ecmwf_ifs025",
+    "Amsterdam|ecmwf_ifs025",
+    "Amsterdam|icon_eu",
+    "Amsterdam|icon_d2",
+    "Amsterdam|gfs_seamless",
+    "Amsterdam|meteofrance_arpege_world",
+    "Amsterdam|meteofrance_arome_france",
+    "Amsterdam|meteofrance_arome_france_hd",
+    "Amsterdam|ukmo_seamless",
+    "Amsterdam|ukmo_uk_deterministic_2km",
+    "Amsterdam|gem_seamless",
+    "Amsterdam|jma_seamless",
+    "Amsterdam|metno_seamless",
+    "Amsterdam|knmi_harmonie_arome_europe",
+    "Amsterdam|dmi_harmonie_arome_europe",
+    "Amsterdam|arpae_cosmo_5m",
+    "Andorra la Vella|ecmwf_ifs025",
+    "Andorra la Vella|icon_eu",
+    "Andorra la Vella|icon_d2",
+    "Andorra la Vella|gfs_seamless",
+    "Andorra la Vella|meteofrance_arpege_world",
+    "Andorra la Vella|meteofrance_arome_france",
+    "Andorra la Vella|meteofrance_arome_france_hd",
+    "Andorra la Vella|ukmo_seamless",
+    "Andorra la Vella|ukmo_uk_deterministic_2km",
+    "Andorra la Vella|gem_seamless",
+    "Andorra la Vella|jma_seamless",
+    "Andorra la Vella|metno_seamless",
+    "Andorra la Vella|knmi_harmonie_arome_europe",
+    "Andorra la Vella|dmi_harmonie_arome_europe",
+    "Andorra la Vella|arpae_cosmo_5m",
+    "Berlin|ecmwf_ifs025",
+    "Berlin|icon_eu",
+    "Berlin|icon_d2",
+    "Berlin|gfs_seamless",
+    "Berlin|meteofrance_arpege_world",
+    "Berlin|meteofrance_arome_france",
+    "Berlin|meteofrance_arome_france_hd",
+    "Berlin|ukmo_seamless",
+    "Berlin|ukmo_uk_deterministic_2km",
+    "Berlin|gem_seamless",
+    "Berlin|jma_seamless",
+    "Berlin|metno_seamless",
+    "Berlin|knmi_harmonie_arome_europe",
+    "Berlin|dmi_harmonie_arome_europe",
+    "Berlin|arpae_cosmo_5m",
+    "Bucharest|ecmwf_ifs025",
+    "Bucharest|icon_d2",
+    "Bucharest|gfs_seamless",
+    "Bucharest|meteofrance_arpege_world",
+    "Bucharest|meteofrance_arome_france",
+    "Bucharest|meteofrance_arome_france_hd",
+    "Bucharest|ukmo_seamless",
+    "Bucharest|ukmo_uk_deterministic_2km",
+    "Bucharest|gem_seamless",
+    "Bucharest|jma_seamless",
+    "Bucharest|metno_seamless",
+    "Bucharest|knmi_harmonie_arome_europe",
+    "Bucharest|dmi_harmonie_arome_europe",
+    "Bucharest|arpae_cosmo_5m",
+    "Budapest|ecmwf_ifs025",
+    "Budapest|icon_eu",
+    "Budapest|icon_d2",
+    "Budapest|gfs_seamless",
+    "Budapest|meteofrance_arpege_world",
+    "Budapest|meteofrance_arome_france",
+    "Budapest|meteofrance_arome_france_hd",
+    "Budapest|ukmo_seamless",
+    "Budapest|ukmo_uk_deterministic_2km",
+    "Budapest|gem_seamless",
+    "Budapest|jma_seamless",
+    "Budapest|metno_seamless",
+    "Budapest|knmi_harmonie_arome_europe",
+    "Budapest|dmi_harmonie_arome_europe",
+    "Budapest|arpae_cosmo_5m",
+    "Chisinau|ecmwf_ifs025",
+    "Chisinau|icon_eu",
+    "Chisinau|icon_d2",
+    "Chisinau|gfs_seamless",
+    "Chisinau|meteofrance_arpege_world",
+    "Chisinau|meteofrance_arome_france",
+    "Chisinau|meteofrance_arome_france_hd",
+    "Chisinau|ukmo_seamless",
+    "Chisinau|ukmo_uk_deterministic_2km",
+    "Chisinau|gem_seamless",
+    "Chisinau|jma_seamless",
+    "Chisinau|metno_seamless",
+    "Chisinau|knmi_harmonie_arome_europe",
+    "Chisinau|dmi_harmonie_arome_europe",
+    "Chisinau|arpae_cosmo_5m",
+    "Dublin|ecmwf_ifs025",
+    "Dublin|icon_eu",
+    "Dublin|icon_d2",
+    "Dublin|gfs_seamless",
+    "Dublin|meteofrance_arpege_world",
+    "Dublin|meteofrance_arome_france",
+    "Dublin|meteofrance_arome_france_hd",
+    "Dublin|ukmo_seamless",
+    "Dublin|ukmo_uk_deterministic_2km",
+    "Dublin|gem_seamless",
+    "Dublin|jma_seamless",
+    "Dublin|metno_seamless",
+    "Dublin|knmi_harmonie_arome_europe",
+    "Dublin|dmi_harmonie_arome_europe",
+    "Dublin|arpae_cosmo_5m",
+    "Helsinki|ecmwf_ifs025",
+    "Helsinki|icon_eu",
+    "Helsinki|icon_d2",
+    "Helsinki|gfs_seamless",
+    "Helsinki|meteofrance_arpege_world",
+    "Helsinki|meteofrance_arome_france",
+    "Helsinki|meteofrance_arome_france_hd",
+    "Helsinki|ukmo_seamless",
+    "Helsinki|ukmo_uk_deterministic_2km",
+    "Helsinki|gem_seamless",
+    "Helsinki|jma_seamless",
+    "Helsinki|metno_seamless",
+    "Helsinki|knmi_harmonie_arome_europe",
+    "Helsinki|dmi_harmonie_arome_europe",
+    "Helsinki|arpae_cosmo_5m",
+    "Luxembourg|ecmwf_ifs025",
+    "Luxembourg|icon_eu",
+    "Luxembourg|icon_d2",
+    "Luxembourg|gfs_seamless",
+    "Luxembourg|meteofrance_arpege_world",
+    "Luxembourg|meteofrance_arome_france",
+    "Luxembourg|meteofrance_arome_france_hd",
+    "Luxembourg|ukmo_seamless",
+    "Luxembourg|ukmo_uk_deterministic_2km",
+    "Luxembourg|gem_seamless",
+    "Luxembourg|jma_seamless",
+    "Luxembourg|metno_seamless",
+    "Luxembourg|knmi_harmonie_arome_europe",
+    "Luxembourg|dmi_harmonie_arome_europe",
+    "Luxembourg|arpae_cosmo_5m",
+    "Madrid|ecmwf_ifs025",
+    "Madrid|icon_eu",
+    "Madrid|icon_d2",
+    "Madrid|gfs_seamless",
+    "Madrid|meteofrance_arpege_world",
+    "Madrid|meteofrance_arome_france",
+    "Madrid|meteofrance_arome_france_hd",
+    "Madrid|ukmo_seamless",
+    "Madrid|ukmo_uk_deterministic_2km",
+    "Madrid|gem_seamless",
+    "Madrid|jma_seamless",
+    "Madrid|metno_seamless",
+    "Madrid|knmi_harmonie_arome_europe",
+    "Madrid|dmi_harmonie_arome_europe",
+    "Madrid|arpae_cosmo_5m",
+    "Monaco|ecmwf_ifs025",
+    "Monaco|icon_eu",
+    "Monaco|icon_d2",
+    "Monaco|gfs_seamless",
+    "Monaco|meteofrance_arpege_world",
+    "Monaco|meteofrance_arome_france",
+    "Monaco|meteofrance_arome_france_hd",
+    "Monaco|ukmo_seamless",
+    "Monaco|ukmo_uk_deterministic_2km",
+    "Monaco|gem_seamless",
+    "Monaco|jma_seamless",
+    "Monaco|metno_seamless",
+    "Monaco|knmi_harmonie_arome_europe",
+    "Monaco|dmi_harmonie_arome_europe",
+    "Monaco|arpae_cosmo_5m",
+    "Oslo|ecmwf_ifs025",
+    "Oslo|icon_eu",
+    "Oslo|icon_d2",
+    "Oslo|gfs_seamless",
+    "Oslo|meteofrance_arpege_world",
+    "Oslo|meteofrance_arome_france",
+    "Oslo|meteofrance_arome_france_hd",
+    "Oslo|ukmo_seamless",
+    "Oslo|ukmo_uk_deterministic_2km",
+    "Oslo|gem_seamless",
+    "Oslo|jma_seamless",
+    "Oslo|metno_seamless",
+    "Oslo|knmi_harmonie_arome_europe",
+    "Oslo|dmi_harmonie_arome_europe",
+    "Oslo|arpae_cosmo_5m",
+    "Paris|icon_eu",
+    "Paris|icon_d2",
+    "Paris|gfs_seamless",
+    "Paris|meteofrance_arpege_world",
+    "Paris|meteofrance_arome_france",
+    "Paris|meteofrance_arome_france_hd",
+    "Paris|ukmo_seamless",
+    "Paris|ukmo_uk_deterministic_2km",
+    "Paris|gem_seamless",
+    "Paris|jma_seamless",
+    "Paris|metno_seamless",
+    "Paris|knmi_harmonie_arome_europe",
+    "Paris|dmi_harmonie_arome_europe",
+    "Paris|arpae_cosmo_5m",
+    "Podgorica|ecmwf_ifs025",
+    "Podgorica|icon_eu",
+    "Podgorica|icon_d2",
+    "Podgorica|gfs_seamless",
+    "Podgorica|meteofrance_arpege_world",
+    "Podgorica|meteofrance_arome_france",
+    "Podgorica|meteofrance_arome_france_hd",
+    "Podgorica|ukmo_seamless",
+    "Podgorica|ukmo_uk_deterministic_2km",
+    "Podgorica|gem_seamless",
+    "Podgorica|jma_seamless",
+    "Podgorica|metno_seamless",
+    "Podgorica|knmi_harmonie_arome_europe",
+    "Podgorica|dmi_harmonie_arome_europe",
+    "Podgorica|arpae_cosmo_5m",
+    "Reykjavik|ecmwf_ifs025",
+    "Reykjavik|icon_eu",
+    "Reykjavik|icon_d2",
+    "Reykjavik|gfs_seamless",
+    "Reykjavik|meteofrance_arpege_world",
+    "Reykjavik|meteofrance_arome_france",
+    "Reykjavik|meteofrance_arome_france_hd",
+    "Reykjavik|ukmo_seamless",
+    "Reykjavik|ukmo_uk_deterministic_2km",
+    "Reykjavik|gem_seamless",
+    "Reykjavik|jma_seamless",
+    "Reykjavik|metno_seamless",
+    "Reykjavik|knmi_harmonie_arome_europe",
+    "Reykjavik|dmi_harmonie_arome_europe",
+    "Reykjavik|arpae_cosmo_5m",
+    "Sarajevo|ecmwf_ifs025",
+    "Sarajevo|icon_eu",
+    "Sarajevo|icon_d2",
+    "Sarajevo|gfs_seamless",
+    "Sarajevo|meteofrance_arpege_world",
+    "Sarajevo|meteofrance_arome_france",
+    "Sarajevo|meteofrance_arome_france_hd",
+    "Sarajevo|ukmo_seamless",
+    "Sarajevo|ukmo_uk_deterministic_2km",
+    "Sarajevo|gem_seamless",
+    "Sarajevo|jma_seamless",
+    "Sarajevo|metno_seamless",
+    "Sarajevo|knmi_harmonie_arome_europe",
+    "Sarajevo|dmi_harmonie_arome_europe",
+    "Sarajevo|arpae_cosmo_5m",
+    "Stockholm|ecmwf_ifs025",
+    "Stockholm|icon_eu",
+    "Stockholm|icon_d2",
+    "Stockholm|gfs_seamless",
+    "Stockholm|meteofrance_arpege_world",
+    "Stockholm|meteofrance_arome_france",
+    "Stockholm|meteofrance_arome_france_hd",
+    "Stockholm|ukmo_seamless",
+    "Stockholm|ukmo_uk_deterministic_2km",
+    "Stockholm|gem_seamless",
+    "Stockholm|jma_seamless",
+    "Stockholm|metno_seamless",
+    "Stockholm|knmi_harmonie_arome_europe",
+    "Stockholm|dmi_harmonie_arome_europe",
+    "Stockholm|arpae_cosmo_5m",
+    "Tallinn|ecmwf_ifs025",
+    "Tallinn|icon_eu",
+    "Tallinn|icon_d2",
+    "Tallinn|gfs_seamless",
+    "Tallinn|meteofrance_arpege_world",
+    "Tallinn|meteofrance_arome_france",
+    "Tallinn|meteofrance_arome_france_hd",
+    "Tallinn|ukmo_seamless",
+    "Tallinn|ukmo_uk_deterministic_2km",
+    "Tallinn|gem_seamless",
+    "Tallinn|jma_seamless",
+    "Tallinn|metno_seamless",
+    "Tallinn|knmi_harmonie_arome_europe",
+    "Tallinn|dmi_harmonie_arome_europe",
+    "Tallinn|arpae_cosmo_5m",
+    "Vienna|ecmwf_ifs025",
+    "Vienna|icon_eu",
+    "Vienna|icon_d2",
+    "Vienna|gfs_seamless",
+    "Vienna|meteofrance_arpege_world",
+    "Vienna|meteofrance_arome_france",
+    "Vienna|meteofrance_arome_france_hd",
+    "Vienna|ukmo_seamless",
+    "Vienna|ukmo_uk_deterministic_2km",
+    "Vienna|gem_seamless",
+    "Vienna|jma_seamless",
+    "Vienna|metno_seamless",
+    "Vienna|knmi_harmonie_arome_europe",
+    "Vienna|dmi_harmonie_arome_europe",
+    "Vienna|arpae_cosmo_5m"
+  ]
+}

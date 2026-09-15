@@ -6,14 +6,14 @@ chosen for politics; the real limit is where a rain gauge still reports, and
 that admits far more of the world:
 
     GeoNames cities >= 15k population          34,136
-    ... with a usable PRCP gauge                8,433
-    ... with a usable PRCP *and* TMAX gauge     8,055
+    ... with a usable PRCP gauge                8,509
+    ... with a usable PRCP *and* TMAX gauge     8,150
 
 So coverage was never the binding constraint - the city list was. What binds
 instead is (a) fetch budget, roughly six API calls per city, and (b) two
 selection rules that exist to stop the sample being garbage:
 
-  1. **One city per gauge.** 8,055 cities share only ~4,000 distinct stations.
+  1. **One city per gauge.** 8,150 cities share only ~3,750 distinct stations.
      Two cities verified against the same rain gauge are not two samples; they
      are one sample counted twice, and averaging them would silently
      over-weight wherever gauges are dense. Deduplicating by station is the
@@ -52,11 +52,14 @@ from probe_capitals import (
     MAX_ELEV_DIFF_M,
     MAX_STATION_KM,
     MIN_PAIRS,
+    MIN_STATION_DAYS,
     WINDOW_END_YEAR,
     WINDOW_START_YEAR,
     ELEVATION_API,
     load_inventory,
     load_stations,
+    pick_station,
+    station_frame,
 )
 
 GEONAMES_URL = "https://download.geonames.org/export/dump/cities15000.zip"
@@ -99,46 +102,49 @@ def load_geonames() -> pd.DataFrame:
                "timezone"]].rename(columns={"asciiname": "city"})
 
 
-def _nearest_vec(stations: pd.DataFrame, lat: float, lon: float):
-    """Index and distance of the closest station, vectorised over stations."""
-    dy = (stations.lat.values - lat) * 110.574
-    dx = (stations.lon.values - lon) * 111.320 * math.cos(math.radians(lat))
-    d = np.hypot(dx, dy)
-    i = int(np.argmin(d))
-    return i, float(d[i])
-
-
 def candidate_pool() -> pd.DataFrame:
-    """Every city with a gauge close enough, before any selection."""
+    """Every city with a gauge close enough, before any selection.
+
+    The distance and elevation envelope is unchanged; what changed is that the
+    gauge is chosen from inside it rather than assumed to be the nearest one.
+    See `pick_station` - the inventory says only that a station reported in
+    2024 and in 2026, which a gauge filing 37 days in between satisfies.
+    """
+    import ghcn_bulk
+
     cities = load_geonames()
     st, inv = load_stations(), load_inventory()
+    cen = ghcn_bulk.census().set_index("station")
     covering = inv[(inv.year_first <= WINDOW_START_YEAR)
                    & (inv.year_last >= WINDOW_END_YEAR)]
     by_elem = {e: set(g.id) for e, g in covering.groupby("elem")}
 
-    prcp = st[st.id.isin(by_elem.get("PRCP", set()))].reset_index(drop=True)
-    tmax = st[st.id.isin(by_elem.get("TMAX", set()))].reset_index(drop=True)
+    prcp = station_frame(st, by_elem.get("PRCP", set()), cen.prcp_days)
+    tmax = station_frame(st, by_elem.get("TMAX", set()), cen.tmax_days)
     print(f"  stations reporting through {WINDOW_END_YEAR}: "
-          f"PRCP {len(prcp)}, TMAX {len(tmax)}")
+          f"PRCP {len(prcp)} ({int((prcp.days >= MIN_STATION_DAYS).sum())} of "
+          f"them filing {MIN_STATION_DAYS}+ days), "
+          f"TMAX {len(tmax)} ({int((tmax.days >= MIN_STATION_DAYS).sum())})")
 
     rows = []
     for r in cities.itertuples(index=False):
-        pi, pkm = _nearest_vec(prcp, r.lat, r.lon)
-        ti, tkm = _nearest_vec(tmax, r.lat, r.lon)
+        # The pre-filter compares against GeoNames' terrain model; the shortlist
+        # is re-checked against the forecast grid point in
+        # confirm_grid_elevation(), which is the comparison that counts.
+        p, _ = pick_station(prcp, r.lat, r.lon, r.dem)
+        if p is None:
+            continue
+        t, _ = pick_station(tmax, r.lat, r.lon, r.dem)
+        if t is None:
+            continue
         rows.append((r.city, r.country, r.lat, r.lon, int(r.population),
                      r.dem, r.timezone,
-                     prcp.id[pi], pkm, float(prcp.elev_m[pi]),
-                     tmax.id[ti], tkm, float(tmax.elev_m[ti])))
-    pool = pd.DataFrame(rows, columns=[
+                     p.id, float(p.km), float(p.elev_m), int(p.days),
+                     t.id, float(t.km), float(t.elev_m), int(t.days)))
+    return pd.DataFrame(rows, columns=[
         "city", "country", "lat", "lon", "population", "dem", "timezone",
-        "prcp_station", "prcp_km", "prcp_elev_m",
-        "tmax_station", "tmax_km", "tmax_elev_m"])
-
-    pool["prcp_dz"] = (pool.prcp_elev_m - pool.dem).abs()
-    pool["tmax_dz"] = (pool.tmax_elev_m - pool.dem).abs()
-    ok = ((pool.prcp_km <= MAX_STATION_KM) & (pool.prcp_dz <= MAX_ELEV_DIFF_M)
-          & (pool.tmax_km <= MAX_STATION_KM) & (pool.tmax_dz <= MAX_ELEV_DIFF_M))
-    return pool[ok].copy()
+        "prcp_station", "prcp_km", "prcp_elev_m", "prcp_days",
+        "tmax_station", "tmax_km", "tmax_elev_m", "tmax_days"])
 
 
 def select(pool: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
@@ -262,8 +268,10 @@ def main() -> None:
             "prcp_station": r.prcp_station,
             "prcp_km": round(float(r.prcp_km), 1),
             "prcp_elev_m": float(r.prcp_elev_m),
+            "prcp_days": int(r.prcp_days),
             "tmax_station": r.tmax_station,
             "tmax_km": round(float(r.tmax_km), 1),
+            "tmax_days": int(r.tmax_days),
             "is_capital": r.city in CAPITALS,
         }
 
@@ -274,6 +282,7 @@ def main() -> None:
             "max_station_km": MAX_STATION_KM,
             "max_elev_diff_m": MAX_ELEV_DIFF_M,
             "min_pairs": MIN_PAIRS,
+            "min_station_days": MIN_STATION_DAYS,
             "min_population": MIN_POPULATION,
             "max_per_country": MAX_PER_COUNTRY,
             "min_city_separation_km": MIN_CITY_SEPARATION_KM,

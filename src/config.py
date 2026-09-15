@@ -222,6 +222,126 @@ def load_cities() -> dict[str, City]:
 
 
 # --------------------------------------------------------------------------
+# Multi-provider registry (Phase 1, Task 1 of the 2026-09-14 plan)
+# --------------------------------------------------------------------------
+# One source of truth for both the collection pipeline and the report's
+# plain-language provider guide. The model ids are Open-Meteo's; the archive
+# depths are the nominal first dates the vendor documents and are MEASURED per
+# city by src/probe_providers.py before any ranking is computed - a model is
+# only compared where its PoP archive actually covers the city.
+
+@dataclass(frozen=True)
+class ProviderModel:
+    """Everything the pipeline and the report need about one forecast model."""
+
+    model: str                 # Open-Meteo model id (the `models` parameter)
+    display_name: str          # how the report names it
+    organization: str          # who produces it (the "provider" in lay terms)
+    description: str           # one plain-language sentence, no jargon
+    archive_depth: str         # nominal first archive date (probe confirms)
+    domain: str                # "global" or "regional"
+
+
+PROVIDER_MODELS: dict[str, ProviderModel] = {
+    m.model: m for m in [
+        ProviderModel(
+            "ecmwf_ifs025", "ECMWF IFS 0.25°", "ECMWF",
+            "The European intergovernmental weather centre's global model - "
+            "widely regarded as the reference global forecast.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "icon_eu", "ICON-EU", "DWD (German Weather Service)",
+            "Germany's weather service's high-resolution model covering "
+            "Europe; sharper detail than global models inside its area.",
+            "2022-12-01", "regional"),
+        ProviderModel(
+            "icon_d2", "ICON-D2", "DWD (German Weather Service)",
+            "Germany's very-high-resolution model for Germany and the "
+            "immediate surroundings; short range only.",
+            "2024-08-01", "regional"),
+        ProviderModel(
+            "gfs_seamless", "GFS", "NOAA (US National Weather Service)",
+            "The United States' global model; the other big global "
+            "forecaster alongside ECMWF.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "meteofrance_arpege_world", "ARPEGE World", "Météo-France",
+            "France's weather service global model.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "meteofrance_arome_france", "AROME France", "Météo-France",
+            "France's high-resolution model covering France and nearby "
+            "countries.",
+            "2024-01-01", "regional"),
+        ProviderModel(
+            "meteofrance_arome_france_hd", "AROME France HD",
+            "Météo-France",
+            "The higher-resolution variant of Météo-France's French model.",
+            "2024-01-01", "regional"),
+        ProviderModel(
+            "ukmo_seamless", "UKMO Global", "Met Office (UK)",
+            "The United Kingdom's weather service global model.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "ukmo_uk_deterministic_2km", "UKMO UK 2 km", "Met Office (UK)",
+            "The Met Office's very-high-resolution model over the British "
+            "Isles.",
+            "2024-01-01", "regional"),
+        ProviderModel(
+            "gem_seamless", "GEM", "ECCC (Environment Canada)",
+            "Canada's weather service global model.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "jma_seamless", "JMA", "Japan Meteorological Agency",
+            "Japan's weather service global model.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "metno_seamless", "MET Norway", "MET Norway",
+            "Norway's weather service model chain.",
+            "2024-01-01", "global"),
+        ProviderModel(
+            "knmi_harmonie_arome_europe", "HARMONIE (KNMI)", "KNMI (Netherlands)",
+            "The Dutch weather service's high-resolution European model, "
+            "shared with several neighbouring services.",
+            "2024-01-01", "regional"),
+        ProviderModel(
+            "dmi_harmonie_arome_europe", "HARMONIE (DMI)", "DMI (Denmark)",
+            "The Danish weather service's run of the same high-resolution "
+            "European model.",
+            "2024-01-01", "regional"),
+        ProviderModel(
+            "arpae_cosmo_5m", "COSMO 5 km", "ARPAE (Italy)",
+            "Italy's environmental agency's high-resolution model over "
+            "southern Europe.",
+            "2024-01-01", "regional"),
+    ]
+}
+
+# Where the per-city, per-model archive-availability probe writes its verdict.
+PROVIDER_COVERAGE = PROCESSED / "provider_coverage.json"  # src/probe_providers.py
+
+# --------------------------------------------------------------------------
+# Ensemble member archive (Phase 1, Task 8 of the 2026-09-15 plan)
+# --------------------------------------------------------------------------
+# Open-Meteo keeps INDIVIDUAL ensemble members for three days only, so unlike
+# every other track in this study the member archive cannot be reconstructed
+# after the fact - it exists only if it was collected on the day. The forward
+# collector (src/collect_ensemble.py) therefore writes into its own directory,
+# one partition per collection date, and that directory grows daily.
+ENSEMBLE_RAW = RAW / "ensemble"
+ENSEMBLE_RAW.mkdir(parents=True, exist_ok=True)
+
+# Which ensemble model ids actually respond, at which cities, with how many
+# members - measured, not assumed, because the ensemble endpoint uses a model
+# namespace of its own that does not match PROVIDER_MODELS.
+ENSEMBLE_COVERAGE = PROCESSED / "ensemble_coverage.json"  # src/collect_ensemble.py
+
+# Polite spacing between successive models in multi-model collection: each
+# model's archive is a fresh burst of requests, and staying well under
+# Open-Meteo's hourly quota matters more than finishing an hour sooner.
+PROVIDER_SPACING_S = 5.0
+
+# --------------------------------------------------------------------------
 # API endpoints
 # --------------------------------------------------------------------------
 API_FORECAST = "https://api.open-meteo.com/v1/forecast"
