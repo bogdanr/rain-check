@@ -2,6 +2,18 @@
   'use strict';
 
   var cfg = JSON.parse(document.getElementById('site-config').textContent);
+
+  cfg.cities = (cfg.cityRows || []).map(function (row) {
+    var c = {};
+    cfg.cityCols.forEach(function (k, i) { c[k] = row[i]; });
+    return c;
+  });
+  cfg.cityUrls = {};
+  Object.keys(cfg.cityHashes || {}).forEach(function (slug) {
+    cfg.cityUrls[slug] = cfg.base + 'data/cities/' + slug + '.' +
+                         cfg.cityHashes[slug] + '.json';
+  });
+
   var root = document.documentElement;
   var cache = {};
 
@@ -136,6 +148,43 @@
     $$('.chartkey b').forEach(function (b) {
       b.textContent = name || 'your selection';
     });
+  }
+
+  function cityName(slug) {
+    var c = cfg.cities.filter(function (x) { return x.slug === slug; })[0];
+    return c ? c.name : '';
+  }
+
+  function initLazyCharts() {
+    var boxes = $$('.lazychart');
+    if (!boxes.length) return;
+
+    function load(box) {
+      if (box.dataset.state) return;
+      box.dataset.state = 'loading';
+      fetch(box.dataset.chartSrc).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      }).then(function (svg) {
+        box.innerHTML = svg;
+        box.dataset.state = 'ready';
+
+        highlightCharts(current, cityName(current));
+      }).catch(function () {
+
+        box.dataset.state = '';
+      });
+    }
+
+    if (!window.IntersectionObserver) { boxes.forEach(load); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        load(e.target);
+      });
+    }, { rootMargin: '800px 0px' });
+    boxes.forEach(function (b) { io.observe(b); });
   }
 
   function cityUrl(slug) {
@@ -630,9 +679,9 @@
     initPalette();
     initRail();
     initGlobe();
+    initLazyCharts();
 
-    var start = (cfg.inline && cfg.inline.name) ||
-                (cfg.cities.filter(function (c) { return c.slug === current; })[0] || {}).name;
+    var start = (cfg.inline && cfg.inline.name) || cityName(current);
     highlightCharts(current, start);
 
     document.addEventListener('mouseover', function (e) {

@@ -312,6 +312,11 @@ a { color: var(--accent); }
 .globe .mk.q4 .dot { fill: var(--q4); }
 
 .citychart { display: block; max-width: 560px; margin: 0 auto; }
+
+.lazychart {
+  display: block; max-width: 560px; margin: 0 auto; aspect-ratio: var(--ar);
+}
+.lazychart img { width: 100%; height: auto; }
 .citychart .cc-line polyline {
   stroke: var(--muted); stroke-width: 1; opacity: .28; fill: none;
   vector-effect: non-scaling-stroke;
