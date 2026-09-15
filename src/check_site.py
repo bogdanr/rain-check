@@ -11,9 +11,11 @@ about pixels:
 
     structure    every page exists, every rail anchor resolves, no unreplaced
                  build placeholders, no city missing from the payload set
-    parity       the globe draws exactly the capitals Python verified, plus the
-                 excluded ones drawn hollow - never a marker with no data
-                 behind it, and never a city with no marker
+    parity       the globe draws exactly the cities Python verified - never a
+                 marker with no data behind it, and never a city with no
+                 marker. Places that were probed and dropped are not markers
+                 at all; they are listed in a fold below the globe, and that
+                 list is checked to be present and complete.
     switching    selecting a city replaces the heading, the tables and the
                  deep-dive fence together, so the page never shows a blend of
                  two cities
@@ -213,20 +215,70 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         page.goto(base_url + "/", wait_until="networkidle")
 
         r.add(page.locator("#globe svg").count() == 1, "globe renders an SVG")
-        land = page.locator("#globe path.land").get_attribute("d") or ""
-        r.add(len(land) > 1000, "coastline geometry drew",
-              f"path length {len(land)}")
+
+        # The basemap moved from an SVG path to a canvas, so the old check
+        # (read path.land's "d") now reads an empty string forever. Assert
+        # against what is actually drawn: polygons submitted, and real ink on
+        # the canvas. A blank canvas is the failure this must still catch.
+        # Polygons actually submitted to the canvas. This is view-dependent --
+        # the far hemisphere is culled -- so the bar is "a continent's worth",
+        # not a precise count. The pixel checks below do the exacting work.
+        land_polys = page.evaluate("() => window.__globe.stats.land")
+        r.add(land_polys > 20, "coastline geometry drew",
+              f"{land_polys} polygons in view")
+
+        ink = page.evaluate("""() => {
+          const c = document.querySelector('#globe canvas');
+          if (!c) return null;
+          const ctx = c.getContext('2d');
+          const d = ctx.getImageData(0, 0, c.width, c.height).data;
+          const seen = new Set();
+          let painted = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) continue;
+            painted++;
+            seen.add((d[i] >> 3) + ',' + (d[i+1] >> 3) + ',' + (d[i+2] >> 3));
+          }
+          return { painted: painted / (d.length / 4), colours: seen.size };
+        }""")
+        r.add(ink is not None and ink["painted"] > 0.25,
+              "basemap canvas is actually painted, not blank", str(ink))
+        # Ocean and land must not be the same colour, or the map is a disc.
+        r.add(ink is not None and ink["colours"] >= 3,
+              "basemap distinguishes land from ocean", str(ink))
+
+        land = ""
         r.add(page.locator("#globe-fallback").is_hidden(),
               "plain city list hides once the globe is live")
 
         vis = page.eval_on_selector_all(
-            "#globe .mk:not(.excluded)",
+            "#globe .mk",
             "ns => ns.filter(n => n.getAttribute('display') !== 'none').length")
-        total = page.locator("#globe .mk:not(.excluded)").count()
+        total = page.locator("#globe .mk").count()
         r.add(total == len(slugs),
               f"one marker per verified capital ({total} of {len(slugs)})")
-        r.add(page.locator("#globe .mk.excluded").count() == len(cfg["excluded"]),
-              f"{len(cfg['excluded'])} excluded capitals drawn hollow")
+        # Parity in the strict direction: no marker may exist that Python did
+        # not verify. Counting alone would pass a globe that drew a dropped
+        # city and omitted a real one.
+        orphans = page.eval_on_selector_all(
+            "#globe .mk",
+            "(ns, known) => ns.map(n => n.getAttribute('data-slug'))"
+            "               .filter(s => known.indexOf(s) < 0)",
+            arg=[c["slug"] for c in cfg["cities"]])
+        r.add(not orphans, "every marker is a city with a payload behind it",
+              str(orphans))
+
+        # The places that could not be verified are a fold under the globe, not
+        # markers. They must still be on the page: dropping them silently would
+        # turn a coverage limit into an invisible one.
+        fold = page.locator("details.dropped")
+        r.add(fold.count() == 1, "the dropped-places fold is on the page")
+        if fold.count():
+            listed = page.eval_on_selector_all(
+                "details.dropped .drop-names",
+                "ns => ns.reduce((a, n) => a + n.textContent.split(',').length, 0)")
+            r.add(listed > 0, f"{listed} dropped places are named with a reason")
+
         r.add(0 < vis <= total, "front-hemisphere markers only",
               f"{vis} of {total} visible")
 
@@ -247,7 +299,7 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         # clicked. That is exactly the class of defect a visual review misses.
         buried = page.evaluate("""() => {
           const out = [];
-          document.querySelectorAll('#globe .mk:not(.excluded)').forEach(g => {
+          document.querySelectorAll('#globe .mk').forEach(g => {
             if (g.getAttribute('display') === 'none') return;
             const b = g.getBoundingClientRect();
             const hit = document.elementFromPoint(b.x + b.width / 2,
@@ -261,17 +313,90 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         r.add(not buried, "every marker is clickable, none buried under a "
                           "neighbour", str(buried))
 
+        # Zoom controls. The old version of this check clicked once and then
+        # asserted True, which tested nothing -- it passed even while the
+        # button was disabled. Read the zoom back out instead.
+        zoom_in = page.locator("[aria-label='Zoom in']")
         zoom_out = page.locator("[aria-label='Zoom out']")
-        r.add(zoom_out.count() == 1 and page.locator("[aria-label='Zoom in']").count() == 1,
+        r.add(zoom_out.count() == 1 and zoom_in.count() == 1,
               "globe has zoom controls")
+
+        z0 = page.evaluate("() => window.__globe.zoom")
+        r.add(zoom_out.is_disabled(),
+              "zoom out is disabled at minimum zoom, not a dead button")
+
+        zoom_in.click()
+        page.wait_for_function("z => window.__globe.zoom > z", arg=z0)
+        z1 = page.evaluate("() => window.__globe.zoom")
+        r.add(z1 > z0, f"zoom in magnifies ({z0:g} -> {z1:g})")
+        r.add(zoom_out.is_enabled(), "zoom out re-enables once zoomed in")
+
+        # Markers must stay clickable when zoomed: this is where the
+        # declutter grid changes its mind about what to hide.
+        buried_z = page.evaluate("""() => {
+          const out = [];
+          document.querySelectorAll('#globe .mk').forEach(g => {
+            if (g.getAttribute('display') === 'none') return;
+            const b = g.getBoundingClientRect();
+            const hit = document.elementFromPoint(b.x + b.width / 2,
+                                                  b.y + b.height / 2);
+            if (!hit || !g.contains(hit)) {
+              out.push((g.getAttribute('aria-label') || '').split(' (')[0]);
+            }
+          });
+          return out;
+        }""")
+        r.add(not buried_z, "markers stay clickable when zoomed in",
+              str(buried_z))
+
         zoom_out.click()
+        page.wait_for_function("z => window.__globe.zoom < z", arg=z1)
+        r.add(page.evaluate("() => window.__globe.zoom") < z1, "zoom out shrinks")
+
+        zoom_in.click()
         page.locator("[aria-label='Reset the view']").click()
-        r.add(True, "zoom and reset controls respond")
+        page.wait_for_function("z => window.__globe.zoom === z", arg=z0)
+        r.add(page.evaluate("() => window.__globe.zoom") == z0,
+              "reset returns the globe to its starting zoom")
+
+        # --- clusters are a route, not a dead end -------------------------
+        # Decluttering hides markers behind "+N" badges. That is only
+        # acceptable if the badge leads somewhere, so prove it: clicking one
+        # must zoom in and reveal more markers than were visible before.
+        badge = page.locator("#globe .cl:not([display='none'])").first
+        if badge.count():
+            before_z = page.evaluate("() => window.__globe.zoom")
+            before_v = page.eval_on_selector_all(
+                "#globe .mk",
+                "ns => ns.filter(n => n.getAttribute('display') !== 'none').length")
+            badge.click()
+            page.wait_for_function("z => window.__globe.zoom > z", arg=before_z)
+            after_v = page.eval_on_selector_all(
+                "#globe .mk",
+                "ns => ns.filter(n => n.getAttribute('display') !== 'none').length")
+            r.add(after_v > before_v,
+                  "clicking a +N badge zooms in and reveals hidden cities",
+                  f"{before_v} -> {after_v} markers visible")
+            page.locator("[aria-label='Reset the view']").click()
+            page.wait_for_function("z => window.__globe.zoom === z", arg=before_z)
 
         # --- switching ---------------------------------------------------
-        target = next(s for s in slugs if s != default)
+        # Address the marker by slug, not by name. Selecting on the name broke
+        # the moment the city set grew past the capitals: 's-Hertogenbosch
+        # begins with an apostrophe and silently produced an invalid selector.
+        #
+        # And pick a marker that is actually on screen. Most cities are behind
+        # the globe or inside a cluster at any moment, so an arbitrary slug is
+        # usually unclickable -- which is the design, not a fault.
+        visible = page.eval_on_selector_all(
+            "#globe .mk",
+            "ns => ns.filter(n => n.getAttribute('display') !== 'none')"
+            "      .map(n => n.getAttribute('data-slug'))")
+        r.add(len(visible) > 5, "several cities are directly clickable at rest",
+              f"{len(visible)} visible")
+        target = next(s for s in visible if s != default)
         name = next(c["name"] for c in cfg["cities"] if c["slug"] == target)
-        page.click(f"#globe .mk[aria-label^='{name}']")
+        page.click(f"#globe .mk[data-slug='{target}']")
         page.wait_for_function(
             "n => document.querySelector('#h1-city').textContent === n", arg=name)
 
@@ -296,6 +421,26 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         r.add(old not in panel or name == old,
               f"no trace of {old} left in the panel after switching")
 
+        # --- in-page links must not change the city -------------------------
+        # Following a fragment link pushes a history entry with a null state
+        # and fires popstate. Treating a null state as "the default city" meant
+        # that clicking the globe card's link to the full verdict - or any rail
+        # link - silently reloaded Bucharest over the top of whichever city the
+        # reader had selected, while the address bar still named their city.
+        page.click("#city-card a")
+        page.wait_for_timeout(700)
+        r.add(page.locator("#h1-city").inner_text() == name,
+              "an in-page link leaves the selection alone",
+              page.locator("#h1-city").inner_text())
+        r.add(name in page.locator("#city-answer h2").inner_text(),
+              "the card's link lands on the selected city's verdict",
+              page.locator("#city-answer h2").inner_text())
+        r.add(page.url.split("#")[0].rstrip("/").endswith(f"city/{target}"),
+              "the URL still names the selected city after an in-page link",
+              page.url)
+
+        page.go_back()                      # undo the fragment entry
+        page.wait_for_timeout(300)
         page.go_back()
         page.wait_for_function(
             "n => document.querySelector('#h1-city').textContent === n", arg=old)
@@ -354,32 +499,135 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         bins = fc["pop_map"]
         target_bin = bins[len(bins) // 2]
         stated = round((target_bin["lo"] + target_bin["hi"]) / 2 * 100)
+        want_obs = f"{round(target_bin['obs'] * 100)}%"
+
+        # Code 61 is rain, so the card must decode to the rain sky and the
+        # page must take the rain tint. Both are asserted below.
+        fc_body = json.dumps({
+            "current": {"temperature_2m": 12.4, "weather_code": 61, "is_day": 1,
+                        "time": "2026-09-14T09:30"},
+            "hourly": {
+                "time": [f"2026-09-14T{h:02d}:00" for h in range(24)],
+                "precipitation_probability": [(i * 7) % 101 for i in range(24)],
+            },
+            "daily": {"temperature_2m_max": [15.0],
+                      "temperature_2m_min": [7.0],
+                      "precipitation_probability_max": [stated]},
+        })
+
+        def fc_route(route):
+            route.fulfill(status=200, content_type="application/json", body=fc_body)
 
         fctx = browser.new_context()
-        fctx.route("**://api.open-meteo.com/**", lambda route: route.fulfill(
-            status=200, content_type="application/json",
-            body=json.dumps({
-                "current": {"temperature_2m": 12.4, "weather_code": 61, "is_day": 1},
-                "daily": {"temperature_2m_max": [15.0],
-                          "temperature_2m_min": [7.0],
-                          "precipitation_probability_max": [stated]},
-            })))
+        fctx.route("**://api.open-meteo.com/**", fc_route)
         fpage = fctx.new_page()
         fpage.goto(f"{base_url}/city/{fc_slug}/", wait_until="domcontentloaded")
         fpage.wait_for_selector("#fc .pop", timeout=10000)
+        # Both headline figures count up, so read them only once they have
+        # settled. Without this the assertions race the animation and check
+        # whichever frame the browser happened to be on.
+        fpage.wait_for_function(
+            "w => document.querySelector('#fc .obsnum').textContent === w",
+            arg=want_obs, timeout=5000)
+        fpage.wait_for_function(
+            "() => document.querySelector('#fc .temp').textContent === '12\\u00B0'",
+            timeout=5000)
 
         strip = fpage.locator("#fc").inner_text()
         r.add(f"{stated}% chance of rain" in strip,
               "forecast strip shows the stated probability", strip.replace("\n", " ")[:70])
         r.add("12" in strip, "forecast strip shows the current temperature")
 
-        want_obs = f"{round(target_bin['obs'] * 100)}%"
         means = fpage.locator("#fc .means").inner_text()
         r.add(want_obs in means and fc_name in means,
               f"stated {stated}% annotated with {fc_name}'s own history",
               means[:110])
         r.add(str(target_bin["n"]) in means,
               "annotation states the sample size it rests on")
+
+        r.add(fpage.locator("#fc .sk").count() == 0,
+              "loading skeleton is cleared once the data lands")
+
+        # The illustration has to be the one the WMO code decodes to. Artwork
+        # that never changes is the failure mode a screenshot cannot catch,
+        # because any single screenshot of it looks perfectly correct.
+        r.add(fpage.locator("#fc .fcart .a-rain").count() > 0 and
+              fpage.locator("#fc .fcart .a-sun").count() == 0,
+              "sky illustration matches the decoded condition")
+        emoji = [c for c in strip if ord(c) > 0x2100]
+        r.add(not emoji, "no emoji glyph left in the forecast card", repr(emoji[:4]))
+
+        # Placement on a wrapping <g>, motion on the child. When both sit on one
+        # node the CSS keyframe replaces the SVG transform *attribute* outright
+        # and every cloud silently jumps to a position nobody authored - a bug
+        # that is invisible unless you know the authored coordinates.
+        clash = fpage.evaluate("""() => [...document.querySelectorAll('#fc .fcart *')]
+          .filter(n => n.hasAttribute('transform') &&
+                       getComputedStyle(n).animationName !== 'none').length""")
+        r.add(clash == 0,
+              "no sky shape animates a transform it also sets as an attribute",
+              f"{clash} clashing")
+
+        # The hourly ribbon comes out of the same request. Twelve bars, tallest
+        # where the vendor said the chance was highest - if the slice were taken
+        # from the wrong index the card would confidently show yesterday.
+        ribbon = fpage.evaluate("""() => [...document.querySelectorAll('#fc .hr')]
+          .map(n => ({ h: n.getBoundingClientRect().height,
+                       tip: n.dataset.tip }))""")
+        r.add(len(ribbon) == 12, "hourly ribbon shows the next twelve hours",
+              f"{len(ribbon)} bars")
+        r.add(bool(ribbon) and ribbon[0]["tip"].startswith("10:00"),
+              "ribbon starts at the first hour after the reported time",
+              ribbon[0]["tip"] if ribbon else "")
+        r.add(bool(ribbon) and max(b["h"] for b in ribbon) >
+              min(b["h"] for b in ribbon) + 8,
+              "ribbon bar heights vary with the stated hourly chance")
+
+        # The gap rail is the finding. Its two marks must sit at the two numbers
+        # and in the right order - a rail that draws both marks in one place is
+        # the ring's failure all over again, just flatter.
+        rail = fpage.evaluate("""() => {
+          const r = document.querySelector('#fc .gaprail');
+          const s = document.querySelector('#fc .mk.stated');
+          const o = document.querySelector('#fc .mk.obs');
+          if (!r || !s || !o) return null;
+          const w = r.getBoundingClientRect().width;
+          const at = n => (n.getBoundingClientRect().left +
+                           n.getBoundingClientRect().width / 2 -
+                           r.getBoundingClientRect().left) / w * 100;
+          return { stated: at(s), obs: at(o) };
+        }""")
+        r.add(rail is not None and abs(rail["stated"] - stated) <= 1.5,
+              "rail places the stated mark at the stated probability",
+              f"{rail['stated']:.1f}% vs {stated}%" if rail else "missing")
+        r.add(rail is not None and
+              abs(rail["obs"] - round(target_bin["obs"] * 100)) <= 1.5,
+              "rail places the observed mark at this city's own figure",
+              f"{rail['obs']:.1f}%" if rail else "missing")
+
+        # Content hierarchy, asserted numerically. The point of the report is
+        # that a stated probability needs qualifying by what it has actually
+        # meant, and for the whole life of the old card the layout said the
+        # opposite: 19px bold for the vendor's number, 13px grey for the city's
+        # own record. This is the check that keeps that from coming back.
+        sizes = fpage.evaluate("""() => ({
+          obs: parseFloat(getComputedStyle(
+                 document.querySelector('#fc .obsnum')).fontSize),
+          stated: parseFloat(getComputedStyle(
+                 document.querySelector('#fc .stated')).fontSize)
+        })""")
+        r.add(sizes["obs"] >= sizes["stated"] * 1.5,
+              "observed frequency outweighs the stated probability visually",
+              f"{sizes['obs']:.0f}px vs {sizes['stated']:.0f}px")
+
+        # Contrast on this card is measured in pixels, not tokens: the text now
+        # sits on the weather itself, so no computed background colour describes
+        # what is actually behind a glyph. The full sweep across every sky and
+        # theme is check_card_contrast; this is the one-case tripwire.
+        worst_card = card_contrast(fpage)
+        r.add(worst_card >= 4.5,
+              "forecast card text stays legible on its own sky",
+              f"worst {worst_card:.2f}:1")
 
         # Rain must tint the page, and must not touch text contrast.
         sky = fpage.get_attribute("html", "data-sky")
@@ -390,10 +638,41 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
               "weather tint leaves body contrast at AAA",
               f"{contrast(bg, fg):.1f}:1")
 
-        fpage.click("#skytoggle")
-        r.add(fpage.get_attribute("html", "data-sky") is None,
-              "weather tint can be switched off")
+        # A card this dense is exactly the kind of layout that survives review
+        # at 1280px and overflows the viewport on a phone.
+        for w in (390, 700, 860, 1280):
+            fpage.set_viewport_size({"width": w, "height": 900})
+            over = fpage.evaluate("""() => {
+              const f = document.querySelector('#fc');
+              const d = document.documentElement;
+              return { card: f.scrollWidth - f.clientWidth,
+                       doc: d.scrollWidth - d.clientWidth };
+            }""")
+            r.add(over["card"] <= 1 and over["doc"] <= 1,
+                  f"forecast card fits its column at {w}px", str(over))
+        fpage.set_viewport_size({"width": 1280, "height": 900})
         fctx.close()
+
+        # --- forecast, reduced motion ----------------------------------------
+        # The page's blanket reduced-motion rule collapses durations to .001ms,
+        # which stops a transition but leaves an *infinite* loop running at a
+        # pathological speed - the opposite of what was asked for. The sky loops
+        # are the first looping animations here, so this asserts nothing in the
+        # card is still playing rather than trusting the rule to cover them.
+        mctx = browser.new_context(reduced_motion="reduce")
+        mctx.route("**://api.open-meteo.com/**", fc_route)
+        mpage = mctx.new_page()
+        mpage.goto(f"{base_url}/city/{fc_slug}/", wait_until="domcontentloaded")
+        mpage.wait_for_selector("#fc .obsnum", timeout=10000)
+        running = mpage.evaluate("""() => document.querySelector('#fc')
+          .getAnimations({ subtree: true })
+          .filter(a => a.playState === 'running').length""")
+        r.add(running == 0,
+              "nothing in the forecast card animates under reduced motion",
+              f"{running} running")
+        r.add(mpage.locator("#fc .obsnum").inner_text() == want_obs,
+              "figures arrive at their value without counting up")
+        mctx.close()
 
         r.add(not errors, "no console or page errors", "; ".join(errors[:3]))
         ctx.close()
@@ -486,34 +765,99 @@ def check_palettes(base_url: str, r: Result) -> None:
             # renderer paints land where land is. A wrong fill-rule, a stale
             # clip or a mis-ordered layer would satisfy both and still hand the
             # reader a map of the sea. Only the pixels settle that, so four
-            # marker-free points - two inland, two offshore, all inside the
-            # fitted European view - are read straight off a screenshot.
-            probe = {
-                "central France": ([2.6, 45.5], "land"),
-                "central Poland": ([19.5, 52.4], "land"),
+            # marker-free points - two inland, two offshore - are read straight
+            # off the canvas.
+            #
+            # What the pixels are compared *against* is the question. Two
+            # earlier answers are both wrong now:
+            #
+            #   - "is this pixel nearer the land token or the ocean token" -
+            #     defeated by lighting, because a lit ocean is brighter than
+            #     shadowed land;
+            #   - "is the land point lighter than the sea point" - defeated by
+            #     the terrain renderer, which paints a green continent that is
+            #     genuinely darker than a sunlit sea. It reported a land/sea
+            #     swap on a map where nothing had swapped.
+            #
+            # The answer that survives both is to ask which *material* the
+            # pixel resembles, out of the full palette the shader draws from:
+            # a sea point must look like abyss or shelf, a land point like
+            # forest, desert or rock. Shading moves a pixel along its own
+            # material's brightness, which is far less than the distance to a
+            # material of another colour - and if the fill rule inverted, every
+            # one of these four would name a material from the wrong list.
+            probes = {
+                "France": ([2.6, 45.5], "land"),
                 "North Sea": ([3.5, 55.5], "sea"),
+                "Poland": ([19.5, 52.4], "land"),
                 "Adriatic": ([15.5, 42.6], "sea"),
             }
-            rect = page.evaluate(
-                "() => { const b = document.querySelector('#globe svg')"
-                ".getBoundingClientRect(); return [b.x, b.y, b.width]; }"
-            )
-            xy = page.evaluate(
-                "(pts) => { const o = {}; for (const k in pts)"
-                " o[k] = window.__globe.projection(pts[k]); return o; }",
-                {k: v[0] for k, v in probe.items()},
-            )
-            shot = Image.open(io.BytesIO(page.screenshot())).convert("RGB")
-            scale = rect[2] / 420.0          # viewBox is 420 units wide
-            want = {"land": _rgb(land), "sea": _rgb(sea)}
-            for label, (_, kind) in probe.items():
-                q = xy[label]
-                px = shot.getpixel(
-                    (int(rect[0] + q[0] * scale), int(rect[1] + q[1] * scale))
-                )
-                near = max(abs(a - b) for a, b in zip(px, want[kind]))
-                r.add(near <= 6, f"{theme}: {label} renders as {kind}",
-                      "#%02x%02x%02x vs expected %s" % (px + (want[kind],)))
+
+            # Put Europe under the nose AND magnify it before sampling.
+            #
+            # These probe points were chosen for a fitted European view. With a
+            # worldwide city set the opening view is the whole globe, where the
+            # entire North Sea is about eight pixels across - the probe then
+            # samples antialiased coastline and reports a land/sea fault that
+            # does not exist. d3.geoContains confirms the geometry is right at
+            # both zooms; only the sampling was unsound. Magnify until the
+            # features are larger than the uncertainty.
+            page.evaluate("""() => {
+              window.__globe._spin([-10, -50], false);
+              window.__globe.setZoom(3);
+              // Full detail: while the view is moving the shader renders into
+              // a smaller buffer and the result is scaled up, and sampling a
+              // single pixel out of an interpolated image is not a measurement
+              // of what the renderer decided.
+              window.__globe._detail = 1;
+              window.__globe.render();
+            }""")
+
+            px_all = page.evaluate("""(pts) => {
+              const c = document.querySelector('#globe canvas');
+              const ctx = c.getContext('2d');
+              const vb = +document.querySelector('#globe svg')
+                           .getAttribute('viewBox').split(/\\s+/)[2];
+              const k = c.width / vb;
+              const pal = window.__globe.relPal || {};
+              const out = { _materials: {
+                abyss: pal.abyss, shelf: pal.shelf, forest: pal.forest,
+                desert: pal.desert, rock: pal.rock
+              } };
+              for (const name in pts) {
+                const p = window.__globe.projection(pts[name]);
+                if (!p) { out[name] = null; continue; }
+                const x = Math.round(p[0] * k), y = Math.round(p[1] * k);
+                if (x < 0 || y < 0 || x >= c.width || y >= c.height) {
+                  out[name] = null; continue;
+                }
+                const d = ctx.getImageData(x, y, 1, 1).data;
+                out[name] = [d[0], d[1], d[2]];
+              }
+              return out;
+            }""", {k: v[0] for k, v in probes.items()})
+
+            mats = px_all.pop("_materials")
+            side_of = {"abyss": "sea", "shelf": "sea",
+                       "forest": "land", "desert": "land", "rock": "land"}
+            # A theme that never defined the terrain palette falls back to the
+            # two flat tokens, which is exactly what its globe is drawn with.
+            known = {n: c[:3] for n, c in mats.items() if c} or \
+                    {"shelf": _rgb(sea), "forest": _rgb(land)}
+
+            for label, (pt, want) in probes.items():
+                px = px_all[label]
+                if px is None:
+                    r.add(False, f"{theme}: {label} probe lands on the globe",
+                          "projected outside the canvas")
+                    continue
+                nearest = min(known, key=lambda m: sum(
+                    (px[i] - known[m][i]) ** 2 for i in range(3)))
+                got = side_of.get(nearest, "land")
+                r.add(got == want,
+                      f"{theme}: {label} is painted as {want}",
+                      "#%02x%02x%02x reads as %s (%s)" % (
+                          px[0], px[1], px[2], nearest, got))
 
         # Is the filled region actually the land?
         #
@@ -578,7 +922,22 @@ def check_responsive(base_url: str, r: Result) -> None:
                 // only near-edge clipping counts as overflow on the left.
                 const clipped = b.right > window.innerWidth + 1 ||
                                 (b.left < -1 && b.left > -1000);
-                if (clipped)
+                // A control inside a horizontally scrollable box is reachable:
+                // the wide data tables ship in .tablewrap (overflow-x: auto)
+                // precisely so a phone can scroll them sideways rather than
+                // squeeze eight numeric columns into 390px. What this check is
+                // really asking is whether a control can be reached at all, so
+                // require the ancestor to actually scroll - a box with
+                // overflow-x: auto that fits its content scrolls nowhere and
+                // would still be hiding the control.
+                let scrollable = false;
+                for (let e = n.parentElement; e && e !== document.body;
+                     e = e.parentElement) {
+                  const es = getComputedStyle(e);
+                  if ((es.overflowX === 'auto' || es.overflowX === 'scroll') &&
+                      e.scrollWidth > e.clientWidth + 1) { scrollable = true; break; }
+                }
+                if (clipped && !scrollable)
                   bad.push((n.id || n.textContent.trim().slice(0, 18) ||
                             n.tagName) + ' @' + Math.round(b.left) + '..' +
                            Math.round(b.right));
@@ -609,72 +968,146 @@ def check_responsive(base_url: str, r: Result) -> None:
 
 
 # ---------------------------------------------------------------------------
-def check_sky_contrast(base_url: str, r: Result) -> None:
-    """The weather tint must never make the hero unreadable.
+def card_contrast(page) -> float:
+    """Worst contrast behind any text in the forecast card, measured in pixels.
 
-    The design rule is that ambience may touch backdrops but not text contrast
-    pairs. `[data-sky]` honours that in the token layer - it only sets --sky-*
-    - but the hero paints white text directly over that gradient, so the rule
-    can still be broken in the *layout* layer without any token being misused.
+    The card puts text on the weather itself, which is a deliberate bend of the
+    rule that `--sky-*` may not touch text: the surface is allowed to react to
+    the weather only because it guarantees its own floor - the sky is mixed down
+    against a near-black base, and a weather-INDEPENDENT scrim sits on top.
 
-    Seven sky states times three themes is more combinations than anyone will
-    look at by hand, and the dangerous ones are the rare ones: `snow` ends at
-    #7d9ab5, which is only 2.9:1 against white. So the pixels behind the text
-    are sampled at several points across its width, and the worst is the score.
+    "Guarantees" has to mean measured. No computed background colour describes
+    what is behind a glyph here (the nearest one is `transparent`), so the text
+    is hidden, the card is photographed, and the pixels that were behind each
+    line are sampled: the dangerous case is the rare sky, not the one anybody
+    thought to look at.
+
+    Sampling across the element's *box* rather than its glyphs measures the
+    neighbours. `.asof` is a 398px-wide block holding about 70px of "as of
+    08:00"; the leftmost sample landed on the top edge of the hourly bar
+    underneath it and reported 2.7:1 for text sitting on a perfectly dark
+    backdrop. A Range over the text nodes gives the inked extent instead, so
+    every sample is a pixel a glyph is actually drawn on.
     """
-    from playwright.sync_api import sync_playwright
     from PIL import Image
 
-    skies = ["clear", "cloud", "rain", "snow", "storm", "fog", "night"]
+    sel = ("#fc .temp, #fc .cond, #fc .asof, #fc .city, #fc .k, #fc .stated, "
+           "#fc .obsnum, #fc .tag, #fc .means, #fc .hrslab, #fc .gaprail .lab")
+    # page.screenshot() photographs the viewport, and the card sits well below
+    # the fold on a city page. Without this scroll every sample lands outside
+    # the image and is skipped, and the function returns its own "nothing was
+    # wrong" sentinel - a check that measures nothing and reports a pass.
+    #
+    # 'instant' is load-bearing: the stylesheet sets html { scroll-behavior:
+    # smooth }, so the default animates the scroll and the screenshot catches
+    # the page in flight. That is how the rail caption came to be measured at
+    # y=995 - the viewport floor, below the card entirely - against the white
+    # page background, reporting 1.06:1 for text on a dark scrim.
+    page.eval_on_selector(
+        "#fc", "n => n.scrollIntoView({ block: 'center', behavior: 'instant' })")
+    page.wait_for_timeout(150)
+    geom = page.evaluate("""(sel) => {
+      const out = [];
+      for (const n of document.querySelectorAll(sel)) {
+        const fg = getComputedStyle(n).color;
+        // Range rects follow the glyphs, not the block: one rect per line box,
+        // each only as wide as the text actually set on that line.
+        const rng = document.createRange();
+        rng.selectNodeContents(n);
+        for (const b of rng.getClientRects()) {
+          if (b.width < 2 || b.height < 2) continue;
+          out.push({ fg, y: Math.round(b.y + b.height / 2),
+                     x0: Math.round(b.x), x1: Math.round(b.right) });
+        }
+        rng.detach();
+      }
+      document.querySelectorAll(sel).forEach(n => { n.style.visibility = 'hidden'; });
+      return out;
+    }""", sel)
+    shot = Image.open(io.BytesIO(page.screenshot())).convert("RGB")
+    page.evaluate("(sel) => document.querySelectorAll(sel)"
+                  ".forEach(n => { n.style.visibility = ''; })", sel)
+
+    worst, seen = 99.0, 0
+    for g in geom:
+        # Inset by a pixel at each end: a glyph run's first and last columns are
+        # antialiased against whatever abuts the text, which is not the backdrop
+        # the glyph body sits on.
+        span = g["x1"] - g["x0"]
+        for i in range(12):
+            x = int(g["x0"] + 1 + (span - 2) * i / 11.0)
+            if not (0 <= x < shot.width and 0 <= g["y"] < shot.height):
+                continue
+            px = shot.getpixel((x, g["y"]))
+            worst = min(worst, contrast("rgb(%d,%d,%d)" % px, g["fg"]))
+            seen += 1
+    # Sampling nothing means the measurement failed, not that the card passed.
+    return worst if seen else 0.0
+
+
+def check_card_contrast(base_url: str, cfg: dict, r: Result) -> None:
+    """The forecast card must stay legible under every sky, in every theme.
+
+    Twenty-one combinations, and the ones that will break are not the ones a
+    designer looks at: `fog` ends at #8a9296 and `snow` at #7d9ab5, both far too
+    light for near-white text before the card mixes them down. Checking the two
+    that were designed against proves nothing about the other nineteen.
+    """
+    from playwright.sync_api import sync_playwright
+
+    # One code per sky bucket the decoder knows about, plus night.
+    cases = [("clear", 0, 1), ("cloud", 3, 1), ("rain", 61, 1), ("snow", 73, 1),
+             ("storm", 95, 1), ("fog", 45, 1), ("night", 0, 0)]
+    slug = cfg["cities"][1]["slug"]
+
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
-        ctx = browser.new_context(viewport={"width": 1400, "height": 1000})
-        ctx.route("**://api.open-meteo.com/**", lambda route: route.abort())
-        page = ctx.new_page()
-        page.goto(base_url + "/", wait_until="networkidle")
-
         for theme in ("observatory", "daylight", "blueprint"):
-            page.click(f"[data-theme-set='{theme}']")
             worst, where = 99.0, ""
-            for sky in skies:
-                page.evaluate("(s) => document.documentElement"
-                              ".setAttribute('data-sky', s)", sky)
-                # Hide every glyph in the hero before sampling, not just the
-                # element being measured. #h1-city is only the city-name span,
-                # so hiding it alone leaves the rest of the <h1> painted and the
-                # sweep reads white-on-white: a 1.00:1 "failure" that is purely
-                # a measurement artefact.
-                geom = page.evaluate("""() => {
-                  const out = [];
-                  for (const s of ['.hero h1', '.hero p']) {
-                    const n = document.querySelector(s);
-                    if (!n) continue;
-                    const b = n.getBoundingClientRect();
-                    out.push({fg: getComputedStyle(n).color,
-                              y: Math.round(b.y + b.height / 2),
-                              x0: Math.round(b.x)});
-                  }
-                  document.querySelectorAll('.hero h1, .hero p')
-                    .forEach(n => { n.style.visibility = 'hidden'; });
-                  return out;
-                }""")
-                shot = Image.open(io.BytesIO(page.screenshot())).convert("RGB")
-                page.evaluate("() => document.querySelectorAll('.hero h1, .hero p')"
-                              ".forEach(n => { n.style.visibility = ''; })")
-                for g in geom:
-                    # Sweep the full hero width, not just the current text box:
-                    # a longer city name or a wider viewport pushes text into
-                    # the light end of the gradient, and that is the case that
-                    # will actually break in production.
-                    for i in range(24):
-                        x = int(g["x0"] + (shot.width - g["x0"]) * i / 23.0)
-                        if not (0 <= x < shot.width and 0 <= g["y"] < shot.height):
-                            continue
-                        px = shot.getpixel((x, g["y"]))
-                        c = contrast("rgb(%d,%d,%d)" % px, g["fg"])
-                        if c < worst:
-                            worst, where = c, f"{sky} at x={x}"
-            r.add(worst >= 4.5, f"{theme}: hero stays legible under every sky",
+            for name, code, day in cases:
+                body = json.dumps({
+                    "current": {"temperature_2m": 12.4, "weather_code": code,
+                                "is_day": day, "time": "2026-09-14T09:30"},
+                    "hourly": {
+                        "time": [f"2026-09-14T{h:02d}:00" for h in range(24)],
+                        "precipitation_probability": [(i * 7) % 101 for i in range(24)],
+                    },
+                    "daily": {"temperature_2m_max": [15.0],
+                              "temperature_2m_min": [7.0],
+                              "precipitation_probability_max": [40]},
+                })
+                ctx = browser.new_context(viewport={"width": 1280, "height": 1000})
+                ctx.add_init_script(
+                    f"try{{localStorage.setItem('wc-theme','{theme}')}}catch(e){{}}")
+
+                # Playwright hands the handler (route, request); binding the
+                # body to the second parameter silently passes a Request into
+                # fulfill() instead.
+                def serve_fc(route, request=None, b=body):
+                    route.fulfill(status=200, content_type="application/json", body=b)
+
+                ctx.route("**://api.open-meteo.com/**", serve_fc)
+                page = ctx.new_page()
+                page.goto(f"{base_url}/city/{slug}/", wait_until="domcontentloaded")
+                page.wait_for_selector("#fc .means", timeout=10000)
+                # Wait for the entrance to *finish*, not for a guess at how long
+                # it takes. A fixed 900ms passed on an idle machine and expired
+                # early under load, catching a glyph mid-fade on a backdrop it
+                # never rests on - the check then reported 3.95:1 for a card
+                # that measures 7:1 once settled, and passed on the next run.
+                # Only the finite animations are waited on: the sky loops are
+                # infinite by design and are meant to be photographed running.
+                page.wait_for_function(
+                    """() => document.querySelector('#fc')
+                      .getAnimations({ subtree: true })
+                      .filter(a => a.effect.getComputedTiming().iterations !== Infinity)
+                      .every(a => a.playState === 'finished')""", timeout=8000)
+                page.wait_for_timeout(120)
+                c = card_contrast(page)
+                if c < worst:
+                    worst, where = c, name
+                ctx.close()
+            r.add(worst >= 4.5, f"{theme}: forecast card legible under every sky",
                   f"worst {worst:.2f}:1 ({where})")
         browser.close()
 
@@ -730,8 +1163,8 @@ def main() -> None:
         check_browser(url, dist, cfg, r)
         print("theme palettes")
         check_palettes(url, r)
-        print("weather tint legibility")
-        check_sky_contrast(url, r)
+        print("forecast card legibility")
+        check_card_contrast(url, cfg, r)
         print("responsive")
         check_responsive(url, r)
         print("without javascript")

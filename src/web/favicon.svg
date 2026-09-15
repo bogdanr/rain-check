@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Rain check">
+  <!-- A raindrop with a tick in it: the whole question the site asks is
+       whether a stated chance of rain is one you can bank on. Drawn for the
+       16px case first - one silhouette, one mark, no gradients or hairlines,
+       because anything finer than about a pixel and a half turns to mush in a
+       browser tab. The blue is the accent token from app.css, so the tab
+       matches the page. -->
+  <path d="M16 2.5c0 0-10 11.2-10 17.3a10 10 0 0 0 20 0C26 13.7 16 2.5 16 2.5z"
+        fill="#1f6fb4"/>
+  <path d="M11.3 20.4l3.6 3.7 6.6-8.2" fill="none" stroke="#fff" stroke-width="3.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

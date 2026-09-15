@@ -130,3 +130,122 @@ def slugify(name: str) -> str:
         elif ch in " -_":
             out.append("-")
     return "".join(out).strip("-")
+
+
+# ---------------------------------------------------------------------------
+# Shipping the stylesheet and the scripts
+# ---------------------------------------------------------------------------
+# The authored CSS and JS are heavily commented on purpose - the reasoning
+# behind a contrast floor or a projection choice is worth more than the line it
+# explains. A cold visitor does not need any of it, and it is not free: a third
+# of app.css and a fifth of globe.js is prose, which the first-load budget in
+# report.py was quietly paying for.
+#
+# So comments are stripped on the way into dist. This is deliberately *not* a
+# minifier: no renaming, no whitespace crushing, no reordering. Nothing here can
+# change what the code does, which is the property that makes it safe to run
+# without a test suite for it. The shipped file stays readable in devtools, and
+# the repository keeps every word.
+
+def _strip_css(src: str) -> str:
+    out, i, n = [], 0, len(src)
+    while i < n:
+        if src.startswith("/*", i):
+            end = src.find("*/", i + 2)
+            i = n if end < 0 else end + 2
+            continue
+        out.append(src[i])
+        i += 1
+    return _tidy("".join(out))
+
+
+# A `/` in JavaScript starts a comment, a regular expression or a division, and
+# which one it is depends on what came before it. Anything that can end an
+# expression (a name, a number, a closing bracket) means division; everything
+# else means a regex may start. Getting this wrong is how naive strippers eat
+# half a file, so it is spelled out rather than guessed at.
+_JS_DIV_AFTER = set("_$)]}")
+
+
+def _strip_js(src: str) -> str:
+    out: list[str] = []
+    i, n = 0, len(src)
+    quote = ""          # "", or the delimiter of the string/template we are in
+    in_regex = False
+    in_class = False    # inside a [...] character class of a regex
+    prev = ""           # last non-whitespace character emitted
+
+    while i < n:
+        ch = src[i]
+
+        if quote:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(src[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                quote = ""
+            i += 1
+            continue
+
+        if in_regex:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(src[i + 1])
+                i += 2
+                continue
+            if ch == "[":
+                in_class = True
+            elif ch == "]":
+                in_class = False
+            elif ch == "/" and not in_class:
+                in_regex = False
+            i += 1
+            continue
+
+        if src.startswith("//", i):
+            while i < n and src[i] != "\n":
+                i += 1
+            continue
+        if src.startswith("/*", i):
+            end = src.find("*/", i + 2)
+            i = n if end < 0 else end + 2
+            continue
+
+        if ch in "'\"`":
+            quote = ch
+        elif ch == "/" and not (prev.isalnum() or prev in _JS_DIV_AFTER):
+            in_regex = True
+
+        out.append(ch)
+        if not ch.isspace():
+            prev = ch
+        i += 1
+
+    return _tidy("".join(out))
+
+
+def _tidy(text: str) -> str:
+    """Drop trailing spaces and the blank lines a removed comment leaves behind.
+
+    Runs of blank lines collapse to one rather than to none: the shipped file is
+    what a reader sees in devtools, and a 900-line wall with no paragraph breaks
+    is a worse artefact than a slightly larger one.
+    """
+    lines, out, blank = text.split("\n"), [], False
+    for line in lines:
+        line = line.rstrip()
+        if line:
+            out.append(line)
+            blank = False
+        elif not blank:
+            out.append("")
+            blank = True
+    return "\n".join(out).strip("\n") + "\n"
+
+
+def ship(path: Path) -> str:
+    """Read an authored web asset in the form it should be served in."""
+    text = path.read_text()
+    return _strip_css(text) if path.suffix == ".css" else _strip_js(text)
