@@ -505,10 +505,8 @@
     this._refine = null;
 
     this.size = this._measure();
-    // The sphere stops short of the box to leave a margin for the instrument
-    // ring and the atmospheric glow, both of which are drawn outside the limb -
-    // and, since the terrain at the horizon is displaced, for the mountains
-    // themselves, which stand outside it too.
+    // The sphere stops short of the box to leave a margin for the displaced
+    // terrain at the horizon, which stands outside the limb.
     this.radius = Math.round(this.size / 2 - this.size * 0.042) - 4;
     this.baseScale = this.radius;
     this.projection = global.d3.geoOrthographic()
@@ -880,7 +878,11 @@
       // into it. A light theme has nothing to add light to, so it keeps the
       // ordinary stroke.
       gratAdd: (sea[0] * 0.299 + sea[1] * 0.587 + sea[2] * 0.114) < 110,
-      limb: g(this.pLimb).stroke
+      limb: g(this.pLimb).stroke,
+      // A theme is allowed to switch the limb off entirely - on white ground a
+      // stroked edge reads as a pencil outline rather than as a horizon - so
+      // the paint is guarded rather than assumed.
+      limbOn: !/^(transparent$|rgba\(.*,\s*0\))/.test(g(this.pLimb).stroke)
     };
     this._readReliefPalette(sea, landc);
   };
@@ -1281,11 +1283,11 @@
    * the radius per metre of elevation. Two things bound it, and both are
    * geometric rather than tasteful:
    *
-   *   - the bearing ring starts at radius + max(3, 1.2% of the box), and a
-   *     mountain that reaches it turns the instrument into a gear wheel. The
-   *     displacement is capped at two thirds of that gap, so DISP applies at
-   *     the sizes where there is room for it and thins out on a small globe
-   *     rather than colliding.
+   *   - the sphere stops short of the box by max(4, 1.9% of it), and a mountain
+   *     that reaches the edge of the canvas is a mountain that gets clipped
+   *     flat. The displacement is capped at two thirds of that margin, so DISP
+   *     applies at the sizes where there is room for it and thins out on a
+   *     small globe rather than colliding.
    *
    *   - past 1x it is switched off entirely. This is not a compromise: the
    *     shader paints a disc of `radius` while the sphere is `radius * zoom`,
@@ -1296,24 +1298,23 @@
    *     drawn on the undisplaced sphere, and the whole cost disappears from
    *     every zoomed frame.
    */
-  /* Where the bearing ring starts, as a distance outside the limb.
+  /* The free margin outside the limb, as a distance in CSS pixels.
    *
-   * One definition, two readers: the ring is drawn there, and the displacement
-   * is bounded by it. It was widened when the exaggeration went to 20x - the
-   * tallest ground now stands 2.7% of the radius proud, which is more than the
-   * old 1.2% gap had room for, and a summit that reaches the tick marks turns
-   * the instrument into a gear wheel. The sphere gave up the same few pixels
-   * in return (the margin at `radius`), so the ring and the bezel as a whole
-   * sit exactly where they did; the planet inside them is about 2% smaller.
+   * It used to be where the bearing ring was drawn, and the displacement was
+   * bounded by it so a summit could not reach the tick marks. The ring is gone;
+   * the margin stays, because the displaced terrain still needs somewhere to
+   * stand - at 20x exaggeration the tallest ground is 2.7% of the radius proud
+   * of the sphere, and without the margin it would run into the edge of the
+   * canvas instead.
    */
-  Globe.prototype._bezelGap = function () {
+  Globe.prototype._edgeMargin = function () {
     return Math.max(4, this.size * 0.019);
   };
 
   Globe.prototype._dispScale = function () {
     if (!this.relief || this.zoom > 1 + 1e-6) return 0;
     var rad = this.radius * this.zoom;
-    var room = this._bezelGap() * 0.72 / (rad * DISP_TOP);
+    var room = this._edgeMargin() * 0.72 / (rad * DISP_TOP);
     return room < 1 ? room : 1;
   };
 
@@ -1487,8 +1488,9 @@
      * `clip` is the disc the shader may paint into, and it is normally the
      * sphere itself. With displaced terrain the planet is no longer round, so
      * it grows by the tallest thing on the horizon - a few pixels, into the
-     * margin the bearing ring already leaves. Past 1x there is no profile,
-     * `clip` is the widget disc as before, and none of this costs anything.
+     * margin the widget already leaves outside the sphere. Past 1x there is
+     * no profile, `clip` is the widget disc as before, and none of this costs
+     * anything.
      */
     var prof = this._limb = this._limbProfile();
     var disp = prof ? this._dispScale() : 0;
@@ -2099,11 +2101,10 @@
   /* -- instrument overlay -------------------------------------------------
    *
    * Drawn in vectors at full device resolution on top of the shaded planet:
-   * graticule, limb, atmosphere, and a ring of bearing ticks around the
-   * outside. These are crisp lines and they have to stay crisp, which is
-   * precisely why they are not part of the shader - the shader's output is
-   * scaled up from a lower-resolution buffer while the globe is moving, and a
-   * one-pixel line drawn into it would shimmer.
+   * graticule and limb. These are crisp lines and they have to stay crisp,
+   * which is precisely why they are not part of the shader - the shader's
+   * output is scaled up from a lower-resolution buffer while the globe is
+   * moving, and a one-pixel line drawn into it would shimmer.
    */
   Globe.prototype._paintOverlay = function () {
     var s = this.size, ctx = this.ctx, p = this.palette, rp = this.relPal;
@@ -2138,14 +2139,18 @@
     ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
 
-    // No atmosphere.
+    // No atmosphere, and no bearing ring.
     //
-    // There was one: a blue halo just inside the limb, fading outwards. It is
-    // what a lit planet with an atmosphere looks like from space, and on this
+    // There was an atmosphere: a blue halo just inside the limb, fading
+    // outwards. It is what a lit planet looks like from space, and on this
     // globe it read as a soft blue ring stuck to the edge of a disc - it made
     // the instrument look like a photograph of a planet rather than a planet.
-    // The limb and the bearing ring do the job of lifting it off the page
-    // without pretending to be a camera.
+    //
+    // There was also a bezel: tick marks every 15 degrees outside the limb with
+    // the north one filled in. It drew a second circle around the globe, which
+    // is one circle more than a globe needs, and the orientation it carried is
+    // already stated in words by the readout in the corner - which is both
+    // more precise than a tick and legible without hunting for it.
 
     /* The limb itself, outside the clip so the edge stays crisp at any zoom.
      *
@@ -2156,6 +2161,7 @@
      * this is the same circle it always was.
      */
     var lp = this._limb;
+    if (!p.limbOn) { this._paintReadout(); return; }
     ctx.beginPath();
     if (lp) {
       var lstep = 2 * Math.PI / lp.n;
@@ -2174,55 +2180,18 @@
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    this._paintBezel();
+    this._paintReadout();
   };
 
-  /* The bearing ring.
+  /* Where the view is pointing, in words.
    *
-   * Ticks every 15 degrees around the globe, longer at the cardinals, with the
-   * one nearest the top filled in. It is a compass rose flattened onto the
-   * instrument's edge: the globe can be spun freely, and after a few drags it
-   * is genuinely easy to lose track of which way is north - which the tick
-   * marks alone would not fix, so the readout beside them names the point
-   * under the crosshair in degrees.
+   * The globe can be spun freely, and after a few drags it is genuinely easy to
+   * lose track of where you are looking. This is the one place the view states
+   * it outright, and since the bearing ring went it is the only one - which is
+   * no loss: "33.5 N 4.8 W" is an answer, a tick mark at the top of a circle
+   * is a hint.
    */
-  Globe.prototype._paintBezel = function () {
-    var s = this.size, ctx = this.ctx, p = this.palette;
-    var cx = s / 2, cy = s / 2, r0 = this.radius + this._bezelGap();
-    var tilt = this.rotation[1] * DEG;
-
-    ctx.save();
-    ctx.strokeStyle = p.grat;
-    ctx.lineWidth = 1;
-    for (var a = 0; a < 360; a += 15) {
-      var cardinal = a % 90 === 0;
-      var len = cardinal ? Math.max(5, s * 0.017) : Math.max(2.5, s * 0.008);
-      var rad = (a - 90) * DEG;
-      var ca = Math.cos(rad), sa = Math.sin(rad);
-      ctx.globalAlpha = cardinal ? 0.75 : 0.38;
-      ctx.beginPath();
-      ctx.moveTo(cx + ca * r0, cy + sa * r0);
-      ctx.lineTo(cx + ca * (r0 + len), cy + sa * (r0 + len));
-      ctx.stroke();
-    }
-
-    // North, marked at the top of the ring.
-    //
-    // It really is always at the top: the projection is rotated about two axes
-    // only, never rolled, so the meridian through the centre of the disc
-    // projects to a vertical line and the pole lies on it. A third rotation
-    // angle would break that, which is exactly why the drag handler does not
-    // offer one.
-    ctx.globalAlpha = 0.95;
-    ctx.strokeStyle = p.limb;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r0 + Math.max(3, s * 0.009), -Math.PI / 2 - 0.07,
-            -Math.PI / 2 + 0.07);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
+  Globe.prototype._paintReadout = function () {
     if (this.readout) {
       var lat = -this.rotation[1], lon = ((-this.rotation[0] + 540) % 360) - 180;
       this.readout.textContent =

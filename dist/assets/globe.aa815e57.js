@@ -502,7 +502,9 @@
       gratOpacity: +g(this.pGrat).opacity || 0.5,
 
       gratAdd: (sea[0] * 0.299 + sea[1] * 0.587 + sea[2] * 0.114) < 110,
-      limb: g(this.pLimb).stroke
+      limb: g(this.pLimb).stroke,
+
+      limbOn: !/^(transparent$|rgba\(.*,\s*0\))/.test(g(this.pLimb).stroke)
     };
     this._readReliefPalette(sea, landc);
   };
@@ -819,14 +821,14 @@
     ctx.restore();
   };
 
-  Globe.prototype._bezelGap = function () {
+  Globe.prototype._edgeMargin = function () {
     return Math.max(4, this.size * 0.019);
   };
 
   Globe.prototype._dispScale = function () {
     if (!this.relief || this.zoom > 1 + 1e-6) return 0;
     var rad = this.radius * this.zoom;
-    var room = this._bezelGap() * 0.72 / (rad * DISP_TOP);
+    var room = this._edgeMargin() * 0.72 / (rad * DISP_TOP);
     return room < 1 ? room : 1;
   };
 
@@ -1356,6 +1358,7 @@
     ctx.restore();
 
     var lp = this._limb;
+    if (!p.limbOn) { this._paintReadout(); return; }
     ctx.beginPath();
     if (lp) {
       var lstep = 2 * Math.PI / lp.n;
@@ -1374,39 +1377,10 @@
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    this._paintBezel();
+    this._paintReadout();
   };
 
-  Globe.prototype._paintBezel = function () {
-    var s = this.size, ctx = this.ctx, p = this.palette;
-    var cx = s / 2, cy = s / 2, r0 = this.radius + this._bezelGap();
-    var tilt = this.rotation[1] * DEG;
-
-    ctx.save();
-    ctx.strokeStyle = p.grat;
-    ctx.lineWidth = 1;
-    for (var a = 0; a < 360; a += 15) {
-      var cardinal = a % 90 === 0;
-      var len = cardinal ? Math.max(5, s * 0.017) : Math.max(2.5, s * 0.008);
-      var rad = (a - 90) * DEG;
-      var ca = Math.cos(rad), sa = Math.sin(rad);
-      ctx.globalAlpha = cardinal ? 0.75 : 0.38;
-      ctx.beginPath();
-      ctx.moveTo(cx + ca * r0, cy + sa * r0);
-      ctx.lineTo(cx + ca * (r0 + len), cy + sa * (r0 + len));
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 0.95;
-    ctx.strokeStyle = p.limb;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r0 + Math.max(3, s * 0.009), -Math.PI / 2 - 0.07,
-            -Math.PI / 2 + 0.07);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
+  Globe.prototype._paintReadout = function () {
     if (this.readout) {
       var lat = -this.rotation[1], lon = ((-this.rotation[0] + 540) % 360) - 180;
       this.readout.textContent =

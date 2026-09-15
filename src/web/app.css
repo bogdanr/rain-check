@@ -92,6 +92,14 @@
   --q0: #d94a38;  --q1: #e8801f;  --q2: #e0a500;
   --q3: #6aa832;  --q4: #14915a;
 
+  /* The globe's edge treatment, as tokens rather than fixed rules. A dark
+     theme wants a lit ball standing off black space - a drawn limb and a cast
+     shadow both help there. On white ground the same two marks read as a
+     pencil outline and a smudge around a circle, so the light themes turn
+     them off rather than trying to tune them down. */
+  --globe-limb: var(--land-line);
+  --globe-halo: 0 10px 30px rgba(0, 0, 0, .30), 0 0 0 1px rgba(255, 255, 255, .04);
+
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 4px 14px rgba(0, 0, 0, .04);
@@ -129,6 +137,11 @@
      pale blue. Hue still carries the ordering; only lightness gives way. */
   --q0: #b02a18;  --q1: #a85c00;  --q2: #7d6100;
   --q3: #3d7a14;  --q4: #0a6b41;
+  /* No outline, no cast shadow: on a near-white page both read as ink around
+     the disc rather than as depth. The ocean's own tone is what separates the
+     planet from the page here. */
+  --globe-limb: transparent;
+  --globe-halo: none;
 }
 
 /* Observatory - dark, low glare, luminous data marks. The default: it is the
@@ -188,6 +201,10 @@
   --relief-sea-ambient: .94;  --relief-sun: .10;  --relief-spec: 0;
   --q0: #9b0000;  --q1: #a84c00;  --q2: #6b5300;
   --q3: #2c6a10;  --q4: #00512a;
+  /* Same as Daylight, and more so: `--land-line` is pure black in this theme,
+     so a stroked limb would be the heaviest mark on the page. */
+  --globe-limb: transparent;
+  --globe-halo: none;
 }
 
 /* ----------------------------------------------------------- 3. weather layer
@@ -315,7 +332,7 @@ a { color: var(--accent); }
    a halo that never changes. */
 .globe::before {
   content: ""; position: absolute; inset: 6px; border-radius: 50%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .30), 0 0 0 1px rgba(255, 255, 255, .04);
+  box-shadow: var(--globe-halo);
   pointer-events: none;
 }
 .globe.dragging { cursor: grabbing; }
@@ -340,7 +357,7 @@ a { color: var(--accent); }
   fill: color-mix(in srgb, var(--ocean) 84%, var(--sky-tint));
   stroke: none;
 }
-.globe .limb { fill: none; stroke: var(--land-line); stroke-width: 1; opacity: .8; }
+.globe .limb { fill: none; stroke: var(--globe-limb); stroke-width: 1; opacity: .8; }
 .globe .graticule { fill: none; stroke: var(--globe-grid); stroke-width: .5; opacity: .5; }
 .globe .land { fill: var(--land); stroke: var(--land-line); stroke-width: .6; }
 
