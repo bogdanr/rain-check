@@ -22,3 +22,15 @@ data/raw/*
 !data/raw/station_observations.parquet
 !data/raw/station_hourly.parquet
 *.log
+
+# Reference PDFs for the prior-art assessment. Kept on disk so the claims in
+# plans/2026-09-15-prior-art-assessment-v1.md can be re-verified, but never
+# committed: they are ~120 MB of publisher PDFs, most under licences that do
+# not permit redistribution. The assessment records DOIs so anyone can refetch.
+literature/
+
+# Editor leftovers. Vim writes both alongside the file being edited, so without
+# these they show up as untracked siblings of real source and get swept into a
+# "git add src/" by accident.
+*~
+.*.un~
