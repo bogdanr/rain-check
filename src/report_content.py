@@ -189,6 +189,24 @@ GLOSSARY = [
              "of precipitation claims.",
     ),
     dict(
+        id="weather-model", term="Weather model", full="also: NWP model",
+        plain="A computer simulation of the atmosphere. It divides the world "
+              "into grid squares, applies the laws of physics step by step, "
+              "and turns today's observations into tomorrow's weather.",
+        care="Different weather services run different models - different "
+             "grid sizes, different physics approximations, different ways of "
+             "using the same starting observations. Two models can therefore "
+             "give two different rain probabilities for the same city, and "
+             "both can be honest.",
+    ),
+    dict(
+        id="verification", term="Verification", full=None,
+        plain="Checking forecasts against what actually happened, measured "
+              "independently - here, rain gauges and weather stations.",
+        care="A forecast can be detailed, confident and confidently wrong. "
+             "Verification is the only way to tell skill from confidence.",
+    ),
+    dict(
         id="observing-practice", term="Observing practice", full=None,
         plain="How often, and by what method, a station files its reports.",
         care="A station reporting three times an hour catches more brief showers "

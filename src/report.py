@@ -32,12 +32,16 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 from pathlib import Path
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
 
+import city_charts
 import city_report
+import report_providers
 from analyze import SEASONS, load_leads, load_pop
 from calibration import (
     block_bootstrap_ci,
@@ -52,7 +56,7 @@ from config import (API_FORECAST, FIGURES, ISD_STATIONS, N_PROB_BINS, PROCESSED,
 from events import EVENTS
 from report_content import GLOSSARY, IMPROVEMENTS
 from report_render import embed_png, esc, reliability_svg, scorecard
-from sitebuild import DIST, WEB, Site, _jsonable
+from sitebuild import DIST, WEB, Site, _jsonable, ship
 
 # Set by main(). Figures resolve through the active build so they become
 # cache-busted asset URLs in the site build and base64 blobs in standalone.
@@ -62,7 +66,48 @@ STANDALONE = False
 # Rough guard against the page quietly becoming enormous. Hosting removed the
 # hard file-size cliff, but a first-load payload can still be ruined by
 # accident - the previous version of this page was 1.4 MB of inlined PNG.
-FIRST_LOAD_BUDGET_KB = 400
+#
+# Raised from 420 to 430 for the provider-guide flow diagram (Task 8 of the
+# 2026-09-14 plan): ~1.5 KB of inline SVG, eager because it sits above the
+# fold in a section readers are meant to read before the tables. If this
+# number ever has to move for an *asset* rather than for code, that is the
+# signal the budget exists to give.
+#
+# Raised from 430 to 460 for the shaded-relief globe: the renderer is a
+# software fragment shader, and lighting, materials and bilinear resampling
+# cost ~20 KB of shipped JavaScript. That is code, not payload - the two
+# terrain textures it reads are half a megabyte and are deliberately *not*
+# counted here, because they load after first paint and the globe draws a
+# complete flat basemap without them. The headroom left is thin, and the
+# largest single item on the page is now 89 KB of inline SVG, not the globe.
+#
+# Raised from 460 to 470 for the multi-provider sections (2026-09-14 plan):
+# the plain-language provider guide, the league table and the consulting
+# section are ~10 KB of inline HTML on every page. They are core reading
+# content, not eager assets, so this is the same category as the flow-diagram
+# raise - but it is the last headroom content gets without restructuring the
+# page to lazy-render whole sections.
+#
+# Raised from 470 to 472 for the forecast card v2 (2026-09-14 handoff): the
+# three-zone card - sky panorama, hourly ribbon, gap rail - is ~2 KB of CSS
+# over the old strip, and the build landed 0.4 KB past the line. This is code
+# for the one element that carries the report's thesis, not an eager asset, so
+# it is the same category as the two raises above. It is also the last one that
+# should happen without lazy-rendering whole sections: the next time this
+# number wants to move, move the content instead.
+# Raised from 472 to 478 for the consulting rig (2026-09-15). Two things are
+# in this raise and they should not be confused. About 1 KB of it was already
+# spent: the build measured 473 KB before the section was touched at all, so
+# the line had drifted under the multi-city work and the rig is being blamed
+# for a gap it did not open. The other ~4.5 KB is the rig itself - a pipeline
+# diagram in CSS plus its markup, replacing a two-bar pitch that cost ~1.8 KB.
+# Same category as the raises above: code for reading content, not an eager
+# asset, and it is the section that sells the work the rest of the page
+# demonstrates. The standing instruction from the 472 raise still holds and is
+# now overdue: the next time this number wants to move, move the content
+# instead - the consulting, glossary and provider sections are the bottom
+# third of the page and are the obvious candidates for lazy rendering.
+FIRST_LOAD_BUDGET_KB = 478
 
 
 def fig(path: Path) -> str:
@@ -104,7 +149,8 @@ def compute() -> dict:
                 lead_mae=lead_mae, disagree=station_disagreement(),
                 robust=_load_robustness(), hourly=_load_hourly(),
                 events=_load_events(), bench=_load_bench(),
-                capitals=_load_capitals(), world=_load_world())
+                capitals=_load_capitals(), world=_load_world(),
+                league=report_providers._load_league())
 
 
 def _load_robustness():
@@ -166,6 +212,7 @@ def _load_world():
     from config import CITY_COVERAGE
     cov = json.loads(CITY_COVERAGE.read_text()) if CITY_COVERAGE.exists() else None
     return {"met": pd.read_parquet(pm),
+            "pop": opt("cities_pop.parquet"),
             "diag": opt("cities_diagnostics.parquet"),
             "wb": opt("cities_wet_bias.parquet"),
             "drivers": opt("cities_drivers.parquet"),
@@ -487,6 +534,12 @@ everywhere; the level differs, the slope barely does.</figcaption></figure>"""
     prov_html = ""
     pin, prov = k.get("pinned"), k.get("prov")
     if pin is not None and len(pin) and prov is not None and len(prov):
+        # This section is the Task 39 exercise: ICON-EU vs ECMWF, pinned. The
+        # parquet may now also carry the wider provider run (capitals.py
+        # providers), whose model set differs per city - intersecting over all
+        # of them would silently drop cities, Bucharest included. Restrict to
+        # the two models this narrative is about.
+        pin = pin[pin.model.isin(("icon_eu", "ecmwf_ifs025"))]
         common = set.intersection(*[set(g.city) for _, g in pin.groupby("model")])
         w = pin[pin.city.isin(common)].pivot(index="city", columns="model",
                                              values="bss")
@@ -681,9 +734,9 @@ of how this kind of forecast is made.</div>"""
 removing each site's constant bias: a median of
 {med.get(1, float('nan')):.2f}&nbsp;&deg;C at one day ahead, rising to
 {med.get(7, float('nan')):.2f}&nbsp;&deg;C at seven.</p>
-<figure><img src="{fig(FIGURES / 'cities_lead_mae.png')}" alt="lead time">
-<figcaption>Daily-max temperature error against lead time, Bucharest in red,
-with meteoblue's published global anchors.</figcaption></figure>
+<figure>{city_charts.lead_mae_lines(lead)}
+<figcaption>Daily-max temperature error against lead time. One line per city,
+<i>median</i> in black, <b>your selected city</b> picked out.</figcaption></figure>
 <p class="muted">This covers <b>{nl} of the {n}</b> cities, not all of them:
 the deterministic track is the most request-hungry step in the study and runs
 into the weather API's hourly quota. It stops cleanly and keeps what it has
@@ -707,13 +760,18 @@ Cities sharing a gauge are counted once, so these remain independent samples.</p
 is unchanged to three decimals from the single-city and capitals runs, which is
 the regression test for this whole expansion: adding {n - 1} cities did not
 perturb the original answer.</div>
-<figure><img src="{fig(FIGURES / 'cities_reliability.png')}" alt="all cities">
-<figcaption>Every city as one faint line, the median city in black, Bucharest in
-red; and where Bucharest falls in the distribution of skill.</figcaption></figure>
+<figure>{city_charts.reliability_spaghetti(w["pop"], met) if w.get("pop") is not None else ''}
+<figcaption>Every city's calibration curve at once. Hover any line to name it;
+the black line is the median city and the highlighted one is whichever city you
+have selected above.</figcaption></figure>
+<p class="chartkey"><span><i></i>median city</span>
+<span><b>&#9679;</b> your selection</span>
+<span>each faint line = one city</span></p>
 {rep_html}
-<figure><img src="{fig(FIGURES / 'cities_baserate.png')}" alt="base rate">
-<figcaption>The base-rate confound at {n} cities. Only the extremes and
-Bucharest are labelled.</figcaption></figure>
+<figure>{city_charts.baserate_scatter(met)}
+<figcaption>The base-rate confound at {n} cities: skill against how often it
+rains. The vertical spread at any given rain frequency is what killed the
+capitals-era correlation.</figcaption></figure>
 {wb_html}
 {lead_html}
 """
@@ -988,7 +1046,9 @@ def responsive_tables(html: str) -> str:
 
 NAV = [("answer", "Verdict"), ("curve", "Calibration"), ("season", "Seasons"),
        ("scorecard", "Scorecard"), ("hourly", "Hourly"), ("capitals", "Capitals"),
-       ("events", "Frost & heat"), ("limits", "Limits"), ("glossary", "Glossary")]
+       ("providers", "Providers"), ("league", "League"),
+       ("events", "Frost & heat"), ("limits", "Limits"),
+       ("consulting", "Work with us"), ("glossary", "Glossary")]
 
 
 def topbar(cities: list[dict], sel: dict, default_slug: str) -> str:
@@ -1008,7 +1068,6 @@ def topbar(cities: list[dict], sel: dict, default_slug: str) -> str:
           aria-label="Change city. Opens a searchable list.">
     <span class="cc">{esc(sel['country'])}</span>
     <span class="name">{esc(sel['name'])}</span>
-    <kbd>&#8984;K</kbd>
   </button>
   <noscript>
     <form method="get" action="">
@@ -1022,9 +1081,6 @@ def topbar(cities: list[dict], sel: dict, default_slug: str) -> str:
     <button type="button" data-theme-set="daylight" aria-pressed="false">Daylight</button>
     <button type="button" data-theme-set="blueprint" aria-pressed="false">Blueprint</button>
   </div>
-  <button class="iconbtn" id="skytoggle" type="button" aria-pressed="true"
-          title="Tint the page with the selected city's current weather"
-          aria-label="Weather-reactive tint">&#9728;</button>
 </div>"""
 
 
@@ -1033,49 +1089,85 @@ def rail() -> str:
     return f'<nav class="rail" id="rail" aria-label="Sections">{links}</nav>'
 
 
-def globe_block(cities: list[dict], excluded: list[dict]) -> str:
-    """The globe, plus the list that stands in for it when scripting is off."""
+def globe_block(cities: list[dict], dropped: list[dict], card: str) -> str:
+    """The globe, the card for the selected city, and the no-JS stand-in.
+
+    The side column is the globe's caption, so it holds the two things that are
+    about what you clicked: the selected city's verdict in short form, and the
+    key that says what a dot's colour means. The prose that used to live here
+    described dragging and zooming, which the reader discovers by dragging and
+    zooming.
+    """
     items = "".join(
         f'<li><a href="{{BASE}}city/{esc(c["slug"])}/" data-city="{esc(c["slug"])}">'
         f'{esc(c["name"])}</a> <span class="muted">{esc(c["country"])} &middot; '
         f'skill {c["bss"]:.2f}</span></li>' for c in cities)
+    n_dropped = sum(len(g["cities"]) for g in dropped)
     return f"""
 <div class="globewrap">
-  <div class="globe" id="globe" aria-label="Globe of verified capitals"></div>
+  <div class="globe" id="globe" aria-label="Globe of verified cities"></div>
   <div class="globe-side">
-    <h3 style="margin-top:0">Pick a capital</h3>
-    <p class="muted">Click a dot to load that city's report. Drag to turn the
-    globe, scroll or use the buttons to zoom. It opens zoomed to the capitals
-    that were verified &mdash; at whole-Earth scale they overlap each other.
-    {len(cities)} capitals have a rain gauge close enough, current
-    enough and consistent enough to verify against; {len(excluded)} were probed
-    and dropped, and are drawn hollow.</p>
+    <div id="city-card">{card}</div>
     <div class="legend">
-      <div class="legend-row"><span class="legend-ramp"></span>
-        <span>skill: cannot beat climatology &rarr; strongly skilful</span></div>
-      <div class="legend-row"><span class="legend-dots">
-        <i style="width:8px;height:8px"></i><i style="width:12px;height:12px"></i>
-        <i style="width:15px;height:15px"></i></span>
-        <span>dot size = days of record</span></div>
-      <div class="legend-row"><span class="legend-dots">
-        <i style="width:12px;height:12px;background:none;border:1.2px dashed currentColor"></i>
-        </span><span>hollow = excluded, hover for the reason</span></div>
+      <span class="legend-ramp" aria-hidden="true"></span>
+      <p class="legend-ends"><span>cannot beat climatology</span>
+        <span>strongly skilful</span></p>
+      <p class="legend-cap">A dot's colour is that city's skill score; click one
+      to load its report. Where dots would overlap, a <b>+n</b> badge says how
+      many cities are hidden behind that one &mdash; click it, or zoom in, to
+      separate them.</p>
     </div>
+    <p class="legend-cap">{len(cities)} of the {len(cities) + n_dropped} places
+    probed have a rain gauge close enough, current enough and consistent enough
+    to verify against. The other {n_dropped} are listed below the globe.</p>
     <div id="globe-fallback">
-      <ul class="muted" style="columns:2;font-size:13.5px">{items}</ul>
+      <ul class="muted citylist">{items}</ul>
     </div>
   </div>
 </div>
-<div class="fc" id="fc" hidden></div>
+{dropped_block(dropped)}
+<div class="fc" id="fc" hidden role="region" aria-live="polite" aria-busy="false"
+     aria-label="Live forecast for the selected city"></div>
 <p class="depth" id="depth"></p>"""
+
+
+def dropped_block(dropped: list[dict]) -> str:
+    """What was probed and could not be verified, and why.
+
+    Folded away by default: it is a footnote to the map, not a competitor for
+    it. But it stays on the page, because "which places could not be checked,
+    and what stopped them" is a finding in its own right - and it is the honest
+    denominator for every league table further down.
+    """
+    if not dropped:
+        return ""
+    n = sum(len(g["cities"]) for g in dropped)
+    parts = [
+        '<p class="muted">They are listed here rather than drawn on the globe: '
+        'a marker that cannot be clicked and carries no number is not a '
+        'result.</p>']
+    for g in dropped:
+        names = ", ".join(
+            f'{esc(c["name"])}{" (" + esc(c["country"]) + ")" if c["country"] else ""}'
+            for c in g["cities"])
+        parts.append(
+            f'<div class="drop-group"><h4>{esc(g["title"])} '
+            f'<span class="muted">&mdash; {len(g["cities"])}</span></h4>'
+            f'<p class="muted">{esc(g["blurb"])}</p>'
+            f'<p class="drop-names">{names}</p></div>')
+    return f"""
+<details class="dropped">
+  <summary>{n} further places were probed and could not be verified</summary>
+  {''.join(parts)}
+</details>"""
 
 
 def palette() -> str:
     return """
 <div class="palette" id="palette" hidden role="dialog" aria-modal="true"
-     aria-label="Search capitals">
+     aria-label="Search cities">
   <div class="box">
-    <input type="text" placeholder="Search capitals&hellip;" autocomplete="off"
+    <input type="text" placeholder="Search cities&hellip;" autocomplete="off"
            role="combobox" aria-expanded="true" aria-controls="palette-list">
     <ul id="palette-list" role="listbox"></ul>
   </div>
@@ -1100,15 +1192,20 @@ capitals, so the sections are not relabelled to match your selection
 </div>"""
 
 
-def document(c: dict, cities: list[dict], excluded: list[dict], sel: dict,
+def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
              assets: dict, cfg_json: str, default_slug: str) -> str:
     stations = ", ".join(v[5] for v in STATIONS.values())
     body = responsive_tables("".join([
         sec_scorecard(c), sec_seasonfig(c), sec_hourly(c), sec_recal(c),
         sec_robust(c), sec_bench(c), sec_events(c), sec_limits(c),
     ]))
-    cross = responsive_tables(sec_capitals(c) + sec_world(c))
-    ref = responsive_tables(sec_improve() + sec_gloss())
+    cross = responsive_tables(
+        sec_capitals(c) + sec_world(c)
+        + report_providers.sec_providers()
+        + report_providers.sec_league(c)
+        + report_providers.sec_app_callout(c))
+    ref = responsive_tables(report_providers.sec_consulting(c)
+                            + sec_improve() + sec_gloss())
     city_html = {k: responsive_tables(v) for k, v in sel["html"].items()}
 
     head_links = "" if STANDALONE else (
@@ -1136,6 +1233,8 @@ def document(c: dict, cities: list[dict], excluded: list[dict], sel: dict,
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:type" content="article">
 {f'<meta property="og:image" content="{assets["og"]}">' if assets.get("og") else ''}
+<link rel="icon" href="{assets['icon']}" type="image/svg+xml">
+<meta name="theme-color" content="#1f6fb4">
 {style}
 </head>
 <body>
@@ -1148,7 +1247,7 @@ those days? Checked against real station measurements across
 {len(cities)} European capitals.</p>
 </div></header>
 <div class="wrap" id="main">
-{'' if STANDALONE else globe_block(cities, excluded)}
+{'' if STANDALONE else globe_block(cities, dropped, city_html['card'])}
 <div class="citypanel">
 <div id="city-answer">{city_html['answer']}</div>
 <div id="city-curve">{city_html['curve']}</div>
@@ -1195,21 +1294,29 @@ def main() -> None:
     if k is None:
         raise SystemExit("capitals artefacts missing - run src/capitals.py first")
     payloads = city_report.all_payloads(k)
-    excluded = city_report.excluded_markers(k)
+    dropped = city_report.exclusions(k)
     by_slug = {p["slug"]: p for p in payloads}
     default = city_report.DEFAULT_CITY
     default_slug = next(p["slug"] for p in payloads if p["name"] == default)
 
-    # Marker/selector data: the numeric summary only, no HTML.
-    lite = [{kk: p[kk] for kk in ("slug", "name", "country", "lat", "lon", "bss",
-                                  "n", "base_rate", "rank_lo", "rank_hi",
-                                  "n_cities")} for p in payloads]
+    # Marker/selector data: the numeric summary only, no HTML. Rounded to the
+    # precision the globe actually renders - a tooltip shows two decimals and a
+    # dot is placed to the nearest ten metres, so shipping seventeen significant
+    # figures of float noise for every city is pure first-load weight. The
+    # per-city city count is gone too: it is the length of this very list.
+    lite = [{"slug": p["slug"], "name": p["name"], "country": p["country"],
+             "lat": round(p["lat"], 4), "lon": round(p["lon"], 4),
+             "bss": round(p["bss"], 4), "n": p["n"],
+             "base_rate": round(p["base_rate"], 4),
+             "rank_lo": round(p["rank_lo"], 1),
+             "rank_hi": round(p["rank_hi"], 1)} for p in payloads]
 
     if STANDALONE:
         SITE = None
         css = (WEB / "app.css").read_text()
-        assets = {"css_inline": css, "canonical": args.origin, "og": None}
-        html_doc = document(c, lite, excluded, by_slug[default_slug], assets,
+        assets = {"css_inline": css, "canonical": args.origin, "og": None,
+                  "icon": _icon_data_uri()}
+        html_doc = document(c, lite, dropped, by_slug[default_slug], assets,
                             "{}", default_slug)
         out = ROOT / "report.html"
         out.write_text(html_doc, encoding="utf-8")
@@ -1222,12 +1329,26 @@ def main() -> None:
     site.reset()
 
     assets = {
-        "css": site.add_text("assets", "app.css", (WEB / "app.css").read_text()),
-        "app": site.add_text("assets", "app.js", (WEB / "app.js").read_text()),
-        "globe": site.add_text("assets", "globe.js", (WEB / "globe.js").read_text()),
+        "css": site.add_text("assets", "app.css", ship(WEB / "app.css")),
+        "app": site.add_text("assets", "app.js", ship(WEB / "app.js")),
+        "globe": site.add_text("assets", "globe.js", ship(WEB / "globe.js")),
         "d3array": site.add_file("assets/vendor", WEB / "vendor" / "d3-array.js"),
         "d3geo": site.add_file("assets/vendor", WEB / "vendor" / "d3-geo.js"),
         "land": site.add_file("assets/geo", WEB / "geo" / "land.geo.json"),
+        # The 50m coastline, and the terrain textures. All three are
+        # deliberately absent from the preload above and from the first-load
+        # budget below: the globe paints a complete flat basemap without them,
+        # swaps in the shaded planet when the textures land, and only asks for
+        # the finer coastline if the reader zooms past the point where the
+        # coarse one shows its corners. A megabyte and a half of geography
+        # never stands between a reader and a usable page.
+        "landDetail": site.add_file("assets/geo",
+                                    WEB / "geo" / "land-detail.geo.json"),
+        "relief": site.add_file("assets/geo", WEB / "geo" / "relief-elev.webp"),
+        "biome": site.add_file("assets/geo", WEB / "geo" / "relief-biome.webp"),
+        # Small enough that a hashed copy costs nothing and lets it be cached
+        # as hard as everything else in assets/.
+        "icon": site.add_text("assets", "favicon.svg", _icon_svg()),
         "css_inline": "",
     }
     site.add_file("assets/vendor", WEB / "vendor" / "LICENSES.txt", hashed=False)
@@ -1245,9 +1366,11 @@ def main() -> None:
             "base": site.base,
             "defaultSlug": default_slug,
             "cities": lite,
-            "excluded": excluded,
             "cityUrls": city_urls,
             "landUrl": assets["land"],
+            "landDetailUrl": assets["landDetail"],
+            "reliefUrl": assets["relief"],
+            "biomeUrl": assets["biome"],
             "forecastApi": API_FORECAST,
             "inline": p,
         }
@@ -1257,7 +1380,7 @@ def main() -> None:
 
         cfg_json = json.dumps(cfg, separators=(",", ":"), ensure_ascii=False,
                               default=_jsonable)
-        html_doc = document(c, lite, excluded, p, page_assets, cfg_json,
+        html_doc = document(c, lite, dropped, p, page_assets, cfg_json,
                             default_slug)
         html_doc = html_doc.replace("{BASE}", site.base)
 
@@ -1281,6 +1404,26 @@ def main() -> None:
             f"first-load budget exceeded: {first_kb:.0f} KB > "
             f"{FIRST_LOAD_BUDGET_KB} KB. Something large became eager; check for "
             f"a newly inlined figure or an un-lazy asset.")
+
+
+def _icon_svg() -> str:
+    """The favicon in the form it is served in: drawing only, no commentary.
+
+    Same rule as the CSS and the JS - the reasoning stays in the repository,
+    the bytes on the wire do not carry it.
+    """
+    svg = (WEB / "favicon.svg").read_text()
+    return re.sub(r"<!--.*?-->\s*", "", svg, flags=re.S)
+
+
+def _icon_data_uri() -> str:
+    """The favicon as a data URI, for the single-file build.
+
+    A standalone report is often read from `file://` or mailed around as one
+    attachment; a separate icon file would simply be missing. URL-encoding
+    rather than base64 keeps the markup legible and the bytes lower.
+    """
+    return "data:image/svg+xml," + quote(_icon_svg(), safe="/:= ")
 
 
 def _first_load_kb(html_doc: str, site: Site, assets: dict) -> float:

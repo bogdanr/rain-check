@@ -35,7 +35,13 @@ from calibration import (
     effective_sample_size,
     reliability_table,
 )
-from config import CAPITAL_COVERAGE, N_PROB_BINS, PROCESSED, RAIN_THRESHOLD_MM
+from config import (
+    CAPITAL_COVERAGE,
+    CITY_COVERAGE,
+    N_PROB_BINS,
+    PROCESSED,
+    RAIN_THRESHOLD_MM,
+)
 from report_render import esc, reliability_svg
 from sitebuild import slugify
 
@@ -51,24 +57,88 @@ DEFAULT_CITY = "Bucharest"
 # ---------------------------------------------------------------------------
 # Loading
 # ---------------------------------------------------------------------------
+def _station_names() -> dict[str, str]:
+    """GHCN id -> station name, from the fixed-width list already on disk.
+
+    The capitals probe stored these; the wider city probe did not. Rather than
+    re-run a probe that costs elevation-API calls to recover a display string,
+    read them back from the station file the fetch already depends on. Returns
+    empty if the file is absent, so a fresh clone degrades to a blank name
+    rather than failing to build.
+    """
+    from config import RAW
+    path = RAW / "ghcnd-stations.txt"
+    if not path.exists():
+        return {}
+    out = {}
+    with path.open() as fh:
+        for line in fh:
+            out[line[0:11].strip()] = line[41:71].strip()
+    return out
+
+
+def _fill_station_names(cov: dict) -> None:
+    """Add missing `*_station_name` fields in place."""
+    names = None
+    for key in ("included", "excluded"):
+        for v in (cov.get(key) or {}).values():
+            for which in ("prcp", "tmax"):
+                sid = v.get(f"{which}_station")
+                if not sid or v.get(f"{which}_station_name"):
+                    continue
+                if names is None:
+                    names = _station_names()
+                if sid in names:
+                    v[f"{which}_station_name"] = names[sid]
+
+
 def load_all() -> dict | None:
-    """Every capitals artefact, or None if the multi-city stage has not run."""
-    pop_p = PROCESSED / "capitals_pop.parquet"
-    met_p = PROCESSED / "capitals_metrics.parquet"
-    if not (pop_p.exists() and met_p.exists()):
+    """Every per-city artefact, or None if the multi-city stage has not run.
+
+    Prefers the expanded world set over the 15 capitals. The two are produced by
+    the same module with the same code path (`capitals.py world`), so this is a
+    widening rather than a switch: the capitals remain in the set, with
+    identical numbers. Falling back keeps the site buildable from a capitals-only
+    run, which is what a first-time clone will have.
+    """
+    for prefix, coverage in (("cities", CITY_COVERAGE),
+                             ("capitals", CAPITAL_COVERAGE)):
+        pop_p = PROCESSED / f"{prefix}_pop.parquet"
+        met_p = PROCESSED / f"{prefix}_metrics.parquet"
+        if pop_p.exists() and met_p.exists():
+            break
+    else:
         return None
 
     def opt(name):
         p = PROCESSED / name
         return pd.read_parquet(p) if p.exists() else None
 
-    cov = json.loads(CAPITAL_COVERAGE.read_text()) if CAPITAL_COVERAGE.exists() else {}
+    cov = json.loads(coverage.read_text()) if coverage.exists() else {}
+    # The world probe records only the cities it selected. Bucharest and the
+    # capitals were carried into that set, but their coverage entries live in
+    # the capitals file, so merge rather than replace - otherwise the station
+    # name and distance silently vanish from the capitals' own pages.
+    if prefix == "cities" and CAPITAL_COVERAGE.exists():
+        capcov = json.loads(CAPITAL_COVERAGE.read_text())
+        for key in ("included", "excluded"):
+            merged = dict(capcov.get(key) or {})
+            for name, v in (cov.get(key) or {}).items():
+                # Per-key, so the world entry wins where it has a value but
+                # does not blank fields it never recorded.
+                base = dict(merged.get(name) or {})
+                base.update(v)
+                merged[name] = base
+            cov[key] = merged
+    _fill_station_names(cov)
+
     return {
         "pop": pd.read_parquet(pop_p),
         "met": pd.read_parquet(met_p),
-        "diag": opt("capitals_diagnostics.parquet"),
-        "wb": opt("capitals_wet_bias.parquet"),
+        "diag": opt(f"{prefix}_diagnostics.parquet"),
+        "wb": opt(f"{prefix}_wet_bias.parquet"),
         "coverage": cov,
+        "prefix": prefix,
     }
 
 
@@ -151,34 +221,83 @@ def city_meta(name: str, k: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Section rendering
 # ---------------------------------------------------------------------------
+# Skill tiers, in one place because two things now say them: the verdict
+# sentence below the globe and the card beside it. A label written twice is a
+# label that eventually disagrees with itself.
+#
+# Each row is (upper bound on the skill score, short label, sentence fragment,
+# tone class). The thresholds are stated in the glossary as rules of thumb and
+# the raw score is always shown beside the label.
+_TIERS = [
+    (0.0, "Cannot beat climatology", "cannot beat its own climatology", "bad"),
+    (0.2, "Barely beats the average",
+     "only marginally better than quoting the long-run average", "bad"),
+    (0.35, "Moderately skilful", "moderately skilful", "ok"),
+    (0.5, "Genuinely useful", "genuinely useful", "good"),
+    (float("inf"), "Strongly skilful", "strongly skilful", "good"),
+]
+
+
+def _tier(bss: float) -> tuple[str, str, str]:
+    """(short label, sentence fragment, tone class) for a skill score."""
+    for cut, short, phrase, cls in _TIERS:
+        if bss < cut:
+            return short, phrase, cls
+    return _TIERS[-1][1], _TIERS[-1][2], _TIERS[-1][3]
+
+
+def _honesty(nsig: int) -> tuple[str, str]:
+    """(clause for the verdict sentence, short form for the card)."""
+    if nsig == 0:
+        return ("and its stated probabilities are honest throughout",
+                "probabilities honest throughout")
+    if nsig == 1:
+        return ("and honest except at one point on the scale",
+                "honest except at one point")
+    return (f"though {nsig} points on its probability scale are off by more "
+            f"than chance explains",
+            f"{nsig} points off by more than chance")
+
+
 def _verdict(tbl, m) -> tuple[str, str]:
     """A one-line characterisation of the city, derived rather than asserted.
 
     The original page hand-wrote Bucharest's verdict. With fifteen cities that
     does not scale, and a hand-written verdict per city would be an invitation
-    to overstate. These thresholds are stated in the glossary as rules of thumb
-    and the raw skill score is always shown beside them.
+    to overstate.
     """
-    bss = m["brier_skill_score"]
-    nsig = int(tbl.significant.sum())
-    if bss < 0:
-        quality = ("cannot beat its own climatology", "bad")
-    elif bss < 0.2:
-        quality = ("only marginally better than quoting the long-run average", "bad")
-    elif bss < 0.35:
-        quality = ("moderately skilful", "ok")
-    elif bss < 0.5:
-        quality = ("genuinely useful", "good")
-    else:
-        quality = ("strongly skilful", "good")
+    _, phrase, cls = _tier(m["brier_skill_score"])
+    honesty, _ = _honesty(int(tbl.significant.sum()))
+    return f"{phrase}, {honesty}", cls
 
-    if nsig == 0:
-        honesty = "and its stated probabilities are honest throughout"
-    elif nsig == 1:
-        honesty = "and honest except at one point on the scale"
-    else:
-        honesty = f"though {nsig} points on its probability scale are off by more than chance explains"
-    return f"{quality[0]}, {honesty}", quality[1]
+
+def sec_city_card(city: dict, meta: dict) -> str:
+    """The selected city, condensed to fit beside the globe.
+
+    The column next to the globe used to hold instructions and a legend, both
+    static: the one part of the page most obviously about the thing you just
+    clicked said the same words whatever you clicked. This card is the answer
+    in its shortest honest form - tier, score, rank range, record length - and
+    it links down to the full verdict rather than restating it.
+    """
+    tbl, m = city["tbl"], city["m"]
+    short, _, cls = _tier(m["brier_skill_score"])
+    _, honesty = _honesty(int(tbl.significant.sum()))
+    country = f' <span class="muted">{esc(meta["country"])}</span>' if meta["country"] else ""
+    return f"""
+<div class="gcard">
+  <p class="gcard-head"><b>{esc(meta['name'])}</b>{country}</p>
+  <p class="gcard-tier"><span class="tag {cls}">{short}</span>
+    <span class="muted">{honesty}</span></p>
+  <dl class="gcard-stats">
+    <div><dt>Skill score</dt><dd>{m['brier_skill_score']:.2f}</dd></div>
+    <div><dt>Rank</dt><dd>{meta['rank_lo']:.0f}&ndash;{meta['rank_hi']:.0f}
+      <span class="muted">of {meta['n_cities']}</span></dd></div>
+    <div><dt>Record</dt><dd>{meta['n']} <span class="muted">days</span></dd></div>
+  </dl>
+  <p class="gcard-more"><a href="#answer">The full verdict for
+    {esc(meta['name'])} &darr;</a></p>
+</div>"""
 
 
 def sec_city_answer(city: dict, meta: dict) -> str:
@@ -299,6 +418,7 @@ def city_payload(name: str, k: dict, deep: bool) -> dict:
 
     meta["deep"] = deep
     meta["html"] = {
+        "card": sec_city_card(city, meta),
         "answer": sec_city_answer(city, meta),
         "curve": sec_city_curve(city, meta),
         "season": sec_city_season(city, meta),
@@ -311,39 +431,60 @@ def all_payloads(k: dict) -> list[dict]:
     return [city_payload(n, k, deep=(n == DEFAULT_CITY)) for n in names]
 
 
-def excluded_markers(k: dict) -> list[dict]:
-    """Capitals that were probed and dropped, with the reason and a location.
+def exclusions(k: dict) -> list[dict]:
+    """Places that were probed and dropped, grouped by what stopped them.
 
-    These are plotted on the globe too. The exclusions are part of the result -
-    a city whose gauge sits on a mountain, or whose rain-day convention has no
-    clean peak, says something about the data that an empty patch of map does
-    not.
+    These used to be drawn on the globe as hollow dots. That was the wrong
+    place for them: they were 44% of the markers, they competed with real
+    cities for space when the globe declutters, and the reason was reachable
+    only by hovering - so on a touch screen they were dots that did nothing and
+    said nothing. The exclusions are still part of the result, and a grouped
+    count says more than 66 scattered rings did: the dominant reason is not
+    "no gauge" but "a gauge that files a third of its days".
     """
-    out = []
-    cov = k.get("coverage") or {}
+    groups = [
+        ("sparse", "The gauge reports too few days",
+         "A rain gauge can satisfy every coverage rule and still file only a "
+         "fraction of its days. Below the minimum usable pairs there is not "
+         "enough overlap with the forecast archive to score a calibration "
+         "curve against."),
+        ("lag", "The rain-day convention cannot be pinned down",
+         "Station precipitation is a 24-hour total ending at an hour the "
+         "observer chooses, which need not line up with the calendar day the "
+         "forecast refers to. Where the lag scan has no clean peak the "
+         "convention is unknown, and guessing it would not add noise - it "
+         "would produce a confidently wrong answer."),
+        ("nodata", "No usable record at all",
+         "The station, the reanalysis or the forecast archive returned "
+         "nothing overlapping the evaluation window."),
+    ]
+
+    def bucket(why: str) -> str:
+        if "usable pairs" in why:
+            return "sparse"
+        if "single lag" in why:
+            return "lag"
+        return "nodata"
+
+    cov = (k.get("coverage") or {}).get("included") or {}
     included_names = set(k["met"].city)
     diag = k.get("diag")
-    reasons = {}
+    rows: dict[str, list[dict]] = {g[0]: [] for g in groups}
     if diag is not None:
         for _, r in diag[~diag.included].iterrows():
-            reasons[r.city] = r.why
+            if r.city in included_names:
+                continue
+            v = cov.get(r.city) or {}
+            rows[bucket(str(r.why))].append({
+                "name": r.city,
+                "country": v.get("country", ""),
+                "detail": str(r.why),
+            })
 
-    for name, v in (cov.get("excluded") or {}).items():
-        if name in included_names:
-            continue
-        if v.get("lat") is None:
-            continue
-        out.append({"name": name, "slug": slugify(name), "lat": v["lat"],
-                    "lon": v["lon"], "country": v.get("country", ""),
-                    "why": v.get("why") or reasons.get(name, "no usable station")})
-    # Cities that passed the coverage probe but failed once their records were
-    # inspected - a different and more interesting kind of exclusion.
-    for name, why in reasons.items():
-        if name in included_names or any(o["name"] == name for o in out):
-            continue
-        v = (cov.get("included") or {}).get(name)
-        if v:
-            out.append({"name": name, "slug": slugify(name), "lat": v["lat"],
-                        "lon": v["lon"], "country": v.get("country", ""),
-                        "why": why})
-    return sorted(out, key=lambda d: d["name"])
+    out = []
+    for key, title, blurb in groups:
+        cities = sorted(rows[key], key=lambda d: d["name"])
+        if cities:
+            out.append({"key": key, "title": title, "blurb": blurb,
+                        "cities": cities})
+    return out
