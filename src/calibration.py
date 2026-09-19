@@ -65,7 +65,8 @@ def reliability_table(prob, event, n_bins: int = 10, equal_count: bool = True) -
 
 
 def brier_decomposition(prob, event, n_bins: int = 10,
-                        equal_count: bool = True) -> dict:
+                        equal_count: bool = True,
+                        reference_prob=None) -> dict:
     """Murphy decomposition: Brier = reliability - resolution + uncertainty.
 
     The identity holds exactly for the *binned* forecast, where every member of
@@ -77,6 +78,13 @@ def brier_decomposition(prob, event, n_bins: int = 10,
 
     `equal_count` must match whatever the caller used to build its reliability
     table, or the two will disagree about bin membership.
+
+    `reference_prob` (Task 18) supplies an alternative reference forecast for
+    the skill score - in this study, the smoothed day-of-year climatology from
+    baselines.py. It is OPTIONAL and adds keys rather than changing any: the
+    published `brier_skill_score` remains referenced to the sample base rate,
+    exactly as before, so the two can be reported side by side and the shift
+    quoted as a result instead of applied silently.
     """
     prob, event = np.asarray(prob, float), np.asarray(event, float)
     n = len(prob)
@@ -95,7 +103,7 @@ def brier_decomposition(prob, event, n_bins: int = 10,
     binned_prob = np.array([bin_mean[b] for b in idx])
     brier_binned = float(np.mean((binned_prob - event) ** 2))
 
-    return {
+    out = {
         "brier": brier,
         "brier_binned": brier_binned,
         "reliability": reliability,
@@ -107,8 +115,24 @@ def brier_decomposition(prob, event, n_bins: int = 10,
         "ece": float((w * (tbl["mean_prob"] - tbl["obs_freq"]).abs()).sum()),
         "n": n,
     }
+    if reference_prob is not None:
+        ref = np.asarray(reference_prob, float)
+        if ref.shape != prob.shape:
+            raise ValueError(f"reference length {ref.shape} != forecast {prob.shape}")
+        if not np.isfinite(ref).all():
+            raise ValueError("reference forecast contains NaN")
+        brier_ref = float(np.mean((ref - event) ** 2))
+        out["brier_reference"] = brier_ref
+        out["bss_vs_reference"] = (1 - brier / brier_ref if brier_ref > 0
+                                   else np.nan)
+        # How much of the published skill was an artefact of the reference?
+        out["bss_shift"] = out["bss_vs_reference"] - out["brier_skill_score"]
+    return out
 
 
+def skill_score(brier: float, brier_reference: float) -> float:
+    """1 - BS/BS_ref, the one place the sign convention is written down."""
+    return 1 - brier / brier_reference if brier_reference > 0 else np.nan
 
 
 def block_bootstrap_ci(dates, prob, event, n_bins: int = 10,

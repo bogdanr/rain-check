@@ -413,3 +413,28 @@ MIN_BIN_COUNT = 30        # bins below this are de-emphasised as indicative only
 BOOTSTRAP_BLOCK_DAYS = 7  # block bootstrap block length (serial correlation)
 BOOTSTRAP_N = 2000
 RANDOM_SEED = 20260912
+
+# --------------------------------------------------------------------------
+# Baselines and the Brier reference (Tasks 18 and 24 of the 2026-09-15 plan)
+# --------------------------------------------------------------------------
+# Half-width of the day-of-year window used to estimate the smoothed seasonal
+# climatology. Observations within the same number of calendar days of the day
+# being scored are EXCLUDED (see baselines.doy_climatology), so a ~2-year
+# record contributes roughly one other year's 31 days per estimate: enough to
+# see a seasonal cycle, and free of the day's own synoptic neighbourhood, which
+# would otherwise turn the reference into a two-sided persistence forecast.
+# Sensitivity over 7/15/30 days is reported rather than assumed away.
+CLIM_WINDOW_DAYS = 15
+
+# Pseudo-observations pulling each day-of-year estimate toward the station's
+# own annual rain frequency. With only one or two other years in the window the
+# raw estimate carries several points of sampling noise, and noise in the
+# REFERENCE inflates every skill score computed against it. Shrinkage is
+# therefore conservative, not cosmetic: it makes the reference harder to beat.
+CLIM_PSEUDO_COUNT = 10.0
+
+# Trailing window for the frequency form of the persistence baseline: what
+# fraction of the last 30 observed days were wet. Long enough to be a
+# probability rather than a coin flip, short enough to still be "recent
+# weather" rather than climatology.
+PERSISTENCE_WINDOW_DAYS = 30
