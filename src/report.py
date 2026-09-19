@@ -51,8 +51,9 @@ from calibration import (
     effective_sample_size,
     reliability_table,
 )
-from config import (API_FORECAST, FIGURES, ISD_STATIONS, N_PROB_BINS, PROCESSED,
-                    RAIN_THRESHOLD_MM, RAW, ROOT, STATIONS)
+from config import (API_FORECAST, FIGURES, GEFS_MEMBERS, ISD_STATIONS,
+                    N_PROB_BINS, PROCESSED, RAIN_THRESHOLD_MM, RAW, ROOT,
+                    STATIONS)
 from events import EVENTS
 from report_content import GLOSSARY, IMPROVEMENTS
 from report_render import embed_png, esc, reliability_svg, scorecard
@@ -201,7 +202,34 @@ def compute() -> dict:
                 robust=_load_robustness(), hourly=_load_hourly(),
                 events=_load_events(), bench=_load_bench(),
                 capitals=_load_capitals(), world=_load_world(),
-                league=report_providers._load_league())
+                league=report_providers._load_league(),
+                served=_load_served())
+
+
+def _load_served():
+    """Served-vs-ensemble triangulation and the decision-value tables.
+
+    All four pieces are optional together: the section renders only if the
+    comparison, its significance test and the decision metrics are all on
+    disk, because the comparison without its interval is exactly the claim
+    src/significance.py exists to stop being made.
+    """
+    def opt(name):
+        p = PROCESSED / name
+        return pd.read_parquet(p) if p.exists() else None
+
+    tri, div = opt("triangulation.parquet"), opt("triangulation_divergence.parquet")
+    sig = opt("significance_headline.parquet")
+    dec, crps = opt("decision_metrics.parquet"), opt("decision_crps_amount.parquet")
+    if any(x is None for x in (tri, div, sig, dec, crps)):
+        return None
+    # Occurrence and amount must be compared on the SAME series, so the two
+    # tables are joined rather than summarised side by side: a median taken
+    # over 195 rows of one and 66 of the other would be two different samples
+    # dressed up as a contrast.
+    both = dec[dec.is_primary_threshold].merge(
+        crps, on=["source", "city", "model"])
+    return {"tri": tri, "div": div, "sig": sig, "both": both}
 
 
 def _load_robustness():
@@ -1020,6 +1048,153 @@ such days occurred in the whole record, so treat its numbers as indicative.</p>
 """
 
 
+def sec_served(c) -> str:
+    """E4a and D11: the served probability against the raw ensemble.
+
+    This is the study's central measurement and until now it existed only in
+    the parquet tables. Two things have to survive the trip to the page: the
+    lead-1 verdict is *unresolved*, not a tie, and the harm at low cost-loss
+    ratios is invisible to the average score the rest of the site reports.
+    """
+    s = c.get("served")
+    if s is None:
+        return ""
+    MODEL, MODE = "gfs_seamless", "prorata"
+    div = s["div"].query("model == @MODEL and boundary_mode == @MODE") \
+                  .sort_values("lead_days")
+    tri = s["tri"].query("model == @MODEL and boundary_mode == @MODE")
+    sig = s["sig"].query("model == @MODEL and boundary_mode == @MODE "
+                         "and lead_days == 1").set_index("statistic")
+    if div.empty or tri.empty or sig.empty:
+        return ""
+
+    def cell(series, lead, col):
+        r = tri.query("series == @series and lead_days == @lead")
+        return float(r[col].iloc[0]) if len(r) else float("nan")
+
+    rows = "".join(
+        f"<tr><td class='num'>{int(r.lead_days)}</td>"
+        f"<td class='num'>{r.mean_vendor_pop:.0%}</td>"
+        f"<td class='num'>{r.mean_gefs_pop:.0%}</td>"
+        f"<td class='num'>{r.bias_vendor_minus_gefs:+.03f}</td>"
+        f"<td class='num'>{r.mean_abs_divergence:.03f}</td>"
+        f"<td class='num'>{r.pearson_r:.02f}</td></tr>"
+        for _, r in div.iterrows())
+
+    bd = sig.loc["brier_diff"]
+    v05, v10 = sig.loc["value_diff_a05"], sig.loc["value_diff_a10"]
+    # The equivalence margin is not a round number chosen for the page: it is
+    # how far the ensemble's own score moves under the day-boundary rule, the
+    # smallest difference this design can call real.
+    margin = float(bd.equivalence_margin)
+
+    # The two samples are kept apart rather than pooled. They are different
+    # panels -- 15 capitals seen through several providers, and 104 cities seen
+    # through one each -- and a single median over both would be a number
+    # describing neither. Showing them separately also makes the contrast
+    # falsifiable: it has to survive in both, and it does.
+    SAMPLES = [("pinned", "15 capitals, several providers each"),
+               ("served_world", "104 cities worldwide, one provider each")]
+    b = s["both"]
+    occ_amt = "".join(
+        f"<tr><td>{esc(label)} "
+        f"<span class='muted'>({len(g)} series)</span></td>"
+        f"<td class='num'>{g.bss_clim.median():+.03f}</td>"
+        f"<td class='num'>{(g.bss_clim > 0).mean():.0%}</td>"
+        f"<td class='num'>{g.crpss_vs_climatology.median():+.03f}</td>"
+        f"<td class='num'>{(g.crpss_vs_climatology > 0).mean():.0%}</td></tr>"
+        for src, label in SAMPLES
+        if len(g := b[b.source == src]))
+
+    return f"""
+<h2 id="served">The number you see, against the raw ensemble</h2>
+<p>Every probability on this page so far has been taken at face value and
+scored. This section asks a different question: where does it <i>come from</i>?
+No provider documents how its rain probability is computed. So we rebuilt one
+the way a forecaster would &mdash; take the American ensemble's
+{GEFS_MEMBERS} members, count how many produce rain,
+publish the fraction &mdash; and put the two side by side on
+{int(cell('vendor', 1, 'n')):,} city-days across {int(div.n_cities.iloc[0])}
+capitals.</p>
+<table><thead><tr><th class="num">Days ahead</th>
+<th class="num">Served says</th><th class="num">Ensemble says</th>
+<th class="num">Gap</th><th class="num">Typical distance</th>
+<th class="num">Agreement</th></tr></thead><tbody>{rows}</tbody></table>
+<p>The served number is consistently the <b>drier</b> of the two, and the two
+drift apart as the forecast reaches further out: at a week ahead they are
+barely related to each other. That is a description of the pipeline, not yet a
+verdict on it &mdash; drier could mean better.</p>
+
+<h3>Is the served number better calibrated? We cannot tell.</h3>
+<p>At one day ahead, the only lead where the comparison is clean, the two score
+almost identically: a difference in accuracy of
+{bd.estimate:+.04f}. It is tempting to call that a tie. It is not one. Allowing
+for the fact that weather persists for days and that {int(bd.n_cities)} capitals
+share the same weather systems, the honest interval on that difference runs from
+{bd.ci_lo:+.04f} to {bd.ci_hi:+.04f} &mdash; wide enough to contain a real
+advantage either way. The smallest difference this data could have detected is
+{bd.mde_80:.04f}, about {bd.mde_80 / margin:.0f}&times; larger than the
+{margin:.04f} that would count as a meaningful one. So the answer is
+<b>unresolved</b>, and no amount of careful analysis of these two years could
+have made it otherwise.</p>
+
+<h3>Where it does matter: the person who acts on cheap precautions</h3>
+<p>Average accuracy is an average over users. Consider instead someone whose
+protective action is nearly free relative to the damage it prevents &mdash;
+bring the washing in, carry an umbrella &mdash; who should therefore act on
+quite low probabilities. Measured as the fraction of the achievable benefit
+each forecast actually delivers to that user:</p>
+<table><thead><tr><th>Cost of acting, vs. cost of being caught out</th>
+<th class="num">Served number</th><th class="num">Raw ensemble</th>
+<th class="num">Difference</th></tr></thead><tbody>
+<tr><td>1 in 20 (act on ~5% chance)</td>
+<td class="num">{cell('vendor', 1, 'v_cal_a05'):+.02f}</td>
+<td class="num">{cell('gefs', 1, 'v_cal_a05'):+.02f}</td>
+<td class="num">{v05.estimate:+.02f} <span class="muted">(p&nbsp;=&nbsp;{v05.p_boot:.03f})</span></td></tr>
+<tr><td>1 in 10 (act on ~10% chance)</td>
+<td class="num">{cell('vendor', 1, 'v_cal_a10'):+.02f}</td>
+<td class="num">{cell('gefs', 1, 'v_cal_a10'):+.02f}</td>
+<td class="num">{v10.estimate:+.02f} <span class="muted">(p&nbsp;=&nbsp;{v10.p_boot:.03f})</span></td></tr>
+<tr><td>1 in 2 (act on ~50% chance)</td>
+<td class="num">{cell('vendor', 1, 'v_cal_a50'):+.02f}</td>
+<td class="num">{cell('gefs', 1, 'v_cal_a50'):+.02f}</td>
+<td class="num">{sig.loc['value_diff_a50'].estimate:+.02f} <span class="muted">(p&nbsp;=&nbsp;{sig.loc['value_diff_a50'].p_boot:.03f})</span></td></tr>
+</tbody></table>
+<p>A negative number means following the forecast leaves the user worse off
+than a standing habit of always acting, or never acting. For the cheap-action
+user the served probability is not merely less useful than the ensemble
+&mdash; it is <b>worse than useless</b>, and the dry bias in the table above is
+why. By the halfway point the gap has closed and both are genuinely
+useful.</p>
+<p>The two findings belong together. The same days that cannot resolve a
+difference in average accuracy resolve this gap comfortably. Which is the
+point: <b>the choice of measure, not the amount of data, decides whether a
+reader ever sees the harm.</b></p>
+<figure><img src="{fig(FIGURES / 'economic_value.png')}" alt="economic value">
+<figcaption>The full curve behind that table: benefit delivered, against how
+cheaply the reader can afford to act. The left-hand edge, where the curves dive
+below zero, is the cheap-action user.</figcaption></figure>
+
+<h3>Whether it rains, versus how much</h3>
+<p>One last split, and the only one on this page that leaves the rain
+probability behind. Each forecast series is scored twice &mdash; once on
+whether rain occurred, once on how much fell &mdash; against the same
+reference: a same-day-of-year climatology, what the calendar alone would have
+told you.</p>
+<table><thead><tr><th rowspan="2">Sample</th>
+<th class="num" colspan="2">Will it rain?</th>
+<th class="num" colspan="2">How much will fall?</th></tr>
+<tr><th class="num">Skill</th><th class="num">Beat it</th>
+<th class="num">Skill</th><th class="num">Beat it</th></tr></thead>
+<tbody>{occ_amt}</tbody></table>
+<p>Forecasting is decisively better than the calendar at the yes/no question
+and <i>worse than the calendar</i> at the amount, in both samples. Rainfall
+totals are the harder problem, and the credibility a well-behaved rain
+probability earns does not transfer to the millimetres printed next to
+it.</p>
+"""
+
+
 def sec_limits(c) -> str:
     m, pop = c["m"], c["pop"]
     mae = c["lead_mae"]
@@ -1098,6 +1273,7 @@ def responsive_tables(html: str) -> str:
 NAV = [("answer", "Verdict"), ("curve", "Calibration"), ("season", "Seasons"),
        ("scorecard", "Scorecard"), ("hourly", "Hourly"), ("capitals", "Capitals"),
        ("providers", "Providers"), ("league", "League"),
+       ("served", "Served vs raw"),
        ("events", "Frost & heat"), ("limits", "Limits"),
        ("consulting", "Work with us"), ("glossary", "Glossary")]
 
@@ -1254,6 +1430,7 @@ def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
         sec_capitals(c) + sec_world(c)
         + report_providers.sec_providers()
         + report_providers.sec_league(c)
+        + sec_served(c)
         + report_providers.sec_app_callout(c))
     ref = responsive_tables(report_providers.sec_consulting(c)
                             + sec_improve() + sec_gloss())

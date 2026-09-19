@@ -54,7 +54,7 @@ Settled; do not re-litigate.
 
 Vendor PoP is systematically **drier** than the raw ensemble supports, by 0.06–0.08 at every lead.
 
-*Calibration at lead 1 — the only same-lead comparison:* Brier **vendor 0.1669 vs GEFS 0.1672**. The gap, 0.0003, is **smaller than the 0.0015 the ensemble's own Brier moves under the day-boundary rule alone**. This is a tie, and is reported as one. Vendor has better reliability (0.0151 vs 0.0214 — the raw 31-member frequency over-forecasts); GEFS has better discrimination (AUC 0.862 vs 0.846) and resolution. The ensemble's any-step variant beats both (Brier 0.1579, BSS 0.322). Vendor wins in 63% of 105 city × lead cells.
+*Calibration at lead 1 — the only same-lead comparison:* Brier **vendor 0.1669 vs GEFS 0.1672**. The gap, 0.0003, is **smaller than the 0.0015 the ensemble's own Brier moves under the day-boundary rule alone**. ~~This is a tie, and is reported as one.~~ **Superseded by E10: it is an *unresolved* comparison, not a demonstrated tie, and is reported that way both in the paper and on the site.** Vendor has better reliability (0.0151 vs 0.0214 — the raw 31-member frequency over-forecasts); GEFS has better discrimination (AUC 0.862 vs 0.846) and resolution. The ensemble's any-step variant beats both (Brier 0.1579, BSS 0.322). Vendor wins in 63% of 105 city × lead cells.
 
 **E4a. The Brier tie conceals a real decision-value gap at low cost-loss ratios. — IMPORTANT.** At lead 1, on the identical paired sample, relative economic value:
 
@@ -270,7 +270,8 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [ ] Task 29. Express any calibration gap in decision terms via the Task 23 curves. Rationale: D7. **Now partly answered**: E5 puts the price of miscalibration at a median 0.017 at the peak but shows it concentrated at low cost-loss ratios — the equity question becomes whether *that* burden is distributed unequally.
 - [ ] Task 30. Physics-versus-ML calibration on the AIFS-ENS matched window. Rationale: D6. **Elevated** — with E4 a tie, this is now the most likely source of a Nature-family-grade result.
 - [ ] Task 31. Provenance audit as a standalone section. Rationale: most original contribution; now carries the systematic dry bias (E4) alongside the two nulls.
-- [ ] Task 31a. **Report the occurrence-versus-amount contrast as a named result. — NEW.** Rationale: D11.
+- [x] Task 31a. **Report the occurrence-versus-amount contrast as a named result.** → D11, surfaced in `src/report.py` `sec_served`. Published as two samples side by side rather than pooled — 65 series over 15 capitals (+0.293 / −0.075) and 104 single-provider world cities (+0.339 / −0.026) — so the contrast has to hold in both, and it does.
+- [x] Task 31b. **Surface the triangulation and decision-value results on the site. — NEW.** → E4, E4a, E10, D11. `src/report.py` `sec_served`, reached from the top nav and rendered in the cross-city pane: the divergence-by-lead table, the lead-1 verdict stated as *unresolved* with its interval and minimum detectable difference, the cost-loss table where the served probability is worse than useless at α = 0.05, and the occurrence-versus-amount split. Until now every one of these lived only in parquet. The site says "we cannot tell" where the plan says unresolved; nothing on the page claims the tie.
 
 ### Phase 6 — Publication
 
