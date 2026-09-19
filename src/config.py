@@ -342,6 +342,61 @@ ENSEMBLE_COVERAGE = PROCESSED / "ensemble_coverage.json"  # src/collect_ensemble
 PROVIDER_SPACING_S = 5.0
 
 # --------------------------------------------------------------------------
+# External ensemble archive: NOAA GEFS via dynamical.org (Phase 2, Task 20a)
+# --------------------------------------------------------------------------
+# Route (ii) of the probability-triangulation design D3: a member-level
+# ensemble, independent of the vendor, from which PoP can be computed the way
+# a forecaster would, so the vendor's undisclosed derivation can be audited
+# rather than caveated. Full assessment of the alternatives (TIGGE, raw GRIB2,
+# ECMWF Open Data) in
+# plans/2026-09-15-external-ensemble-archive-feasibility-v1.md.
+#
+# G16: the endpoint is NEVER hard-coded. `data.dynamical.org` URLs retire on
+# 2026-09-30 and the store is versioned (v0.2.0 today), so the icechunk asset
+# is resolved from the STAC catalogue at run time by src/gefs_archive.py and
+# cached with a timestamp. Only the catalogue entry point lives here.
+GEFS_STAC_CATALOG = "https://stac.dynamical.org/catalog.json"
+GEFS_STAC_COLLECTION_ID = "noaa-gefs-forecast-35-day"
+GEFS_STAC_CACHE = RAW / "gefs_stac_asset.json"
+# Re-resolve roughly monthly. Long enough that the daily collector does not
+# depend on stac.dynamical.org being up; short enough that a re-versioned
+# store is picked up automatically instead of at submission time.
+GEFS_STAC_MAX_AGE_DAYS = 30
+
+GEFS_VARIABLE = "precipitation_surface"   # per-member, kg m-2 s-1, avg rate
+
+# Verified geometry (2026-09-15). Asserted on every open: the tile cost model
+# below is derived from these numbers, so a silent rechunk or regrid must stop
+# the run rather than quietly multiply the transfer.
+GEFS_MEMBERS = 31           # gec00 control + gep01..gep30
+GEFS_CHUNK_LEAD = 64        # one chunk carries leads 0..189 h
+GEFS_CHUNK_LAT = 17
+GEFS_CHUNK_LON = 16
+GEFS_STEP_SECONDS = 10800   # 3-hourly steps; rate x dt = per-step accumulation
+
+GEFS_RAW = RAW / "gefs"
+GEFS_RAW.mkdir(parents=True, exist_ok=True)
+
+# Headline verification window (design decision D1). Deliberately a parameter:
+# the full record (2020-10-01 onward for GEFS, 2024-04-25 for vendor PoP) is a
+# published sensitivity run, and the collector takes explicit dates.
+GEFS_WINDOW_START = "2024-09-01"
+GEFS_WINDOW_END = "2026-08-31"
+
+# G17: ensemble steps are 3-hourly, so local midnight is unreachable for any
+# time zone whose UTC offset is not a multiple of 3 h (UTC+1, +2, +4, +5:30,
+# +5:45, +9:30 ...). Both handlings are implemented and both are runnable, so
+# the sensitivity can be reported rather than asserted. See
+# src/ensemble_pop.py for what each one does and why `prorata` is primary.
+GEFS_BOUNDARY_MODES = ("prorata", "snap")
+GEFS_BOUNDARY_PRIMARY = "prorata"
+
+# Concurrent chunk reads. Eight was the figure the feasibility measurement
+# used (0.226 MB and ~0.09 s per chunk); higher concurrency against an
+# anonymous S3 prefix buys little and risks looking like abuse.
+GEFS_THREADS = 8
+
+# --------------------------------------------------------------------------
 # API endpoints
 # --------------------------------------------------------------------------
 API_FORECAST = "https://api.open-meteo.com/v1/forecast"
