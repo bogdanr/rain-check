@@ -584,14 +584,20 @@ def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
     print(f"\n  VERDICT ON CALIBRATION. Vendor PoP has the lower Brier score at "
           f"{int(better.sum())} of {len(better)} leads.")
     if abs(gap1) <= tie_tol:
-        print(f"  AT LEAD 1 - the only same-lead comparison - IT IS A DEAD "
-              f"HEAT: the gap is {gap1:+.4f},\n  smaller than the {tie_tol:.4f} "
-              f"the ensemble's Brier moves when nothing changes but\n  the "
-              f"day-boundary rule. Neither source can be claimed better "
-              f"calibrated at lead 1.\n  Said plainly because the study's own "
-              f"hypothesis predicted the served number would\n  be worse, and "
-              f"on this sample it is not: a raw 31-member frequency reproduces "
-              f"the\n  vendor's calibration but does not beat it.")
+        print(f"  AT LEAD 1 - the only same-lead comparison - THE TWO CANNOT "
+              f"BE SEPARATED: the gap is\n  {gap1:+.4f}, smaller than the "
+              f"{tie_tol:.4f} the ensemble's Brier moves when nothing changes "
+              f"but\n  the day-boundary rule. Neither source can be claimed "
+              f"better calibrated at lead 1.\n  Said plainly because the "
+              f"study's own hypothesis predicted the served number would\n  be "
+              f"worse, and on this sample it is not: a raw 31-member frequency "
+              f"reproduces the\n  vendor's calibration but does not beat it.\n"
+              f"  NOT A DEMONSTRATED TIE. src/significance.py tests this "
+              f"difference properly and finds\n  the sample cannot resolve "
+              f"anything smaller than ~0.008 Brier - five times the margin\n"
+              f"  above - so 'equally well calibrated' is unresolved here, not "
+              f"established. The\n  decision-value gap at low cost-loss "
+              f"ratios, by contrast, the same sample resolves.")
     elif gap1 < 0:
         print("  AT LEAD 1 the vendor's served probability is BETTER "
               "calibrated than our\n  member-derived PoP, by more than the "

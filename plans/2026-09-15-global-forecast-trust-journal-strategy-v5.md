@@ -41,7 +41,7 @@ Settled; do not re-litigate.
 
 **E3. G17 is closed — quantisation does not drive the divergence.** `data/processed/vendor_pop_quantisation.parquet`, 16,416 city-days: re-deriving vendor PoP at 3-hourly resolution shifts it by a **median of 0.00** and a mean of 0.0089 under snapping. A tail exists — 99th percentile 0.36 under pro-rata — so the control must be reported distributionally, not as a single mean. But resolution mismatch is ruled out as the explanation for the vendor-versus-ensemble gap.
 
-**E4. The triangulation result — the headline, and it is a tie.** `src/triangulation.py`, 8,572 city-days, 15 capitals, set-identical sample enforced per (boundary mode, lead) cell.
+**E4. The triangulation result — the headline, and it is unresolved rather than a tie.** `src/triangulation.py`, 8,572 city-days, 15 capitals, set-identical sample enforced per (boundary mode, lead) cell. **Qualified by E10 below: the lead-1 calibration comparison is not a demonstrated tie, it is a comparison this sample cannot make.**
 
 *Divergence*, vendor `gfs_seamless` minus GEFS-derived, pro-rata:
 
@@ -79,17 +79,38 @@ Peak value and Brier are tied, but for the **low-cost-ratio user — who acts ch
 
 **E9. Two vendor models are not independent.** `ecmwf_ifs025` and `metno_seamless` return **identical** series at these cities, detected automatically by the triangulation stage. Any cross-centre claim treating them as independent evidence is invalid.
 
+**E10. The lead-1 "tie" does not survive testing — and neither does its negation. — NEW, and it changes the paper's central sentence.** `src/significance.py`, Tasks 25 and 26. Paired block bootstrap resampling whole calendar days (all 15 cities together, blocks of 14 days chosen from the measured decorrelation time τ = 1.9 days), 2,000 replicates:
+
+| statistic, vendor − GEFS | estimate | 95% CI | p |
+|---|---|---|---|
+| Brier | −0.0003 | −0.0063, +0.0049 | 0.91 |
+| reliability | −0.0063 | −0.0103, −0.0023 | 0.003 |
+| resolution | −0.0045 | −0.0082, −0.0018 | 0.019 |
+| AUC | −0.0160 | −0.0207, −0.0095 | 0.001 |
+| dry bias | −0.0778 | −0.0871, −0.0698 | 0.001 |
+| V at α = 0.05 | −0.542 | −0.733, −0.402 | 0.001 |
+| V at α = 0.10 | −0.204 | −0.301, −0.126 | 0.001 |
+| V at α = 0.50 | +0.017 | −0.000, +0.037 | 0.13 |
+
+The Brier difference is not significant, **and TOST at the 0.0015 boundary-rule margin does not establish equivalence either (p = 0.34)**. The minimum detectable difference at 80% power is **0.0081 — five times the margin** — so no sample of this size and correlation could ever have demonstrated the tie. "The served probability is as well calibrated as the ensemble" is therefore **not a finding of this study**; what is a finding is that any difference is smaller than 0.006 Brier. The verdict is stable across block lengths 7–28 and both boundary rules.
+
+**E10a. Everything else the paper wants to say IS resolved by the same sample.** The dry bias, the reliability/resolution trade (D10), the discrimination gap and the entire low-α decision-value gap (E4a) all clear significance comfortably on the identical days that cannot separate two Brier scores. The asymmetry is itself the argument for D12: the choice of metric, not the quantity of data, decides whether a reader sees the harm.
+
+**E10b. The dependence handling is not a formality.** Against a synthetic panel with the study's own dependence structure and a known truth, the naive independent-sample interval covers **28%** of the time at a nominal 95% and rejects true nulls **72%** of the time; the day-block bootstrap covers 94% and rejects 3%. On the real data the naive standard error understates the dry-bias error by 1.8×. Any published verdict on these data that does not resample whole days is wrong by about that factor.
+
+**E11. The per-city panel is a direction, not 105 findings. — NEW.** Task 26. Of 105 city × lead cells, 34 reach p < 0.05 uncorrected, **27 survive Benjamini-Hochberg at q = 0.10 and 19 survive Benjamini-Yekutieli** (valid under arbitrary dependence). Every surviving cell is at lead 5–7, i.e. in the region where the comparison is not like-for-like. The "vendor wins 63% of cells" figure in E4 must therefore be quoted as a direction only.
+
 ---
 
 ## Design Decisions
 
 D1–D8 carry over from v4 unchanged. Four additions:
 
-**D9. The tie is published as the result — but the tie is in the average, not in the decision. — NEW.** At the only clean same-lead comparison the served probability is as well calibrated as the raw ensemble frequency (E4), and the study does **not** reframe to preserve the original hypothesis. The honest finding is: *the served number is drier than the ensemble supports and carries no lead axis at all, yet is not meaningfully less trustworthy at day one by average score — because the vendor's post-processing buys back in reliability what it loses in resolution.* The tie holds under both boundary rules. **E4a qualifies this decisively:** the average-score tie does not hold in decision terms at low cost-loss ratios, where the served number is actively harmful. The paper's claim is therefore *conditional on the user*, not global.
+**D9. The tie is published as the result — but the tie is in the average, not in the decision. — REVISED BY E10.** At the only clean same-lead comparison the served probability is as well calibrated as the raw ensemble frequency (E4), and the study does **not** reframe to preserve the original hypothesis. **E10 sharpens this further and in the study's disfavour: the lead-1 comparison is not a demonstrated tie but an unresolved one, and the paper must say so.** The honest finding is: *the served number is drier than the ensemble supports and carries no lead axis at all; whether it is less trustworthy at day one by average score is a question this sample cannot answer, and the answer would have to be larger than 0.008 Brier for it to have been able to.* **E4a qualifies this decisively:** the average-score comparison is unresolved, but the decision-value gap at low cost-loss ratios is not — it is significant at p = 0.001. The paper's claim is therefore *conditional on the user*, not global.
 
 **D12. The headline claim is user-conditional. — NEW.** No single verdict on "is the served probability trustworthy" is defensible, and the study should not attempt one. The defensible statement is that trustworthiness **depends on the decision being made**: for the median user acting near α ≈ 0.3–0.5 the served probability is fine; for the low-cost-ratio user it is not, and the mechanism is the documented dry bias. This is both more honest and more useful than a verdict, and it makes relative economic value — not Brier — the paper's organising metric.
 
-**D10. Reliability-versus-resolution is the mechanism, not a detail. — NEW.** The Brier decomposition explains the tie: vendor wins reliability, ensemble wins resolution and discrimination, and they cancel. This is the analytically interesting core and should be the paper's central figure, since it says post-processing is doing real work — it is trading sharpness for honesty — which is a defensible, quantified statement about an undisclosed pipeline.
+**D10. Reliability-versus-resolution is the mechanism, not a detail. — NEW, and now tested.** The Brier decomposition explains why the two scores land together: vendor wins reliability (−0.0063, p = 0.003), ensemble wins resolution (−0.0045, p = 0.019) and discrimination (AUC −0.0160, p = 0.001), and they cancel. **Both legs of the trade are individually significant under E10's test, so the mechanism is measured rather than inferred from a cancellation.** This is the analytically interesting core and should be the paper's central figure, since it says post-processing is doing real work — it is trading sharpness for honesty — which is a defensible, quantified statement about an undisclosed pipeline.
 
 **D11. The binary/amount contrast is a result. — NEW.** The forecast beats climatology decisively on rain occurrence (BSS +0.293) and **fails to beat it on rain amount** (CRPSS −0.076). "Will it rain" is trustworthy; "how much" is not. This is directly decision-relevant, it is measured on identical samples, and it has no counterpart in the prior art reviewed.
 
@@ -145,9 +166,9 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G8. Baselines — CLOSED.** Persistence in two forms, flat base rate, and smoothed day-of-year climatology, all on identical days (E6).
 
-**G9. Multiple comparisons.** Open. Now urgent: E4 reports differences in the fourth decimal of Brier across 105 cells.
+**G9. Multiple comparisons — CLOSED.** E11. BH and BY applied to the 105-cell panel; 27 and 19 cells survive respectively, all at leads 5–7.
 
-**G10. Significance testing.** Open and now the **most important single gap for the headline**. E4's verdict rests on differences smaller than the boundary-rule sensitivity; without a paired test with spatial-dependence handling, "tie" is an assertion rather than a result.
+**G10. Significance testing — CLOSED, with a consequence.** E10. The headline verdict is now tested and the answer is that the sample cannot resolve it: the minimum detectable Brier difference, 0.0081, is five times the margin at which a difference would matter. This does not reopen the gap — it converts it into G20 and G1, which is where it belongs. **The test that matters for the paper's actual claim, the low-α decision-value gap, is comfortably significant.**
 
 ### Supporting
 
@@ -169,7 +190,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G19. Non-independent vendor models. — NEW.** `ecmwf_ifs025` and `metno_seamless` are identical at these cities (E9). Required: detect duplicate series systematically across the full city set, and exclude duplicates from any cross-centre or multi-model claim. The triangulation stage already detects this; the league table must inherit the check.
 
-**G20. Sample-size honesty on the headline. — NEW.** E4 is 15 European capitals over 21 months with serially correlated days. Every statement derived from it must carry that scope explicitly, and the claim must be re-tested once G1 is closed. Risk: the tie is a European artefact.
+**G20. Sample-size honesty on the headline. — NEW, and now quantified.** E4 is 15 European capitals over 21 months with serially correlated days. E10 puts a number on what that buys: differences below 0.008 Brier are invisible to it. Every statement derived from it must carry that scope explicitly, and the claim must be re-tested once G1 is closed. Risk: the tie is a European artefact — and the study cannot presently tell a European artefact from an absence of effect.
 
 ---
 
@@ -223,8 +244,8 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [x] Task 22. **CRPS, ROC/AUC, sharpness.** → E6.
 - [x] Task 23. **Relative economic value curves.** → E5, E8.
 - [x] Task 24. **Persistence and smoothed-climatology baselines.** → E6.
-- [ ] Task 25. Paired significance testing accounting for spatial and temporal dependence. Rationale: G10. **Promoted to the highest-priority analysis task** — E4's central verdict is unsupported without it.
-- [ ] Task 26. FDR control. Rationale: G9.
+- [x] Task 25. **Paired significance testing accounting for spatial and temporal dependence.** → E10, E10b. `src/significance.py`, day-block bootstrap with a measured block length, TOST equivalence, and closed-form cluster/Newey-West variances beside it.
+- [x] Task 26. **FDR control.** → E11. Benjamini-Hochberg and Benjamini-Yekutieli across the 105-cell panel.
 - [ ] Task 26a. **Systematic duplicate-series detection across all models and cities. — NEW.** Rationale: G19.
 
 ### Phase 5 — The headline argument
@@ -249,7 +270,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 - Coverage spans ≥2,000 cities across all inhabited continents, with per-region coverage tabulated including where verification is impossible.
 - Every skill number carries an interval including representativeness uncertainty.
-- **Every comparative verdict — especially the E4 tie — rests on a paired significance test with spatial-dependence handling and FDR control.** No verdict may rest on a difference smaller than its own sensitivity to methodological choices.
+- **Every comparative verdict — especially the E4 comparison — rests on a paired significance test with spatial-dependence handling and FDR control.** Satisfied by `src/significance.py`. No verdict may rest on a difference smaller than its own sensitivity to methodological choices, and no null may be reported as a tie without an equivalence test that could have failed.
 - The vendor-versus-ensemble divergence is published with the quantisation control reported distributionally.
 - Headline results are reported on the balanced window and shown unchanged on the full record.
 - Relative economic value curves are published for the primary threshold and all lead times.
