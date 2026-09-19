@@ -700,8 +700,8 @@ def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
           + f" -> the verdict is {'UNCHANGED' if same else 'NOT STABLE'} "
             f"across the two rules.")
     print(f"  The swing is nonetheless larger than the lead-1 gap "
-          f"({abs(gap1):.4f}), which is why\n  that gap is reported above as a "
-          f"dead heat rather than as a win for either side.")
+          f"({abs(gap1):.4f}), which is why\n  that gap is reported above as "
+          f"unresolved rather than as a win for either side.")
 
     if len(cross):
         print("\n--- Cross-centre context (other vendor models, not like-for-like) ---")
@@ -715,8 +715,13 @@ def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
               "entries in the headline comparison.")
         # Open-Meteo's `*_seamless` endpoints fall back to another centre
         # outside their home domain, so two nominally different models can be
-        # the same series. Detected rather than assumed, because a reader
-        # would otherwise read agreement between them as independent support.
+        # the same series. This grouping on rounded aggregates is a smoke
+        # alarm, not the measurement: it can only see pairs that both reach
+        # this table at this lead, and equal aggregates are not equal series.
+        # src/duplicates.py is the real test - every pair, every city, hour by
+        # hour on the raw served values - and its verdict is what league.py
+        # acts on. If this fires and that table does not list the pair, the
+        # aggregates have collided and the finding is here, not there.
         key = c.round(4).groupby(["n", "mean_vendor_pop",
                                   "mean_abs_divergence"]).model.apply(list)
         for models in key:
@@ -724,7 +729,8 @@ def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
                 print(f"  NOTE: {', '.join(models)} produce identical numbers "
                       f"here - the vendor is serving\n  the same underlying "
                       f"series under both names at these cities, so they are "
-                      f"not\n  independent evidence.")
+                      f"not\n  independent evidence. Confirmed hour by hour "
+                      f"in duplicate_pairs.parquet.")
 
     print("\n--- Caveats a reviewer will raise ---")
     print("  1. The vendor archive has no lead axis, so only lead 1 is a "

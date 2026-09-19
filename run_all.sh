@@ -125,6 +125,14 @@ echo "== 12/16 per-provider verification, league table, robustness =="
 run_fresh S capitals.py providers -- \
   data/processed/capitals_pinned.parquet \
   data/processed/capitals_pinned_daily.parquet
+# Which model ids are one served series, before anything ranks them as two.
+# Runs ahead of league.py because league.py consumes its verdict: a duplicate
+# left in would take a rank slot, widen every other model's rank interval, and
+# present one forecast's agreement with itself as two providers agreeing.
+run_fresh S duplicates.py -- \
+  data/processed/duplicate_pairs.parquet \
+  data/processed/duplicate_groups.parquet \
+  data/processed/duplicate_summary.json
 run_fresh S league.py -- \
   data/processed/league_table.parquet \
   data/processed/league_summary.json

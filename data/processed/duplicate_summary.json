@@ -1,0 +1,174 @@
+{
+  "alias_map": {
+    "Amsterdam": {
+      "metno_seamless": "ecmwf_ifs025",
+      "ukmo_seamless": "ukmo_uk_deterministic_2km"
+    },
+    "Andorra la Vella": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Berlin": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Bucharest": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Budapest": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Chisinau": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Dublin": {
+      "metno_seamless": "ecmwf_ifs025",
+      "ukmo_seamless": "ukmo_uk_deterministic_2km"
+    },
+    "Helsinki": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Luxembourg": {
+      "metno_seamless": "ecmwf_ifs025",
+      "ukmo_seamless": "ukmo_uk_deterministic_2km"
+    },
+    "Madrid": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Monaco": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Oslo": {
+      "metno_seamless": "ecmwf_ifs025",
+      "ukmo_seamless": "ukmo_uk_deterministic_2km"
+    },
+    "Paris": {
+      "metno_seamless": "ecmwf_ifs025",
+      "ukmo_seamless": "ukmo_uk_deterministic_2km"
+    },
+    "Podgorica": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Reykjavik": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Sarajevo": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Stockholm": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Tallinn": {
+      "metno_seamless": "ecmwf_ifs025"
+    },
+    "Vienna": {
+      "metno_seamless": "ecmwf_ifs025"
+    }
+  },
+  "duplicate_pairs": [
+    {
+      "channel": "precipitation_probability",
+      "cities": [
+        "Amsterdam",
+        "Andorra la Vella",
+        "Berlin",
+        "Bucharest",
+        "Budapest",
+        "Chisinau",
+        "Dublin",
+        "Helsinki",
+        "Luxembourg",
+        "Madrid",
+        "Monaco",
+        "Oslo",
+        "Paris",
+        "Podgorica",
+        "Reykjavik",
+        "Sarajevo",
+        "Stockholm",
+        "Tallinn",
+        "Vienna"
+      ],
+      "everywhere": true,
+      "min_frac_exact": 1.0,
+      "model_a": "ecmwf_ifs025",
+      "model_b": "metno_seamless",
+      "n_cities_comparable": 19,
+      "n_cities_duplicate": 19,
+      "n_hours_min": 20760
+    },
+    {
+      "channel": "precipitation",
+      "cities": [
+        "Amsterdam",
+        "Dublin",
+        "Luxembourg",
+        "Oslo",
+        "Paris"
+      ],
+      "everywhere": true,
+      "min_frac_exact": 1.0,
+      "model_a": "ukmo_seamless",
+      "model_b": "ukmo_uk_deterministic_2km",
+      "n_cities_comparable": 5,
+      "n_cities_duplicate": 5,
+      "n_hours_min": 20880
+    },
+    {
+      "channel": "precipitation_probability",
+      "cities": [
+        "Amsterdam",
+        "Dublin",
+        "Luxembourg",
+        "Oslo",
+        "Paris"
+      ],
+      "everywhere": true,
+      "min_frac_exact": 1.0,
+      "model_a": "ukmo_seamless",
+      "model_b": "ukmo_uk_deterministic_2km",
+      "n_cities_comparable": 5,
+      "n_cities_duplicate": 5,
+      "n_hours_min": 2272
+    }
+  ],
+  "min_overlap_hours": 500,
+  "n_cities": 19,
+  "n_models": 14,
+  "near_duplicate_pairs": [
+    {
+      "channel": "precipitation_probability",
+      "max_abs_diff": 95.0,
+      "max_frac_exact": 0.983733224888166,
+      "model_a": "icon_d2",
+      "model_b": "ukmo_seamless",
+      "n_cities": 1
+    },
+    {
+      "channel": "precipitation",
+      "max_abs_diff": 23.0,
+      "max_frac_exact": 0.97561093871218,
+      "model_a": "meteofrance_arome_france",
+      "model_b": "meteofrance_arome_france_hd",
+      "n_cities": 6
+    }
+  ],
+  "scored_channel": "precipitation_probability",
+  "separation": {
+    "precipitation": {
+      "grey_band_lo": 0.99,
+      "max_frac_among_distinct": 0.97561093871218,
+      "min_frac_among_duplicates": 1.0,
+      "n_duplicate": 5,
+      "n_in_grey_band": 0,
+      "n_pairs": 1099
+    },
+    "precipitation_probability": {
+      "grey_band_lo": 0.99,
+      "max_frac_among_distinct": 0.983733224888166,
+      "min_frac_among_duplicates": 1.0,
+      "n_duplicate": 24,
+      "n_in_grey_band": 0,
+      "n_pairs": 354
+    }
+  },
+  "threshold_frac_exact": 0.999
+}

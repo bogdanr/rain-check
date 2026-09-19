@@ -1,4 +1,122 @@
 {
+  "duplicates_collapsed": {
+    "by_city": [
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Amsterdam",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Andorra la Vella",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Berlin",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Bucharest",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Dublin",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Helsinki",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Luxembourg",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Madrid",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Monaco",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Oslo",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Paris",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Podgorica",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Reykjavik",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Stockholm",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Tallinn",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Vienna",
+        "kept": "ecmwf_ifs025"
+      }
+    ],
+    "checked": true,
+    "n_rows_collapsed": 16
+  },
   "held_fixed": {
     "max_abs_bss_diff": 0.05096877348910134,
     "n_cities_checked": 16,
@@ -7,7 +125,7 @@
     "verdict": "individual values shift under pinning but the city ordering survives, so the published ranking measures geography, not routing"
   },
   "n_cities_in_league": 16,
-  "n_models_in_league": 6,
+  "n_models_in_league": 5,
   "per_city_matches": [
     {
       "abs_diff": 0.01902026353758879,

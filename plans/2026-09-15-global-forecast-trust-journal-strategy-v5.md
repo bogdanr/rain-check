@@ -77,7 +77,22 @@ Peak value and Brier are tied, but for the **low-cost-ratio user — who acts ch
 
 **E8. Lead-time value decay is quantified.** Bucharest, derived probabilities: AUC 0.869 → 0.693 and peak value 0.681 → 0.356 across leads 1–7. At α = 0.10 value is **zero beyond lead 2** — the low-cost-ratio user gets nothing from a three-day-ahead rain probability.
 
-**E9. Two vendor models are not independent.** `ecmwf_ifs025` and `metno_seamless` return **identical** series at these cities, detected automatically by the triangulation stage. Any cross-centre claim treating them as independent evidence is invalid.
+**E9. Two vendor models are not independent — now measured properly.** E12 supersedes the aggregate-level detection: the check is hour by hour, every pair, every city.
+
+**E12. Duplicate detection across the full model set. — NEW.** Task 26a, `src/duplicates.py`. 1,453 comparable (city × channel × pair) comparisons on the raw served hourly values. Two duplications, both exact to the last digit:
+
+| pair | channel | scope | evidence |
+|---|---|---|---|
+| `ecmwf_ifs025` = `metno_seamless` | probability | **all 19 cities** | 20,760 h, 100% exact |
+| `ukmo_seamless` = `ukmo_uk_deterministic_2km` | probability **and** amount | 5 of 5 comparable cities | 2,272 h / 20,880 h, 100% exact |
+
+**The duplication is channel-specific, and that is the finding.** MET Norway serves ECMWF's *probability* with its own *amounts* (84% exact, differences to 10.9 mm). A test demanding both channels match would have called the pair distinct and missed the duplication in the one field this study scores. Duplication is a property of the field being read, not of the model id.
+
+**E12a. The threshold is not deciding anything.** Every flagged pair agrees on exactly 100% of hours and **nothing** falls in [0.99, 0.999); the closest unflagged pair is at 0.9837. Any cut inside that empty band gives the same answer. The control is falsifiable and fires on a synthetic pair placed inside the band.
+
+**E12b. Close relatives are kept and disclosed.** `meteofrance_arome_france` vs `_hd` agree on up to 97.6% of amount hours but differ by up to 23 mm; `icon_d2` vs `ukmo_seamless` agree on 98.4% of probability hours at Monaco. These are two forecasts and stay in the table — but a reader counting them as two independent votes is still wrong, so the numbers are published.
+
+**E12c. The league table was double-counting, and its rank intervals were broken.** 16 rows collapsed across 16 cities. Separately, `league.py` was ranking each model's 600 bootstrap replicates against *each other* instead of ranking models within each replicate, so every published row carried an identical, meaningless interval of 16–585 — a range wider than the number of models. Both are fixed; an assertion now makes the rank error fatal rather than printable. Threshold robustness inherits the collapse: the "rankings move" tally falls from 57/85 to 44/69.
 
 **E10. The lead-1 "tie" does not survive testing — and neither does its negation. — NEW, and it changes the paper's central sentence.** `src/significance.py`, Tasks 25 and 26. Paired block bootstrap resampling whole calendar days (all 15 cities together, blocks of 14 days chosen from the measured decorrelation time τ = 1.9 days), 2,000 replicates:
 
@@ -188,7 +203,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G18. Competitor-collision monitoring.** Open.
 
-**G19. Non-independent vendor models. — NEW.** `ecmwf_ifs025` and `metno_seamless` are identical at these cities (E9). Required: detect duplicate series systematically across the full city set, and exclude duplicates from any cross-centre or multi-model claim. The triangulation stage already detects this; the league table must inherit the check.
+**G19. Non-independent vendor models — CLOSED.** E12. `src/duplicates.py` tests every pair at every city hour by hour on the raw served values; the league table and the threshold-robustness table both consume its verdict and collapse duplicates before ranking, with the alias named on the surviving row rather than deleted. The triangulation stage's aggregate-level check is retained as a smoke alarm and now says so.
 
 **G20. Sample-size honesty on the headline. — NEW, and now quantified.** E4 is 15 European capitals over 21 months with serially correlated days. E10 puts a number on what that buys: differences below 0.008 Brier are invisible to it. Every statement derived from it must carry that scope explicitly, and the claim must be re-tested once G1 is closed. Risk: the tie is a European artefact — and the study cannot presently tell a European artefact from an absence of effect.
 
@@ -246,7 +261,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [x] Task 24. **Persistence and smoothed-climatology baselines.** → E6.
 - [x] Task 25. **Paired significance testing accounting for spatial and temporal dependence.** → E10, E10b. `src/significance.py`, day-block bootstrap with a measured block length, TOST equivalence, and closed-form cluster/Newey-West variances beside it.
 - [x] Task 26. **FDR control.** → E11. Benjamini-Hochberg and Benjamini-Yekutieli across the 105-cell panel.
-- [ ] Task 26a. **Systematic duplicate-series detection across all models and cities. — NEW.** Rationale: G19.
+- [x] Task 26a. **Systematic duplicate-series detection across all models and cities.** → E12, E12a-c. `src/duplicates.py`; consumed by `league.py` and `league_robustness.py`.
 
 ### Phase 5 — The headline argument
 

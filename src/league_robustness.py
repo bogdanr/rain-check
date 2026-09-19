@@ -11,6 +11,14 @@ table, and the three rankings are published side by side.
 Statistics stay in Python; the report only renders what lands in
 data/processed/league_robustness.parquet.
 
+Duplicate model ids are collapsed before ranking, on src/duplicates.py's
+verdict and by the same rule the primary table uses. Without it the counts
+here are actively misleading: two ids serving one probability score
+identically at every threshold, so they occupy two adjacent rank slots decided
+by nothing but tie-break order, push every model below them down by one, and
+inflate the "how many rankings move" tally with a model that cannot move
+independently of another.
+
 Usage:  python src/league_robustness.py
 """
 
@@ -21,6 +29,7 @@ import pandas as pd
 
 from calibration import brier_decomposition
 from config import N_PROB_BINS, PROCESSED, RAIN_THRESHOLD_VARIANTS_MM
+from duplicates import load_alias_map
 
 # Keep the same matched-day logic as the primary table: within a city, score
 # every model on the days ALL models cover, at each threshold.
@@ -33,8 +42,14 @@ def _bss(p: np.ndarray, e: np.ndarray) -> float:
 
 
 def robustness(daily: pd.DataFrame) -> pd.DataFrame:
+    aliases = load_alias_map()
     rows = []
+    n_dropped = 0
     for city, g in daily.groupby("city"):
+        amap = aliases.get(city, {})
+        if amap:
+            n_dropped += len(set(g.model) & set(amap))
+            g = g[~g.model.isin(amap)]
         wide = g.pivot_table(index="local_date", columns="model",
                              values="forecast_prob")
         obs = g.groupby("local_date").obs_precip_mm.first()
@@ -56,6 +71,13 @@ def robustness(daily: pd.DataFrame) -> pd.DataFrame:
                              "base_rate": float(e.mean())})
     out = pd.DataFrame(rows)
     out.to_parquet(PROCESSED / "league_robustness.parquet", index=False)
+    if not aliases:
+        print("  NOTE: no duplicate check on disk - run `duplicates.py` "
+              "first. Any model id\n  that is another's series under a second "
+              "name is counted twice below.")
+    elif n_dropped:
+        print(f"  Collapsed {n_dropped} duplicate row(s) before ranking, on "
+              f"duplicates.py's verdict.")
     return out
 
 

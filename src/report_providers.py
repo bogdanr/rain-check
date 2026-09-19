@@ -265,6 +265,7 @@ models, so unequal archive depths cannot decide them.</p>"""
     ece = _league_ece(tbl)
     summary = league.get("summary") or {}
     held = summary.get("held_fixed", {})
+    dups = summary.get("duplicates_collapsed", {})
 
     rows = ""
     for city, g in tbl.groupby("city"):
@@ -275,6 +276,16 @@ models, so unequal archive depths cannot decide them.</p>"""
                 if r.model in PROVIDER_MODELS else r.organization
             name = (f'<a class="jump" href="#providers">{esc(r.display_name)}</a>'
                     f'<br><span class="muted">{esc(org)}</span>')
+            # Where two model ids turned out to be one served series, the row
+            # says so. Dropping the alias silently would leave the reader
+            # wondering why a provider they can select is missing.
+            alias = getattr(r, "aliases", "") or ""
+            if alias:
+                pretty = ", ".join(
+                    PROVIDER_MODELS[a].display_name if a in PROVIDER_MODELS
+                    else a for a in alias.split(","))
+                name += (f'<br><span class="muted">same numbers as '
+                         f'{esc(pretty)}</span>')
             e = ece.get((r.city, r.model))
             ecell = f"<td class='num'>{e:.1%}</td>" if e is not None \
                 else "<td class='num'>&mdash;</td>"
@@ -292,6 +303,38 @@ models, so unequal archive depths cannot decide them.</p>"""
     if held.get("verdict"):
         held_html = (f"<div class=\"callout\"><b>Held-fixed check.</b> "
                      f"{esc(held['verdict'])}.</div>")
+
+    dup_html = ""
+    if dups.get("checked") and dups.get("n_rows_collapsed"):
+        by_city = dups.get("by_city", [])
+
+        def _pretty(m):
+            return PROVIDER_MODELS[m].display_name \
+                if m in PROVIDER_MODELS else m
+
+        merged = sorted({(a, d["kept"]) for d in by_city
+                         for a in d["aliases"]})
+        phrases = " and ".join(
+            f"<b>{esc(_pretty(a))}</b> returns the same rain probability as "
+            f"<b>{esc(_pretty(k))}</b>" for a, k in merged)
+        n_cities = len({d["city"] for d in by_city})
+        # The headline counts the merged pairs rather than asserting a number,
+        # so adding a provider to the registry cannot leave a stale "two" here.
+        lead = ("Two of these &ldquo;different providers&rdquo; are one "
+                "forecast." if len(merged) == 1 else
+                f"{len(merged)} pairs of these &ldquo;different "
+                f"providers&rdquo; are one forecast each.")
+        dup_html = f"""<div class="callout">
+<b>{lead}</b>
+Every pair of models was compared hour by hour at every city, on the raw
+numbers as served, before any averaging could smooth a difference away:
+{phrases} &mdash; not similar, <i>identical</i>, to the last digit, at
+{n_cities} cities. So the duplicate was merged into the other before ranking.
+Leaving it in would have given one forecast two places in the table, and made
+its agreement with itself look like two providers independently agreeing.
+Where a merge happened, the surviving row names the other label underneath.
+Nobody discloses this; it only showed up because the numbers were checked
+against each other.</div>"""
 
     return f"""
 <h2 id="league">Which forecaster is best? The league table</h2>
@@ -312,6 +355,7 @@ average, 1 is perfect. The rank range is the honest part: with about two
 years of data, most neighbouring ranks cannot be told apart, so a model
 "ranked 2&ndash;4" is not ranked second. Avg error is the average gap between
 promised and delivered rain chances, in percentage points.</p>
+{dup_html}
 {held_html}
 """
 

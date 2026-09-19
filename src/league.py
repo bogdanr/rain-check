@@ -20,9 +20,21 @@ Two things keep the answer honest:
     ordering was geography, not routing; if it does not, the routing was part
     of the story and the league table is the correction.
 
+And one thing keeps it from double-counting. src/duplicates.py establishes
+that some model ids are the same served series - `metno_seamless` returns
+ECMWF's probability at all 19 cities, `ukmo_seamless` returns the UK 2 km
+model's at 5 of them. Ranking both members of such a pair would put one
+forecast in the table twice: it would take a rank slot, widen every other
+model's rank interval, and invite a reader to count its agreement with its own
+twin as corroboration. Duplicates are therefore collapsed to one canonical
+row per city before ranking, with the alias recorded on that row rather than
+deleted, so the table shows a reader that the two names they may have seen
+elsewhere are one number here.
+
 Inputs (all on disk, no network): data/processed/capitals_pinned.parquet and
 capitals_pinned_daily.parquet from `capitals.py providers`, the published
-capitals_metrics.parquet, and pop_provenance_capitals.parquet.
+capitals_metrics.parquet, pop_provenance_capitals.parquet, and
+duplicate_groups.parquet from `duplicates.py`.
 
 Outputs: data/processed/league_table.parquet and league_summary.json (the
 report's renderer prefers JSON for the narrative verdicts).
@@ -46,6 +58,7 @@ from config import (
     RANDOM_SEED,
 )
 from capitals import _block_indices
+from duplicates import load_alias_map
 
 N_BOOT_LEAGUE = 600   # replicates per city for the rank intervals
 
@@ -71,10 +84,30 @@ def league_table(daily: pd.DataFrame) -> pd.DataFrame:
     days every model covers), and the block bootstrap resamples those days
     jointly, so a replicate is a fair re-run of the whole comparison: rank
     intervals reflect sampling noise, not differing windows.
+
+    Duplicate ids are collapsed first, per city, using duplicates.py's map on
+    the probability channel - the channel this BSS is computed from. The
+    collapse happens BEFORE the intersection is taken, which matters: an alias
+    whose archive starts later than its canonical twin would otherwise shorten
+    the window for every model in the city while contributing nothing that the
+    twin does not already contribute.
     """
     rng = np.random.default_rng(RANDOM_SEED)
+    aliases = load_alias_map()
+    if not aliases:
+        print("  NOTE: no duplicate_groups.parquet on disk - run "
+              "`duplicates.py` first.\n  The table below has NOT been checked "
+              "for models that are one series under\n  two names, and any "
+              "such pair is currently double-counted in it.")
     rows = []
+    dropped = []
     for city, g in daily.groupby("city"):
+        amap = aliases.get(city, {})
+        if amap:
+            dropped += [{"city": city, "alias": a, "canonical": c}
+                        for a, c in sorted(amap.items())
+                        if a in set(g.model)]
+            g = g[~g.model.isin(amap)]
         wide = g.pivot_table(index="local_date", columns="model",
                              values="forecast_prob")
         obs = g.groupby("local_date").observed_event.first()
@@ -97,7 +130,18 @@ def league_table(daily: pd.DataFrame) -> pd.DataFrame:
                 except Exception:
                     boots[m].append(np.nan)
         boot = pd.DataFrame({m: boots[m] for m in models}).dropna()
-        ranks = (-boot[models].values).argsort(axis=0).argsort(axis=0) + 1
+        # Rank ACROSS MODELS within each replicate (axis=1), not across
+        # replicates within each model. The latter is what this line did until
+        # Task 26a: it ranked each model's 600 bootstrap scores against each
+        # other, so every row of the published table carried the same
+        # meaningless interval of 16-585 - a range wider than the number of
+        # models, which should have been caught by anyone reading it. The
+        # assertion below now makes that class of error fatal instead of
+        # printable.
+        ranks = (-boot[models].values).argsort(axis=1).argsort(axis=1) + 1
+        assert ranks.min() >= 1 and ranks.max() <= len(models), (
+            f"{city}: rank matrix spans {ranks.min()}-{ranks.max()} for "
+            f"{len(models)} models")
 
         order = sorted(models, key=lambda m: -point[m])
         for rank_pos, m in enumerate(order, start=1):
@@ -117,9 +161,21 @@ def league_table(daily: pd.DataFrame) -> pd.DataFrame:
                 "rank": rank_pos,
                 "rank_lo": float(np.quantile(ranks[:, j], 0.025)),
                 "rank_hi": float(np.quantile(ranks[:, j], 0.975)),
+                # Names this row also answers to at this city. Carried on the
+                # row so the report can say so without re-reading the
+                # duplicate tables, and so the parquet is self-describing.
+                "aliases": ",".join(a for a, c in sorted(
+                    aliases.get(city, {}).items()) if c == m),
             })
     out = pd.DataFrame(rows)
     out.to_parquet(PROCESSED / "league_table.parquet", index=False)
+    if dropped:
+        d = pd.DataFrame(dropped)
+        print(f"  Collapsed {len(d)} duplicate row(s) across "
+              f"{d.city.nunique()} cities before ranking: "
+              f"{', '.join(sorted(set(d.alias)))}\n  are the same served "
+              f"probability as their canonical twin and would otherwise\n  "
+              f"have been ranked as separate forecasters.")
     return out
 
 
@@ -185,9 +241,22 @@ def held_fixed_check(league: pd.DataFrame) -> dict:
                    "routed, and the league table is the like-for-like "
                    "correction")
 
+    # Which rows in the table stand for more than one model id, so the report
+    # can name the alias next to the model it was collapsed into rather than
+    # silently showing one fewer forecaster than the reader expects.
+    aliased = league[league.aliases.astype(bool)] if "aliases" in league \
+        else league.iloc[:0]
     summary = {
         "n_cities_in_league": int(league.city.nunique()),
         "n_models_in_league": int(league.model.nunique()),
+        "duplicates_collapsed": {
+            "checked": (PROCESSED / "duplicate_groups.parquet").exists(),
+            "n_rows_collapsed": int(sum(len(a.split(","))
+                                        for a in aliased.aliases)),
+            "by_city": [{"city": r.city, "kept": r.model,
+                         "aliases": r.aliases.split(",")}
+                        for r in aliased.itertuples()],
+        },
         "held_fixed": {
             "n_cities_checked": n_checked,
             "n_published_equals_pinned": n_match,
