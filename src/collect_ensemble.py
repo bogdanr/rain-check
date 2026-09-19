@@ -72,13 +72,26 @@ throttles every request and backs off on 429; `MODEL_PAUSE_S` spaces the bursts.
 
 Running it daily
 ----------------
-Add this to the collecting user's crontab (do NOT rely on this file installing
-it). 05:40 UTC sits after the 00z runs of every model here have been ingested,
-and the three-day lookback means a skipped day is still recoverable:
+Scheduled as a systemd timer, NOT cron. This machine has crontab(1) installed
+but no cron daemon running, so a crontab entry would be accepted and then
+silently never fire -- the one failure mode this archive cannot survive, since
+unfetched members are unrecoverable after ~4 days.
 
-    40 5 * * * cd /mnt/live/memory/data/Hobbie/rain-check && \
-      .venv/bin/python src/collect_ensemble.py collect \
-      >> data/raw/ensemble/collect.log 2>&1
+    /etc/systemd/system/rain-check-ensemble.service
+    /etc/systemd/system/rain-check-ensemble.timer
+
+    systemctl status rain-check-ensemble.timer   # is it armed?
+    systemctl list-timers rain-check-ensemble.timer
+    journalctl -u rain-check-ensemble.service    # why did a run fail?
+
+05:40 local sits after the 00z runs of every model here have been ingested. The
+timer sets Persistent=true so a machine that was off at 05:40 runs the job at
+next boot instead of skipping the day, and the service retries on failure --
+retries are free because a repeat run on an already-collected day issues zero
+HTTP requests.
+
+Run `status` to confirm no collection date is missing; it names any gap and
+warns when the newest partition is older than today.
 
 Usage:
     python src/collect_ensemble.py probe [city] [model]  # discover working ids

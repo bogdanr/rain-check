@@ -17,10 +17,13 @@ SKIP_UNCHANGED=${SKIP_UNCHANGED:-1}
 # -> recompute; otherwise the outputs are already derived from exactly these
 # inputs and recomputing them is pure waste).
 #
-# data/raw/ensemble is excluded from that input set. The forward ensemble
-# collector (src/collect_ensemble.py) writes a new partition there EVERY day by
-# design, and no step below consumes it, so counting it as an input would mark
-# the entire pipeline stale daily and turn every warm run into a full rebuild.
+# data/raw/ensemble and data/raw/gefs are excluded from that input set. The
+# forward ensemble collector (src/collect_ensemble.py) writes a new partition
+# there EVERY day by design, and the GEFS archive collector
+# (src/collect_gefs.py) likewise extends data/raw/gefs as new init_times are
+# published. No step below consumes either, so counting them as inputs would
+# mark the entire pipeline stale daily and turn every warm run into a full
+# rebuild.
 run_fresh() {
   local -a cmd outs=()
   local seen=0
@@ -33,7 +36,8 @@ run_fresh() {
     for o in "${outs[@]}"; do [ -e "$o" ] || stale=1; done
     if [ "$stale" = 0 ]; then
       oldest=$(stat -c %Y "${outs[@]}" | sort -n | head -1)
-      newest=$(find src run_all.sh data/raw -path data/raw/ensemble -prune -o \
+      newest=$(find src run_all.sh data/raw \
+        \( -path data/raw/ensemble -o -path data/raw/gefs \) -prune -o \
         -type f -newermt "@$oldest" -print -quit 2>/dev/null | head -1)
       if [ -z "$newest" ]; then
         echo "   (up to date, skipped: ${cmd[*]})"
@@ -46,45 +50,45 @@ run_fresh() {
 
 S() { (cd src && "../$PY" "$@"); }
 
-echo "== 1/13 collect archives (Tracks A and B, ERA5) =="
+echo "== 1/15 collect archives (Tracks A and B, ERA5) =="
 S collect_archive.py all
 S collect_archive.py previous_runs icon_eu
 
-echo "== 2/13 station observations (daily, GHCN) =="
+echo "== 2/15 station observations (daily, GHCN) =="
 S observations.py
 
-echo "== 3/13 station observations (hourly present weather, NOAA ISD) =="
+echo "== 3/15 station observations (hourly present weather, NOAA ISD) =="
 S observations_hourly.py
 
-echo "== 4/13 build verification tables =="
+echo "== 4/15 build verification tables =="
 S build_dataset.py
 
-echo "== 5/13 validate the join (fails loudly on misalignment) =="
+echo "== 5/15 validate the join (fails loudly on misalignment) =="
 S validate_join.py
 
-echo "== 6/13 analysis and robustness =="
+echo "== 6/15 analysis and robustness =="
 S analyze.py
 S robustness.py
 
-echo "== 7/13 hourly track, derived-probability events, external benchmarks =="
+echo "== 7/15 hourly track, derived-probability events, external benchmarks =="
 S hourly.py
 S events.py
 S benchmarks.py
 
-echo "== 8/13 European capitals: coverage probe, then the multi-city run =="
+echo "== 8/15 European capitals: coverage probe, then the multi-city run =="
 S probe_capitals.py
 run_fresh S capitals.py -- \
   data/processed/capitals_metrics.parquet \
   data/processed/capitals_pop.parquet \
   figures/capitals_reliability.png
 
-echo "== 9/13 forecast provenance audit, then the like-for-like ranking =="
+echo "== 9/15 forecast provenance audit, then the like-for-like ranking =="
 # Which model actually backs the unpinned probability series, per city and per
 # month, and does the league table survive holding the forecaster fixed?
 S pop_provenance.py
 run_fresh S capitals.py pinned -- data/processed/capitals_pinned.parquet
 
-echo "== 10/13 beyond the capitals: probe every city with a usable gauge =="
+echo "== 10/15 beyond the capitals: probe every city with a usable gauge =="
 # GHCN's per-year bulk files replace ~16 GB of per-station downloads, so the
 # expanded set costs one 422 MB fetch rather than one request per station.
 S probe_cities.py
@@ -96,7 +100,7 @@ run_fresh S capitals.py world -- \
   data/processed/cities_pop.parquet \
   figures/cities_reliability.png
 
-echo "== 11/13 multi-provider league: probe coverage, then collect =="
+echo "== 11/15 multi-provider league: probe coverage, then collect =="
 # Which models actually serve a usable PoP archive at which capitals, then the
 # multi-model archive collection behind the cross-provider league table.
 # Both legs are cache-resumable and rate-limit aware (src/fetch.py backs off on
@@ -113,7 +117,7 @@ else
   echo "         'Collection pending' in the report; re-run to resume."
 fi
 
-echo "== 12/13 per-provider verification, league table, robustness =="
+echo "== 12/15 per-provider verification, league table, robustness =="
 # capitals.py providers and capitals.py pinned both write
 # capitals_pinned.parquet: providers adds the wider model set, and whichever
 # ran last owns the file. The report sections filter by model, so the
@@ -127,7 +131,36 @@ run_fresh S league.py -- \
 run_fresh S league_robustness.py -- \
   data/processed/league_robustness.parquet
 
-echo "== 13/13 build the HTML report =="
+echo "== 13/15 decision value, CRPS/ROC/sharpness, baselines (Tasks 18, 22-24) =="
+# Runs entirely off the parquet tables written above - no network, no cache.
+# The correctness checks (economic value of a perfect forecast is 1, of a
+# climatology 0; AUC of a random forecast is 0.5; CRPS of a point forecast is
+# its absolute error) run first and abort the step if any fails.
+run_fresh S decision_metrics.py -- \
+  data/processed/decision_metrics.parquet \
+  data/processed/decision_value_curves.parquet \
+  data/processed/decision_crps_amount.parquet \
+  data/processed/decision_clim_sensitivity.parquet \
+  figures/economic_value.png \
+  figures/discrimination_sharpness.png \
+  figures/bss_reference.png
+
+echo "== 14/15 served vs member-derived probability (Task 21, triangulation) =="
+# The headline contribution: how far the probability a consumer is SERVED
+# (vendor PoP) sits from the probability the ENSEMBLE supports (our GEFS
+# member-derived PoP), and which of the two is better calibrated against the
+# gauge. Runs off gefs_pop.parquet, the vendor archives in data/raw, and the
+# station truth already joined into capitals_pinned_daily.parquet - no network.
+# Every series is scored on one identical sample of city-days; the module
+# aborts loudly (stage-5 style) if that sample is not identical, and its
+# selftest runs first.
+run_fresh S triangulation.py -- \
+  data/processed/triangulation.parquet \
+  data/processed/triangulation_divergence.parquet \
+  data/processed/triangulation_reliability.parquet \
+  data/processed/triangulation_by_city.parquet
+
+echo "== 15/15 build the HTML report =="
 run_fresh S report.py -- dist/index.html
 
 echo
