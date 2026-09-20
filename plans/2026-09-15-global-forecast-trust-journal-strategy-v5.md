@@ -115,6 +115,20 @@ The Brier difference is not significant, **and TOST at the 0.0015 boundary-rule 
 
 **E11. The per-city panel is a direction, not 105 findings. — NEW.** Task 26. Of 105 city × lead cells, 34 reach p < 0.05 uncorrected, **27 survive Benjamini-Hochberg at q = 0.10 and 19 survive Benjamini-Yekutieli** (valid under arbitrary dependence). Every surviving cell is at lead 5–7, i.e. in the region where the comparison is not like-for-like. The "vendor wins 63% of cells" figure in E4 must therefore be quoted as a direction only.
 
+**E13. ML beats physics on daily rain probability — in direction everywhere, in significance nowhere once the family is counted. — NEW.** `src/physics_ml.py`, Task 30. ECMWF's IFS ENS and AIFS ENS, 51 members each, one grid, one initialisation, one republisher, so the forecast *method* is very nearly the only difference. 4,655 city-days × 7 leads over 15 capitals, 2025-07-09 .. 2026-05-31:
+
+| lead | IFS Brier | AIFS Brier | diff (ML − physics) | 95% CI | p | q(BH) |
+|---|---|---|---|---|---|---|
+| 1 | 0.1783 | 0.1715 | −0.0068 | −0.0115, −0.0007 | 0.009 | 0.063 |
+| 4 | 0.1823 | 0.1775 | −0.0048 | −0.0091, −0.0010 | 0.032 | 0.112 |
+| 2,3,5,6,7 | — | — | −0.0016 to −0.0033 | straddle 0 | 0.14–0.54 | ≥0.34 |
+
+All seven leads favour the ML system and AIFS wins on BSS and AUC at every lead, but **no lead survives Benjamini-Hochberg across the seven**, so the claim the data support is a consistent direction, not an established per-lead difference. The mechanism at lead 1 is *reliability* (−0.0055, p = 0.002) and a wetter mean probability (+0.0099 relative to the physics system's dry side, p = 0.003); resolution (+0.0007, p = 0.89) and discrimination (AUC +0.0044, p = 0.11) are flat. **AIFS is better calibrated, not more discriminating** — the opposite shape to the vendor-versus-ensemble result in E10, where post-processing bought reliability by giving up resolution.
+
+**E13a. The accumulation ladder is worth more than half the effect, and nobody reports it. — NEW, and it is a methodological finding in its own right.** IFS ENS publishes 3-hourly accumulation steps and AIFS ENS 6-hourly ones. Scored each on its own native ladder, the ML advantage at lead 1 is **−0.0027 (p = 0.19)**; put both on one 6-hourly ladder, it is **−0.0068 (p = 0.009)**. The finer ladder hands the physics system a more accurate local-day boundary that has nothing whatever to do with forecast quality, and it is worth **0.0041 Brier — 60% of the measured difference**. Any physics-versus-ML comparison on local calendar days that does not match the ladder has inherited that artefact silently.
+
+**E13b. The window is bounded by the gauges, not the archive.** Both member archives are collected to 2026-08-31, but the station record ends 2026-05-31, so the comparison runs 11 months rather than 14. The minimum detectable difference at lead 1 is 0.0079 — the observed effect sits just under it, which is why the direction is consistent and the individual verdicts are not. Per city, 11 of 15 capitals favour AIFS (median −0.0053, range −0.0417 at Dublin to +0.0535 at Monaco), so the effect is not carried by one station.
+
 ---
 
 ## Design Decisions
@@ -129,6 +143,8 @@ D1–D8 carry over from v4 unchanged. Four additions:
 
 **D11. The binary/amount contrast is a result. — NEW.** The forecast beats climatology decisively on rain occurrence (BSS +0.293) and **fails to beat it on rain amount** (CRPSS −0.076). "Will it rain" is trustworthy; "how much" is not. This is directly decision-relevant, it is measured on identical samples, and it has no counterpart in the prior art reviewed.
 
+**D13. The ladder is part of the comparison, not part of the plumbing. — NEW.** E13a shows a step-resolution mismatch is worth 60% of the physics-versus-ML difference at lead 1. Any comparison this study publishes between archives with different accumulation ladders must therefore report the matched result as primary and the native one as a sensitivity, with both numbers printed. This applies beyond Task 30: it is the same class of confound as the day-boundary rule (G17), and it argues the paper should carry a short "artefacts that outweigh the signal" section rather than a methods footnote.
+
 ---
 
 ## Journal Targets
@@ -140,7 +156,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 | Venue | Odds | Assessment |
 |---|---|---|
 | **Nature** | ~1% | Closed. |
-| **Nature Communications** | ~10–15% | **Down from 15–20%.** The tie removes the dramatic claim. Would now need global scale plus a strong ML-calibration result to carry it. |
+| **Nature Communications** | ~10–15% | **Down from 15–20%.** The tie removes the dramatic claim. Would now need global scale plus a strong ML-calibration result to carry it. E13 is not that result: the direction is consistent but no lead survives FDR, and the honest headline is the ladder artefact (E13a), which is a methods contribution rather than a Nature-family one. |
 | **Communications Earth & Environment** | **~40%** | **Primary recommendation, unchanged.** Hewson & Pillosu 2021 confirms the venue. The reliability/resolution mechanism (D10) suits it well. |
 | **Scientific Data** | **~65%** | **Submit first. Up from 60–65%** — E1/E2 make the dataset materially stronger and its provenance now independently validated. |
 | **npj Climate and Atmospheric Science** | ~20% | Secondary. |
@@ -268,7 +284,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [ ] Task 27. Multivariate explanatory model of skill and calibration error. Rationale: G4.
 - [ ] Task 28. Test whether *calibration* error varies with income group, gauge density and region. Rationale: D7.
 - [ ] Task 29. Express any calibration gap in decision terms via the Task 23 curves. Rationale: D7. **Now partly answered**: E5 puts the price of miscalibration at a median 0.017 at the peak but shows it concentrated at low cost-loss ratios — the equity question becomes whether *that* burden is distributed unequally.
-- [ ] Task 30. Physics-versus-ML calibration on the AIFS-ENS matched window. Rationale: D6. **Elevated** — with E4 a tie, this is now the most likely source of a Nature-family-grade result.
+- [x] Task 30. **Physics-versus-ML calibration on the AIFS-ENS matched window.** → E13, E13a, E13b. `src/physics_ml.py`, pipeline stage 16. Both ECMWF ensembles collected from dynamical.org (`src/collect_members.py`, `src/ens_archive.py`, now source-agnostic), accumulated onto one matched 6 h ladder by `ensemble_pop.py --step-hours=native,6`, scored with the same day-block bootstrap as Task 25. The result is *direction without per-lead significance*, and the ladder sensitivity (E13a) is arguably the more publishable half.
 - [ ] Task 31. Provenance audit as a standalone section. Rationale: most original contribution; now carries the systematic dry bias (E4) alongside the two nulls.
 - [x] Task 31a. **Report the occurrence-versus-amount contrast as a named result.** → D11, surfaced in `src/report.py` `sec_served`. Published as two samples side by side rather than pooled — 65 series over 15 capitals (+0.293 / −0.075) and 104 single-provider world cities (+0.339 / −0.026) — so the contrast has to hold in both, and it does.
 - [x] Task 31b. **Surface the triangulation and decision-value results on the site. — NEW.** → E4, E4a, E10, D11. `src/report.py` `sec_served`, reached from the top nav and rendered in the cross-city pane: the divergence-by-lead table, the lead-1 verdict stated as *unresolved* with its interval and minimum detectable difference, the cost-loss table where the served probability is worse than useless at α = 0.05, and the occurrence-versus-amount split. Until now every one of these lived only in parquet. The site says "we cannot tell" where the plan says unresolved; nothing on the page claims the tie.

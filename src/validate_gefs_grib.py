@@ -82,7 +82,7 @@ from config import (
     RANDOM_SEED,
     load_capitals,
 )
-from gefs_archive import grid_of, open_dataset
+from ens_archive import grid_of, open_dataset
 
 # The primary source. Anonymous, free egress (AWS Open Data sponsorship), no
 # registration. Deliberately the S3 website endpoint rather than any mirror:

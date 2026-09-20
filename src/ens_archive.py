@@ -1,11 +1,21 @@
-"""Access layer for the NOAA GEFS analysis-ready Zarr archive (Task 20a).
+"""Access layer for the member-level ensemble Zarr archives (Tasks 20a, 30).
 
 Why a separate module
 ---------------------
-`src/collect_gefs.py` (extraction), `src/ensemble_pop.py` (PoP) and
+`src/collect_members.py` (extraction), `src/ensemble_pop.py` (PoP) and
 `src/validate_gefs_grib.py` (the raw-GRIB audit) all need the same three
 things: where the archive lives, what its grid is, and how a city maps onto a
 chunk tile. Those belong in one place so the three cannot drift apart.
+
+Three archives, one code path
+-----------------------------
+This began as GEFS alone and has since taken ECMWF's IFS ENS and AIFS ENS for
+the physics-versus-ML comparison (Task 30). Every per-archive fact lives in
+`config.ENSEMBLE_SOURCES` and nothing here knows which source it is holding.
+That is not tidiness for its own sake: Task 30's claim is a *difference*
+between two ensembles, so any step one of them goes through alone becomes a
+candidate explanation for that difference, and the cheapest way to retire the
+objection is for no such step to exist.
 
 What this archive is, and why it was chosen
 -------------------------------------------
@@ -16,12 +26,21 @@ licence-blocked (CC BY-NC plus a no-redistribution clause), raw GRIB2 costs
 355 GB and ~1.3 M range requests, and the ECMWF AWS replica returns HTTP 503
 under any sustained load. This store costs one chunk read per city-day.
 
-The decisive property is the chunk geometry: `[1, 31, 64, 17, 16]`, i.e. one
-chunk carries ALL 31 ensemble members and lead times 0-189 h for a 17x16 grid
-tile. So the unit of work is the (tile, init_time) pair, not the city: every
-city inside the same 4.25 deg x 4 deg tile is served by one read. That is the
-entire reason the approach is affordable, and it is why the collector groups
-cities by tile rather than looping over cities.
+The decisive property is the chunk geometry. GEFS chunks `[1, 31, 64, 17, 16]`
+and both ECMWF stores chunk `[1, 51, every lead, 32, 32]`: one chunk carries
+ALL members and a long run of leads for a single grid tile. So the unit of
+work is the (tile, init_time) pair, not the city - every city inside the same
+tile is served by one read. That is the entire reason the approach is
+affordable, and it is why the collector groups cities by tile rather than
+looping over cities.
+
+Step ladders are read, never assumed
+------------------------------------
+GEFS publishes 3-hourly steps, AIFS ENS 6-hourly, IFS ENS 3-hourly out to
+144 h and 6-hourly beyond it. Code that assumed any one of those would be
+wrong by a factor of two on the others while still producing entirely
+plausible numbers, so `Grid.lead_hours` carries the real ladder and every
+accumulation downstream takes its step durations from there.
 
 G16: never hard-code the URL
 ----------------------------
@@ -42,9 +61,11 @@ a disclosed deviation from the raw source and is one of the reasons
 `src/validate_gefs_grib.py` exists.
 
 Usage:
-    python src/gefs_archive.py resolve [--force]   # STAC -> cached asset
-    python src/gefs_archive.py info                # dims, grid, licence
-    python src/gefs_archive.py tiles [city_set]    # tile count for a city set
+    python src/ens_archive.py resolve [src] [--force]  # STAC -> cached asset
+    python src/ens_archive.py info [src]               # dims, grid, licence
+    python src/ens_archive.py tiles [src] [city_set]   # tiles for a city set
+
+`src` is a key of config.ENSEMBLE_SOURCES; it defaults to `gefs`.
 """
 
 from __future__ import annotations
@@ -57,21 +78,29 @@ from datetime import datetime, timezone
 import numpy as np
 
 from config import (
-    GEFS_CHUNK_LAT,
-    GEFS_CHUNK_LEAD,
-    GEFS_CHUNK_LON,
-    GEFS_MEMBERS,
-    GEFS_STAC_CACHE,
+    ENSEMBLE_SOURCES,
     GEFS_STAC_CATALOG,
-    GEFS_STAC_COLLECTION_ID,
     GEFS_STAC_MAX_AGE_DAYS,
-    GEFS_STEP_SECONDS,
-    GEFS_VARIABLE,
     City,
+    EnsembleSource,
     load_capitals,
     load_cities,
 )
 from fetch import fetch_json, is_error, reason
+
+GEFS = ENSEMBLE_SOURCES["gefs"]
+
+
+def source(key: str | EnsembleSource | None) -> EnsembleSource:
+    """Resolve a source key to its record; `None` means GEFS."""
+    if key is None:
+        return GEFS
+    if isinstance(key, EnsembleSource):
+        return key
+    if key not in ENSEMBLE_SOURCES:
+        raise SystemExit(f"unknown ensemble source {key!r}; known: "
+                         f"{sorted(ENSEMBLE_SOURCES)}")
+    return ENSEMBLE_SOURCES[key]
 
 # --------------------------------------------------------------------------
 # STAC resolution (G16)
@@ -92,8 +121,8 @@ def _get_json(url: str) -> dict:
     return payload
 
 
-def resolve_icechunk_asset(*, force: bool = False) -> dict:
-    """Resolve the GEFS icechunk asset from the STAC catalogue.
+def resolve_icechunk_asset(src=None, *, force: bool = False) -> dict:
+    """Resolve one source's icechunk asset from the STAC catalogue.
 
     Returns a dict with `bucket`, `prefix`, `region`, `anon`, `href`,
     `license`, `collection_version` and `resolved_utc`.
@@ -103,35 +132,37 @@ def resolve_icechunk_asset(*, force: bool = False) -> dict:
     re-versioned asset is picked up on its own. A stale hard-coded URL that
     silently keeps serving an old version is the specific risk G16 names.
     """
-    if not force and GEFS_STAC_CACHE.exists():
-        cached = json.loads(GEFS_STAC_CACHE.read_text())
+    src = source(src)
+    cache = src.stac_cache
+    if not force and cache.exists():
+        cached = json.loads(cache.read_text())
         age = (datetime.now(timezone.utc)
                - datetime.fromisoformat(cached["resolved_utc"])).days
         if age <= GEFS_STAC_MAX_AGE_DAYS:
             return cached
-        print(f"  STAC asset cache is {age} days old - re-resolving")
+        print(f"  {src.key}: STAC asset cache is {age} days old - re-resolving")
 
     catalog = _get_json(GEFS_STAC_CATALOG)
     children = [ln for ln in catalog.get("links", [])
                 if ln.get("rel") == "child"
-                and f"/{GEFS_STAC_COLLECTION_ID}/" in ln.get("href", "")]
+                and f"/{src.collection_id}/" in ln.get("href", "")]
     if not children:
         raise RuntimeError(
-            f"{GEFS_STAC_COLLECTION_ID} is no longer a child of "
+            f"{src.collection_id} is no longer a child of "
             f"{GEFS_STAC_CATALOG}. The archive has moved or been renamed; "
             f"resolve the new collection id before collecting anything, and "
             f"do NOT fall back to a hard-coded URL (plan G16).")
 
     coll = _get_json(children[0]["href"])
-    if coll.get("id") != GEFS_STAC_COLLECTION_ID:
+    if coll.get("id") != src.collection_id:
         raise RuntimeError(f"collection id mismatch: asked for "
-                           f"{GEFS_STAC_COLLECTION_ID}, got {coll.get('id')}")
+                           f"{src.collection_id}, got {coll.get('id')}")
 
     assets = coll.get("assets", {})
     asset = assets.get("icechunk")
     if asset is None:
         raise RuntimeError(
-            f"no `icechunk` asset on {GEFS_STAC_COLLECTION_ID}; assets are "
+            f"no `icechunk` asset on {src.collection_id}; assets are "
             f"{sorted(assets)}. The store format changed - re-read the "
             f"collection before assuming a fallback works.")
 
@@ -152,11 +183,12 @@ def resolve_icechunk_asset(*, force: bool = False) -> dict:
         # first) depends on this licence. A change must stop the pipeline, not
         # be discovered at submission.
         raise RuntimeError(
-            f"{GEFS_STAC_COLLECTION_ID} licence is now {lic!r}, not CC-BY-4.0. "
+            f"{src.collection_id} licence is now {lic!r}, not CC-BY-4.0. "
             f"The derived-dataset release depends on CC-BY; stop and "
             f"re-assess (plan G15/G16) before collecting further.")
 
     out = {
+        "source": src.key,
         "collection_id": coll["id"],
         "collection_version": coll.get("version"),
         "href": href,
@@ -169,31 +201,31 @@ def resolve_icechunk_asset(*, force: bool = False) -> dict:
         "resolved_utc": datetime.now(timezone.utc).isoformat(),
         "catalog": GEFS_STAC_CATALOG,
     }
-    GEFS_STAC_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    GEFS_STAC_CACHE.write_text(json.dumps(out, indent=2, sort_keys=True))
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(out, indent=2, sort_keys=True))
     return out
 
 
 # --------------------------------------------------------------------------
 # Opening the store
 # --------------------------------------------------------------------------
-_DATASET = None
+_DATASETS: dict = {}
 
 
-def open_dataset(*, force_resolve: bool = False):
-    """Open the archive read-only and anonymously; memoised per process.
+def open_dataset(src=None, *, force_resolve: bool = False):
+    """Open one archive read-only and anonymously; memoised per source.
 
-    Opening costs ~6 s (Icechunk manifest fetch), so a collector that reopened
+    Opening costs ~5 s (Icechunk manifest fetch), so a collector that reopened
     per tile would spend more time on handshakes than on data.
     """
-    global _DATASET
-    if _DATASET is not None:
-        return _DATASET
+    src = source(src)
+    if src.key in _DATASETS:
+        return _DATASETS[src.key]
 
     import icechunk
     import xarray as xr
 
-    asset = resolve_icechunk_asset(force=force_resolve)
+    asset = resolve_icechunk_asset(src, force=force_resolve)
     if not asset["anon"]:
         raise RuntimeError("the STAC asset no longer advertises anonymous "
                            "access; credentials would be required")
@@ -209,10 +241,10 @@ def open_dataset(*, force_resolve: bool = False):
     ds = xr.open_zarr(session.store, consolidated=False, chunks=None,
                       decode_timedelta=True)
 
-    if GEFS_VARIABLE not in ds:
-        raise RuntimeError(f"{GEFS_VARIABLE} missing from the archive; "
+    if src.variable not in ds:
+        raise RuntimeError(f"{src.variable} missing from {src.collection_id}; "
                            f"variables are {sorted(ds.data_vars)[:10]}...")
-    _DATASET = ds
+    _DATASETS[src.key] = ds
     return ds
 
 
@@ -235,21 +267,35 @@ class Grid:
     chunk_lead: int
     n_members: int
     lead_hours: np.ndarray
+    src: EnsembleSource
+
+    @property
+    def step_hours(self) -> np.ndarray:
+        """Duration of the accumulation interval ending at each lead index.
+
+        Index i covers (lead_hours[i-1], lead_hours[i]]. Index 0 is the
+        initialisation instant and covers nothing, so its duration is zero -
+        which is also why the archives store NaN there.
+        """
+        d = np.diff(self.lead_hours, prepend=self.lead_hours[0])
+        d[0] = 0.0
+        return d
 
     def validate(self) -> None:
-        exp = (GEFS_CHUNK_LAT, GEFS_CHUNK_LON, GEFS_CHUNK_LEAD, GEFS_MEMBERS)
+        s = self.src
+        exp = (s.chunk_lat, s.chunk_lon, s.chunk_lead, s.members)
         got = (self.chunk_lat, self.chunk_lon, self.chunk_lead, self.n_members)
         if got != exp:
             raise RuntimeError(
-                f"archive geometry changed: chunk/member shape {got} != {exp}. "
-                f"The tile-grouping cost model in "
+                f"{s.key}: archive geometry changed, chunk/member shape {got} "
+                f"!= {exp}. The tile-grouping cost model in "
                 f"plans/2026-09-15-external-ensemble-archive-feasibility-v1.md "
                 f"is derived from the old shape - re-measure before trusting "
                 f"any projection.")
         dlat = np.diff(self.latitude)
         dlon = np.diff(self.longitude)
         if not (np.allclose(dlat, -0.25) and np.allclose(dlon, 0.25)):
-            raise RuntimeError("grid spacing is no longer 0.25 degrees")
+            raise RuntimeError(f"{s.key}: grid spacing is no longer 0.25 deg")
 
     def cell(self, lat: float, lon: float) -> tuple[int, int]:
         """Nearest grid-cell indices for a point.
@@ -274,27 +320,35 @@ class Grid:
                       min((tlon + 1) * self.chunk_lon, len(self.longitude))))
 
 
-def grid_of(ds) -> Grid:
-    enc = ds[GEFS_VARIABLE].encoding["preferred_chunks"]
+def grid_of(ds, src=None) -> Grid:
+    src = source(src)
+    enc = ds[src.variable].encoding["preferred_chunks"]
     lead = ds.lead_time.values.astype("timedelta64[s]").astype(np.int64) / 3600.0
     g = Grid(latitude=ds.latitude.values, longitude=ds.longitude.values,
              chunk_lat=enc["latitude"], chunk_lon=enc["longitude"],
              chunk_lead=enc["lead_time"], n_members=ds.sizes["ensemble_member"],
-             lead_hours=lead)
+             lead_hours=lead, src=src)
     g.validate()
-    # Every lead index this study touches must sit on the 3-hourly grid that
-    # GEFS_STEP_SECONDS assumes. GEFS drops to 6-hourly beyond 240 h; if that
-    # boundary ever moved below the days 1-7 range the accumulation maths
-    # would be silently wrong by a factor of two.
-    n3 = int(np.argmax(np.diff(lead) != 3.0)) + 1
-    expected = np.arange(n3) * 3.0
-    if not np.allclose(lead[:n3], expected):
-        raise RuntimeError("lead_time is not a clean 3-hourly ladder")
-    if lead[n3 - 1] * 3600 < 7 * 86400 + 86400:
-        raise RuntimeError(f"3-hourly leads stop at {lead[n3 - 1]} h, which no "
+    # The ladder is allowed to coarsen with lead - IFS ENS goes 3-hourly to
+    # 144 h and 6-hourly after, GEFS 3-hourly to 240 h - but it must start
+    # where the source says it does and it must stay monotonic, because the
+    # accumulation maths downstream reads interval widths straight off it. A
+    # ladder that silently doubled would halve every day total.
+    step = np.diff(lead)
+    if not np.all(step > 0):
+        raise RuntimeError(f"{src.key}: lead_time is not increasing")
+    if abs(step[0] - src.step_hint_h) > 1e-9:
+        raise RuntimeError(
+            f"{src.key}: first step is {step[0]} h, not the registered "
+            f"{src.step_hint_h} h. Either the archive rebuilt its ladder or "
+            f"the registry is stale; do not collect until it is resolved.")
+    if lead[0] != 0.0:
+        raise RuntimeError(f"{src.key}: lead_time does not start at 0 h")
+    # Local day 7 ends at most 192 h after a 00Z init (UTC-12); anything
+    # shorter cannot serve the study's lead range for every time zone.
+    if lead[-1] < 192.0:
+        raise RuntimeError(f"{src.key}: leads stop at {lead[-1]} h, which no "
                            f"longer covers local day 7 for every time zone")
-    if GEFS_STEP_SECONDS != 10800:
-        raise RuntimeError("GEFS_STEP_SECONDS disagrees with the archive")
     return g
 
 
@@ -337,32 +391,51 @@ def rx_bytes() -> int:
 # --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
-def _info() -> None:
-    asset = resolve_icechunk_asset()
+def _ladder_segments(lead_hours: np.ndarray) -> list[tuple[float, float]]:
+    """The lead ladder as (step length, hour it runs to) runs.
+
+    Printed rather than assumed, because "3-hourly" is true of GEFS to 240 h
+    and of IFS ENS only to 144 h, and that difference is exactly the kind of
+    thing that is easy to carry an assumption about.
+    """
+    step = np.diff(lead_hours)
+    out: list[tuple[float, float]] = []
+    for i, s in enumerate(step):
+        if out and abs(out[-1][0] - s) < 1e-9:
+            out[-1] = (s, float(lead_hours[i + 1]))
+        else:
+            out.append((float(s), float(lead_hours[i + 1])))
+    return out
+
+
+def _info(src=None) -> None:
+    src = source(src)
+    asset = resolve_icechunk_asset(src)
     print(json.dumps(asset, indent=2, sort_keys=True))
-    ds = open_dataset()
-    grid = grid_of(ds)
+    ds = open_dataset(src)
+    grid = grid_of(ds, src)
     init = ds.init_time.values
     print(f"\ninit_time      {len(init)}  {init[0]} .. {init[-1]}")
     gaps = np.unique(np.diff(init).astype("timedelta64[h]").astype(int))
-    print(f"init spacing   {gaps} hours (a single value means gapless daily)")
+    print(f"init spacing   {gaps} hours (a single value means gapless)")
     print(f"members        {grid.n_members}")
+    ladder = " then ".join(f"{s:.0f}-hourly to {h:.0f} h"
+                           for s, h in _ladder_segments(grid.lead_hours))
     print(f"lead_time      {ds.sizes['lead_time']} steps, "
-          f"{grid.lead_hours[0]:.0f}..{grid.lead_hours[-1]:.0f} h, "
-          f"3-hourly to {grid.lead_hours[np.argmax(np.diff(grid.lead_hours) != 3)]:.0f} h")
+          f"{grid.lead_hours[0]:.0f}..{grid.lead_hours[-1]:.0f} h, {ladder}")
     print(f"grid           {len(grid.latitude)} x {len(grid.longitude)} "
           f"@ 0.25 deg")
     print(f"chunk          lead={grid.chunk_lead} lat={grid.chunk_lat} "
           f"lon={grid.chunk_lon}")
-    v = ds[GEFS_VARIABLE]
-    print(f"{GEFS_VARIABLE}: units={v.attrs.get('units')} "
+    v = ds[src.variable]
+    print(f"{src.variable}: units={v.attrs.get('units')} "
           f"step_type={v.attrs.get('step_type')}")
     print(f"comment: {v.attrs.get('comment')}")
 
 
-def _tiles(city_set: str = "capitals") -> None:
+def _tiles(src=None, city_set: str = "capitals") -> None:
     cities = load_capitals() if city_set == "capitals" else load_cities()
-    grid = grid_of(open_dataset())
+    grid = grid_of(open_dataset(src), src)
     tiles = group_by_tile(cities, grid)
     for tile, members in sorted(tiles.items()):
         print(f"  tile {tile}: {len(members):3d} cities  "
@@ -374,12 +447,15 @@ def _tiles(city_set: str = "capitals") -> None:
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "info"
+    rest = [a for a in sys.argv[2:] if not a.startswith("-")]
+    key = rest[0] if rest and rest[0] in ENSEMBLE_SOURCES else None
+    rest = rest[1:] if key else rest
     if cmd == "resolve":
-        print(json.dumps(resolve_icechunk_asset(force="--force" in sys.argv),
+        print(json.dumps(resolve_icechunk_asset(key, force="--force" in sys.argv),
                          indent=2, sort_keys=True))
     elif cmd == "info":
-        _info()
+        _info(key)
     elif cmd == "tiles":
-        _tiles(sys.argv[2] if len(sys.argv) > 2 else "capitals")
+        _tiles(key, rest[0] if rest else "capitals")
     else:
         raise SystemExit(f"unknown command: {cmd}")

@@ -353,7 +353,7 @@ PROVIDER_SPACING_S = 5.0
 #
 # G16: the endpoint is NEVER hard-coded. `data.dynamical.org` URLs retire on
 # 2026-09-30 and the store is versioned (v0.2.0 today), so the icechunk asset
-# is resolved from the STAC catalogue at run time by src/gefs_archive.py and
+# is resolved from the STAC catalogue at run time by src/ens_archive.py and
 # cached with a timestamp. Only the catalogue entry point lives here.
 GEFS_STAC_CATALOG = "https://stac.dynamical.org/catalog.json"
 GEFS_STAC_COLLECTION_ID = "noaa-gefs-forecast-35-day"
@@ -395,6 +395,104 @@ GEFS_BOUNDARY_PRIMARY = "prorata"
 # used (0.226 MB and ~0.09 s per chunk); higher concurrency against an
 # anonymous S3 prefix buys little and risks looking like abuse.
 GEFS_THREADS = 8
+
+# --------------------------------------------------------------------------
+# The ensemble-source registry (Phase 5, Task 30)
+# --------------------------------------------------------------------------
+# GEFS above was the first member-level archive, and everything about it was
+# written as module constants. Task 30 needs two more - ECMWF's physics
+# ensemble and ECMWF's machine-learning ensemble - and the comparison is only
+# worth anything if all three go through identical code. So the per-archive
+# facts move into a record, and the GEFS constants become one entry in it
+# rather than a special case; `src/ens_archive.py` and
+# `src/collect_members.py` take a source and know nothing else.
+#
+# Why these two, and not AIFS against GEFS: the physics-versus-ML question is
+# about the method, and a comparison across centres would confound method with
+# centre, resolution, data assimilation and post-processing all at once. AIFS
+# ENS and IFS ENS are the same centre, the same 0.25 deg grid, the same 51
+# members and the same archive publisher, which leaves the forecast model as
+# very nearly the only difference.
+@dataclass(frozen=True)
+class EnsembleSource:
+    """One member-level ensemble archive on dynamical.org."""
+
+    key: str
+    collection_id: str
+    label: str
+    method: str                 # "physics" | "ml" - the Task 30 contrast
+    members: int
+    chunk_lead: int
+    chunk_lat: int
+    chunk_lon: int
+    init_hours: tuple[int, ...]  # which UTC initialisations to collect
+    window_start: str
+    window_end: str
+    # Native step ladders differ (GEFS 3-hourly, AIFS 6-hourly, IFS 3-hourly
+    # then 6-hourly), so no single step length is stored: the ladder is read
+    # from the archive and carried through the accumulation maths. `step_hint`
+    # is only what the geometry check expects to see at the short end.
+    step_hint_h: float
+    # Measured megabytes per (tile, init) chunk read, used only to project a
+    # run's transfer BEFORE it starts. Every run re-measures it from
+    # /proc/net/dev and prints the comparison, so a stale number here shows up
+    # as a discrepancy in the log rather than as a wrong bill.
+    mb_per_chunk: float
+    variable: str = "precipitation_surface"
+
+    @property
+    def raw(self):
+        d = RAW / self.key
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    @property
+    def stac_cache(self):
+        return RAW / f"{self.key}_stac_asset.json"
+
+    @property
+    def pop_table(self):
+        return PROCESSED / f"{self.key}_pop.parquet"
+
+
+ENSEMBLE_SOURCES = {
+    "gefs": EnsembleSource(
+        key="gefs", collection_id=GEFS_STAC_COLLECTION_ID,
+        label="NOAA GEFS", method="physics", members=GEFS_MEMBERS,
+        chunk_lead=GEFS_CHUNK_LEAD, chunk_lat=GEFS_CHUNK_LAT,
+        chunk_lon=GEFS_CHUNK_LON, init_hours=(0,),
+        window_start=GEFS_WINDOW_START, window_end=GEFS_WINDOW_END,
+        step_hint_h=3.0, mb_per_chunk=0.226),
+    # Matched window for both ECMWF systems: AIFS ENS begins 2025-07-02, which
+    # is what bounds the sub-study (D6). IFS ENS goes back to 2024-04-01, but
+    # collecting more of it would buy days the ML side cannot match and invite
+    # exactly the pooling the plan forbids.
+    "ifs_ens": EnsembleSource(
+        key="ifs_ens",
+        collection_id="ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+        label="ECMWF IFS ENS", method="physics", members=51,
+        chunk_lead=85, chunk_lat=32, chunk_lon=32, init_hours=(0,),
+        window_start="2025-07-02", window_end=GEFS_WINDOW_END,
+        step_hint_h=3.0, mb_per_chunk=2.5),
+    "aifs_ens": EnsembleSource(
+        key="aifs_ens", collection_id="ecmwf-aifs-ens-forecast",
+        label="ECMWF AIFS ENS", method="ml", members=51,
+        chunk_lead=61, chunk_lat=32, chunk_lon=32, init_hours=(0,),
+        window_start="2025-07-02", window_end=GEFS_WINDOW_END,
+        step_hint_h=6.0, mb_per_chunk=2.5),
+}
+
+# The Task 30 pair. Named here rather than in the comparison module so that
+# "which two series are being contrasted, and on what grounds" is a
+# configuration fact the reader can check in one place.
+PHYSICS_ML_PAIR = ("ifs_ens", "aifs_ens")
+
+# AIFS ENS publishes 6-hourly steps and IFS ENS 3-hourly ones. Accumulating
+# each on its own ladder would give the physics system a finer day boundary
+# than the ML system and hand it an advantage that has nothing to do with
+# forecast quality, so the comparison coarsens both to this ladder. The
+# native-resolution run is kept as the sensitivity.
+PHYSICS_ML_STEP_H = 6.0
 
 # --------------------------------------------------------------------------
 # API endpoints

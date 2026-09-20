@@ -17,13 +17,14 @@ SKIP_UNCHANGED=${SKIP_UNCHANGED:-1}
 # -> recompute; otherwise the outputs are already derived from exactly these
 # inputs and recomputing them is pure waste).
 #
-# data/raw/ensemble and data/raw/gefs are excluded from that input set. The
-# forward ensemble collector (src/collect_ensemble.py) writes a new partition
-# there EVERY day by design, and the GEFS archive collector
-# (src/collect_gefs.py) likewise extends data/raw/gefs as new init_times are
-# published. No step below consumes either, so counting them as inputs would
-# mark the entire pipeline stale daily and turn every warm run into a full
-# rebuild.
+# data/raw/ensemble and the member archives under data/raw/{gefs,aifs_ens,
+# ifs_ens} are excluded from that input set. The forward ensemble collector
+# (src/collect_ensemble.py) writes a new partition there EVERY day by design,
+# and the archive collector (src/collect_members.py) likewise extends each
+# member directory as new init_times are published. The stages below consume
+# the DERIVED PoP tables in data/processed rather than these directories, so
+# counting them as inputs would mark the entire pipeline stale daily and turn
+# every warm run into a full rebuild.
 run_fresh() {
   local -a cmd outs=()
   local seen=0
@@ -37,7 +38,8 @@ run_fresh() {
     if [ "$stale" = 0 ]; then
       oldest=$(stat -c %Y "${outs[@]}" | sort -n | head -1)
       newest=$(find src run_all.sh data/raw \
-        \( -path data/raw/ensemble -o -path data/raw/gefs \) -prune -o \
+        \( -path data/raw/ensemble -o -path data/raw/gefs \
+           -o -path data/raw/aifs_ens -o -path data/raw/ifs_ens \) -prune -o \
         -type f -newermt "@$oldest" -print -quit 2>/dev/null | head -1)
       if [ -z "$newest" ]; then
         echo "   (up to date, skipped: ${cmd[*]})"
@@ -50,45 +52,45 @@ run_fresh() {
 
 S() { (cd src && "../$PY" "$@"); }
 
-echo "== 1/16 collect archives (Tracks A and B, ERA5) =="
+echo "== 1/17 collect archives (Tracks A and B, ERA5) =="
 S collect_archive.py all
 S collect_archive.py previous_runs icon_eu
 
-echo "== 2/16 station observations (daily, GHCN) =="
+echo "== 2/17 station observations (daily, GHCN) =="
 S observations.py
 
-echo "== 3/16 station observations (hourly present weather, NOAA ISD) =="
+echo "== 3/17 station observations (hourly present weather, NOAA ISD) =="
 S observations_hourly.py
 
-echo "== 4/16 build verification tables =="
+echo "== 4/17 build verification tables =="
 S build_dataset.py
 
-echo "== 5/16 validate the join (fails loudly on misalignment) =="
+echo "== 5/17 validate the join (fails loudly on misalignment) =="
 S validate_join.py
 
-echo "== 6/16 analysis and robustness =="
+echo "== 6/17 analysis and robustness =="
 S analyze.py
 S robustness.py
 
-echo "== 7/16 hourly track, derived-probability events, external benchmarks =="
+echo "== 7/17 hourly track, derived-probability events, external benchmarks =="
 S hourly.py
 S events.py
 S benchmarks.py
 
-echo "== 8/16 European capitals: coverage probe, then the multi-city run =="
+echo "== 8/17 European capitals: coverage probe, then the multi-city run =="
 S probe_capitals.py
 run_fresh S capitals.py -- \
   data/processed/capitals_metrics.parquet \
   data/processed/capitals_pop.parquet \
   figures/capitals_reliability.png
 
-echo "== 9/16 forecast provenance audit, then the like-for-like ranking =="
+echo "== 9/17 forecast provenance audit, then the like-for-like ranking =="
 # Which model actually backs the unpinned probability series, per city and per
 # month, and does the league table survive holding the forecaster fixed?
 S pop_provenance.py
 run_fresh S capitals.py pinned -- data/processed/capitals_pinned.parquet
 
-echo "== 10/16 beyond the capitals: probe every city with a usable gauge =="
+echo "== 10/17 beyond the capitals: probe every city with a usable gauge =="
 # GHCN's per-year bulk files replace ~16 GB of per-station downloads, so the
 # expanded set costs one 422 MB fetch rather than one request per station.
 S probe_cities.py
@@ -100,7 +102,7 @@ run_fresh S capitals.py world -- \
   data/processed/cities_pop.parquet \
   figures/cities_reliability.png
 
-echo "== 11/16 multi-provider league: probe coverage, then collect =="
+echo "== 11/17 multi-provider league: probe coverage, then collect =="
 # Which models actually serve a usable PoP archive at which capitals, then the
 # multi-model archive collection behind the cross-provider league table.
 # Both legs are cache-resumable and rate-limit aware (src/fetch.py backs off on
@@ -117,7 +119,7 @@ else
   echo "         'Collection pending' in the report; re-run to resume."
 fi
 
-echo "== 12/16 per-provider verification, league table, robustness =="
+echo "== 12/17 per-provider verification, league table, robustness =="
 # capitals.py providers and capitals.py pinned both write
 # capitals_pinned.parquet: providers adds the wider model set, and whichever
 # ran last owns the file. The report sections filter by model, so the
@@ -139,7 +141,7 @@ run_fresh S league.py -- \
 run_fresh S league_robustness.py -- \
   data/processed/league_robustness.parquet
 
-echo "== 13/16 decision value, CRPS/ROC/sharpness, baselines (Tasks 18, 22-24) =="
+echo "== 13/17 decision value, CRPS/ROC/sharpness, baselines (Tasks 18, 22-24) =="
 # Runs entirely off the parquet tables written above - no network, no cache.
 # The correctness checks (economic value of a perfect forecast is 1, of a
 # climatology 0; AUC of a random forecast is 0.5; CRPS of a point forecast is
@@ -153,7 +155,7 @@ run_fresh S decision_metrics.py -- \
   figures/discrimination_sharpness.png \
   figures/bss_reference.png
 
-echo "== 14/16 served vs member-derived probability (Task 21, triangulation) =="
+echo "== 14/17 served vs member-derived probability (Task 21, triangulation) =="
 # The headline contribution: how far the probability a consumer is SERVED
 # (vendor PoP) sits from the probability the ENSEMBLE supports (our GEFS
 # member-derived PoP), and which of the two is better calibrated against the
@@ -168,7 +170,7 @@ run_fresh S triangulation.py -- \
   data/processed/triangulation_reliability.parquet \
   data/processed/triangulation_by_city.parquet
 
-echo "== 15/16 paired significance and FDR control (Tasks 25-26) =="
+echo "== 15/17 paired significance and FDR control (Tasks 25-26) =="
 # Whether the stage-14 verdicts survive the two dependencies in the sample:
 # rain persists for days, and 15 capitals share the same weather systems. The
 # resampling unit is therefore the calendar day carrying all its cities, drawn
@@ -182,7 +184,22 @@ run_fresh S significance.py -- \
   data/processed/significance_cells.parquet \
   data/processed/significance_block_sensitivity.parquet
 
-echo "== 16/16 build the HTML report =="
+echo "== 16/17 physics against machine learning (Task 30) =="
+# ECMWF runs IFS ENS and AIFS ENS side by side: 51 members each, one grid, one
+# initialisation, one republisher. That makes the forecast METHOD very nearly
+# the only difference, which no cross-centre comparison can claim. Both are
+# accumulated onto a single 6 h ladder first - IFS publishes 3-hourly steps and
+# AIFS 6-hourly ones, and leaving that unmatched would hand the physics system
+# a finer local-day boundary and nothing to do with forecast quality. The
+# native-ladder run is kept beside it so the size of that artefact is a
+# published number. Runs off the PoP tables on disk; no network.
+run_fresh S physics_ml.py -- \
+  data/processed/physics_ml_scores.parquet \
+  data/processed/physics_ml_significance.parquet \
+  data/processed/physics_ml_by_city.parquet \
+  data/processed/physics_ml_ladder_sensitivity.parquet
+
+echo "== 17/17 build the HTML report =="
 run_fresh S report.py -- dist/index.html
 
 echo
