@@ -129,6 +129,14 @@ All seven leads favour the ML system and AIFS wins on BSS and AUC at every lead,
 
 **E13b. The window is bounded by the gauges, not the archive.** Both member archives are collected to 2026-08-31, but the station record ends 2026-05-31, so the comparison runs 11 months rather than 14. The minimum detectable difference at lead 1 is 0.0079 — the observed effect sits just under it, which is why the direction is consistent and the individual verdicts are not. Per city, 11 of 15 capitals favour AIFS (median −0.0053, range −0.0417 at Dublin to +0.0535 at Monaco), so the effect is not carried by one station.
 
+**E14. The headline window was not a fair year, and fixing it is nearly free. — NEW.** `src/window.py`, Task 17. The record runs 2024-04-26 to 2026-05-31, so pooling its days weights the seasons by how many of each happened to land in it. Imbalance — the share of days that would have to move months to make the sample a calendar year — is **0.050 on the pinned panel and 0.042 on the world panel**; trimming to whole years (**2024-06-01 .. 2026-05-31**) takes it to 0.037 and **0.009**, and costs only **5% of the days**. Of 6 panel × model series, **1 moves its BSS significantly** when the window is balanced (`served_world`/`best_match`, +0.0018, p = 0.013); `gfs_seamless` moves +0.0066 at p = 0.09. The balanced numbers are the ones to quote and the full record stays on disk as the sensitivity run.
+
+**E14a. Trimming the calendar is necessary and not sufficient.** What survives trimming is gauge outage, not calendar shape, and it is not uniform across seasons. Re-weighting each series' seasonal Brier by the calendar year rather than by its own surviving day counts moves the median BSS by only +0.0003 — but **16 of 154 series move by more than 0.01 BSS** inside the already-balanced window. A checked artefact: on a synthetic series where the true annual Brier is 0.200, pooling the sample's days returns 0.157, a **+0.043** error recovered exactly by the weighting.
+
+**E14b. Skill is constant for every pinned provider — and the one shift found is in the served series, not in a model. — NEW.** Task 19. Binary segmentation on daily pooled skill anomalies, with the p-value taken from the tail of the *maximum* statistic over all candidate dates under a null carrying the series' own annual cycle and memory, minimum segment 90 days, BH across the family. **Zero change points** in `ecmwf_ifs025`, `gfs_seamless`, `icon_d2`, `icon_eu`; no HAC trend significant among them (largest −0.0084/yr, p = 0.24). One shift survives: `served_world`/`best_match` at **2024-08-27, +0.0247 adjusted (p = 0.012, q = 0.012)**, against a naive raw jump of +0.0169 — the difference between the two is season, not system. The panel's city set is identical either side (105 cities both ways), so it is not a composition artefact. **It falls inside the balanced window, owning 12% of it**: skill is 0.0435 before and 0.0773 after, so the quoted balanced mean for that series is a blend of two regimes. A shift in the served series with none in any pinned provider points at the collection pipeline or the truth source rather than at a model upgrade.
+
+**E14c. The change-point null is deliberately over-conservative, and the cost is measured.** On 60 stationary seasonal series the test fires **0%** of the time at a nominal 5% while still detecting a planted 0.06 step on **100%** of cases, and locating it to within 0 days. The obvious alternatives fail: drop the month effects and it fires **95%**; assume independent days and it fires 8%; resample only the residual around a fitted annual cycle — better-powered and the more natural choice — and it fires **15%**. An over-conservative change-point test reports fewer things; an over-confident one reports wrong ones.
+
 ---
 
 ## Design Decisions
@@ -191,7 +199,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 ### Blocking Tier B credibility
 
-**G6. Window homogeneity.** Change-point timeline still outstanding.
+**G6. Window homogeneity — CLOSED.** E14, E14a, E14b. Balanced window chosen and costed, seasons re-weighted climatologically, and the change-point search run with the search itself paid for in the p-value.
 
 **G7. Metric breadth — CLOSED.** CRPS, ROC/AUC, sharpness and economic value all implemented and reported (E5, E6).
 
@@ -269,9 +277,9 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 ### Phase 4 — Methodological depth
 
-- [ ] Task 17. Balanced headline window with the full record as a sensitivity run; per-season metrics with climatological weighting. Rationale: D1, D2, G6.
+- [x] Task 17. Balanced headline window with the full record as a sensitivity run; per-season metrics with climatological weighting. Rationale: D1, D2, G6. → `src/window.py`, E14/E14a.
 - [x] Task 18. **Re-reference BSS to the smoothed day-of-year climatology.** → E7, with smoother sensitivity.
-- [ ] Task 19. Model-version change-point timeline; test skill stability. Rationale: G6.
+- [x] Task 19. Model-version change-point timeline; test skill stability. Rationale: G6. → `src/window.py`, E14b.
 - [x] Task 22. **CRPS, ROC/AUC, sharpness.** → E6.
 - [x] Task 23. **Relative economic value curves.** → E5, E8.
 - [x] Task 24. **Persistence and smoothed-climatology baselines.** → E6.
