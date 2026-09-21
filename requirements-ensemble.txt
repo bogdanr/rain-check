@@ -1,17 +1,18 @@
-# Dependencies for the external ensemble leg (Tasks 20a/20c/20d).
+# Dependencies for the collection legs (Tasks 20a/20c/20d, and now 12).
 #
 # Deliberately a SEPARATE file from requirements-site.txt, for the same reason
 # that file exists: the published page is rebuilt in CI from committed parquet
 # and PNG artefacts and must never need any of this. Nothing here is imported
-# by report.py or by anything run_all.sh executes; installing it is only
-# required to re-collect from NOAA, not to reproduce the paper's numbers from
-# the tables in data/processed/.
+# by report.py, and every run_all.sh stage that does import it writes a parquet
+# table that is committed -- so installing this is required to re-collect from
+# the upstream archives, not to reproduce the paper's numbers.
 #
 # Consumed by:
-#   src/gefs_archive.py        STAC resolution + archive access layer
-#   src/collect_gefs.py        tile-grouped extraction -> data/raw/gefs/
+#   src/ens_archive.py         STAC resolution + archive access layer
+#   src/collect_members.py     tile-grouped extraction -> data/raw/<source>/
 #   src/ensemble_pop.py        member-derived PoP (needs only pandas/numpy)
 #   src/validate_gefs_grib.py  raw-GRIB2 audit against s3://noaa-gefs-pds
+#   src/satellite_truth.py     CHIRPS/CHIRP rasters (rasterio only)
 #
 # Versions are the ones the 2026-09-15 feasibility investigation verified end
 # to end against s3://dynamical-noaa-gefs. Pinned exactly, because the store is
@@ -34,3 +35,13 @@ numcodecs==0.16.5        # pulled in by zarr; pinned so the codec set is fixed
 eccodes==2.48.0          # message decode; used directly, not via xarray
 cfgrib==0.9.15.1         # not imported today, but the standard companion and
                          # the fallback if the audit ever needs full-field reads
+
+# -- satellite truth-source test (src/satellite_truth.py, Task 12) ----------
+# Only needed to RE-RUN the CHIRPS/CHIRP comparison, which downloads 400
+# global daily rasters from data.chc.ucsb.edu. E32's verdict is committed as
+# data/processed/satellite_truth_{daily,scores}.parquet, so reproducing the
+# numbers needs nothing here. rasterio ships manylinux wheels with GDAL
+# bundled, so this is a plain pip install with no system packages.
+rasterio==1.5.1          # windowed GeoTIFF reads, and the file's own affine
+                         # transform that the cell-indexing check is validated
+                         # against rather than trusted to agree with
