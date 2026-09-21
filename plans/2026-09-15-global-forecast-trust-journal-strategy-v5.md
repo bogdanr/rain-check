@@ -155,6 +155,21 @@ The Brier comparison is *smaller than the amount gauge siting alone moves it* an
 
 **E23. Task 14 returns a negative result, and the negative result is the honest one.** The two halves of pair disagreement — wet here / dry there against its mirror — stay within 0.0087 of each other at every separation, so there is no directional catch difference to find *between neighbouring gauges*. What a pair method cannot see is the part every bucket gets wrong together: wind loss, wetting and evaporation push all gauges the same way and are invisible to it by construction. That residue is **not corrected and not bounded here**, and the paper must say so rather than import a literature factor it has not measured. Separately, changing gauge moves a city's measured rain-day frequency by a median 0.023 and up to 0.184 — climatology is the reference every skill score is quoted against, which is why E22 re-scores rather than merely relabelling.
 
+**E24. The rain-day convention turns over in the late afternoon, not at noon — and that is a measurement of the diurnal cycle. — NEW.** `src/obs_time.py`, Task 6 (G11). A gauge read at hour H reports the 24 h ending at H, so by the clock the majority of it falls on the previous day only when H < 12. Solving 48,248 neighbour-pair lag measurements over 86,235 pairs within 25 km, anchored on the 75 gauges reporting a midnight reading, the measured shift against observation hour is:
+
+| hour | stations | shift = 1 | decisive |
+|---|---|---|---|
+| 04–09 | 1,611 | 0.99 | yes |
+| 09–15 | 25 | 1.00 | yes |
+| **15–21** | **45** | **0.59 / 0.50** | **no** |
+| 21–24 | 6 | 0.00 | yes |
+
+The changeover sits between **15:00 and 21:00**. Rain does not arrive evenly over the day: the afternoon and evening convective peak lands in the *previous* day's window and outweighs the extra morning hours. Assuming noon would mis-date every gauge read between 12:00 and 15:00. Between 15:00 and 21:00 two conventions genuinely coexist and the metadata cannot separate them — reported as an undecided band rather than a rule awaiting more data. Mean graph residual 0.015 days, so the redundant pairwise measurements are consistent with each other and not merely with themselves.
+
+**E25. GHCN metadata can date 42% of gauges with no network call, and agrees with the independent measurement 99.1% of the time where it matters. — NEW, and it is the gate Task 10 was waiting on.** 3,670 of 6,192 pool gauges carry an observation hour; 318 change their modal hour year to year and 985 disagree with their own mode on >10% of records, leaving 2,683 stable. Where metadata and neighbour measurement both have an answer they agree on **1,704 of 1,718 stations (99.2%)** — and **99.1% over the 1,636 where the rule predicts a non-zero shift**, which is the number that counts, since a rule is not useful for being right about the easy cases. The 14 disagreements are named in `obs_time_audit.parquet` and **excluded rather than resolved by preferring one route**. `capitals.scan_offset` therefore has a scalable replacement; the residual gate on G1 is gauge density within 25 km, which is thinnest exactly where the study most wants to go.
+
+**E26. A one-day dating error costs 0.09 Brier — two orders of magnitude above anything this study reports.** Re-scoring the E4 panel against truth shifted by ±1 day: vendor Brier 0.1669 → 0.2381 (+1 day) or 0.2667 (−1 day); ensemble 0.1672 → 0.2392 / 0.2607. Against this, E4's unresolvable difference is 0.0003 and E13's resolved physics-versus-ML difference is 0.0068. **A wrong observation hour does not add noise to a league table, it reorders it** — which is why risk 7 made Task 6 a precondition for Task 10 and why the audit fails loudly rather than defaulting.
+
 ---
 
 ## Design Decisions
@@ -229,7 +244,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 ### Supporting
 
-**G11. Rain-day convention at scale.** Open; must precede G1 scale-up.
+**G11. Rain-day convention at scale — closed** (`src/obs_time.py`, E24–E26). The convention is now settled from GHCN metadata plus a neighbour-graph measurement, with no reanalysis and no network: 42% of gauges from metadata alone, agreeing with the independent measurement 99.1% of the time where it predicts a non-zero shift. The changeover hour is measured, not assumed, and is **not** where arithmetic puts it. The residual gate on G1 is gauge density, not convention.
 
 **G12. Observation latency.** `OBS_END = "2026-05-31"`. Note E4's sample ends 2026-05-31 despite GEFS reaching 2026-08-31 — **the truth source, not the ensemble, is now the binding constraint** on closing the balanced window.
 
@@ -268,7 +283,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [ ] Task 3b. Run the C1–C6 queries against Google Scholar Labs, Web of Science, ECMWF eLibrary and AMS journals; verify every citation by opening the paper. Rationale: G5. **Owner: user** (requires Scholar account).
 - [ ] Task 3c. Grey literature — ForecastWatch, EUMETNET, WMO/WWRP; forward-cite WGNE and the CAWCR/WWRP portal. Rationale: G5.
 - [ ] Task 5. Write the literature positioning around the corrected framing. Rationale: G5, D7, D8.
-- [ ] Task 6. Automate per-station observation-time detection from GHCN metadata; fail loudly on disagreement. Rationale: G11; must precede Task 10.
+- [x] Task 6. Per-station observation-time detection — **done** (`src/obs_time.py`). Metadata rule fitted to a measured curve, audited against an independent neighbour-graph measurement, 14 disagreeing stations named and excluded. E24–E26.
 - [ ] Task 7. Add validated ML ids to `PROVIDER_MODELS` for the deterministic track. Rationale: G13, D6.
 - [ ] Task 9. Record licence provenance per model; segregate CC-BY-SA outputs. Rationale: G15.
 
