@@ -52,45 +52,45 @@ run_fresh() {
 
 S() { (cd src && "../$PY" "$@"); }
 
-echo "== 1/18 collect archives (Tracks A and B, ERA5) =="
+echo "== 1/19 collect archives (Tracks A and B, ERA5) =="
 S collect_archive.py all
 S collect_archive.py previous_runs icon_eu
 
-echo "== 2/18 station observations (daily, GHCN) =="
+echo "== 2/19 station observations (daily, GHCN) =="
 S observations.py
 
-echo "== 3/18 station observations (hourly present weather, NOAA ISD) =="
+echo "== 3/19 station observations (hourly present weather, NOAA ISD) =="
 S observations_hourly.py
 
-echo "== 4/18 build verification tables =="
+echo "== 4/19 build verification tables =="
 S build_dataset.py
 
-echo "== 5/18 validate the join (fails loudly on misalignment) =="
+echo "== 5/19 validate the join (fails loudly on misalignment) =="
 S validate_join.py
 
-echo "== 6/18 analysis and robustness =="
+echo "== 6/19 analysis and robustness =="
 S analyze.py
 S robustness.py
 
-echo "== 7/18 hourly track, derived-probability events, external benchmarks =="
+echo "== 7/19 hourly track, derived-probability events, external benchmarks =="
 S hourly.py
 S events.py
 S benchmarks.py
 
-echo "== 8/18 European capitals: coverage probe, then the multi-city run =="
+echo "== 8/19 European capitals: coverage probe, then the multi-city run =="
 S probe_capitals.py
 run_fresh S capitals.py -- \
   data/processed/capitals_metrics.parquet \
   data/processed/capitals_pop.parquet \
   figures/capitals_reliability.png
 
-echo "== 9/18 forecast provenance audit, then the like-for-like ranking =="
+echo "== 9/19 forecast provenance audit, then the like-for-like ranking =="
 # Which model actually backs the unpinned probability series, per city and per
 # month, and does the league table survive holding the forecaster fixed?
 S pop_provenance.py
 run_fresh S capitals.py pinned -- data/processed/capitals_pinned.parquet
 
-echo "== 10/18 beyond the capitals: probe every city with a usable gauge =="
+echo "== 10/19 beyond the capitals: probe every city with a usable gauge =="
 # GHCN's per-year bulk files replace ~16 GB of per-station downloads, so the
 # expanded set costs one 422 MB fetch rather than one request per station.
 S probe_cities.py
@@ -102,7 +102,7 @@ run_fresh S capitals.py world -- \
   data/processed/cities_pop.parquet \
   figures/cities_reliability.png
 
-echo "== 11/18 multi-provider league: probe coverage, then collect =="
+echo "== 11/19 multi-provider league: probe coverage, then collect =="
 # Which models actually serve a usable PoP archive at which capitals, then the
 # multi-model archive collection behind the cross-provider league table.
 # Both legs are cache-resumable and rate-limit aware (src/fetch.py backs off on
@@ -119,7 +119,7 @@ else
   echo "         'Collection pending' in the report; re-run to resume."
 fi
 
-echo "== 12/18 per-provider verification, league table, robustness =="
+echo "== 12/19 per-provider verification, league table, robustness =="
 # capitals.py providers and capitals.py pinned both write
 # capitals_pinned.parquet: providers adds the wider model set, and whichever
 # ran last owns the file. The report sections filter by model, so the
@@ -141,7 +141,7 @@ run_fresh S league.py -- \
 run_fresh S league_robustness.py -- \
   data/processed/league_robustness.parquet
 
-echo "== 13/18 decision value, CRPS/ROC/sharpness, baselines (Tasks 18, 22-24) =="
+echo "== 13/19 decision value, CRPS/ROC/sharpness, baselines (Tasks 18, 22-24) =="
 # Runs entirely off the parquet tables written above - no network, no cache.
 # The correctness checks (economic value of a perfect forecast is 1, of a
 # climatology 0; AUC of a random forecast is 0.5; CRPS of a point forecast is
@@ -155,7 +155,7 @@ run_fresh S decision_metrics.py -- \
   figures/discrimination_sharpness.png \
   figures/bss_reference.png
 
-echo "== 14/18 served vs member-derived probability (Task 21, triangulation) =="
+echo "== 14/19 served vs member-derived probability (Task 21, triangulation) =="
 # The headline contribution: how far the probability a consumer is SERVED
 # (vendor PoP) sits from the probability the ENSEMBLE supports (our GEFS
 # member-derived PoP), and which of the two is better calibrated against the
@@ -170,7 +170,7 @@ run_fresh S triangulation.py -- \
   data/processed/triangulation_reliability.parquet \
   data/processed/triangulation_by_city.parquet
 
-echo "== 15/18 paired significance and FDR control (Tasks 25-26) =="
+echo "== 15/19 paired significance and FDR control (Tasks 25-26) =="
 # Whether the stage-14 verdicts survive the two dependencies in the sample:
 # rain persists for days, and 15 capitals share the same weather systems. The
 # resampling unit is therefore the calendar day carrying all its cities, drawn
@@ -184,7 +184,7 @@ run_fresh S significance.py -- \
   data/processed/significance_cells.parquet \
   data/processed/significance_block_sensitivity.parquet
 
-echo "== 16/18 physics against machine learning (Task 30) =="
+echo "== 16/19 physics against machine learning (Task 30) =="
 # ECMWF runs IFS ENS and AIFS ENS side by side: 51 members each, one grid, one
 # initialisation, one republisher. That makes the forecast METHOD very nearly
 # the only difference, which no cross-centre comparison can claim. Both are
@@ -199,7 +199,7 @@ run_fresh S physics_ml.py -- \
   data/processed/physics_ml_by_city.parquet \
   data/processed/physics_ml_ladder_sensitivity.parquet
 
-echo "== 17/18 window homogeneity and change points (Tasks 17, 19; G6) =="
+echo "== 17/19 window homogeneity and change points (Tasks 17, 19; G6) =="
 # Whether the headline window is a fair year, and whether the skill inside it
 # is even constant. The record starts and ends mid-month, so pooling its days
 # weights seasons by how many of each happened to land in it - an artefact
@@ -215,7 +215,24 @@ run_fresh S window.py -- \
   data/processed/window_season.parquet \
   data/processed/window_changepoints.parquet
 
-echo "== 18/18 build the HTML report =="
+echo "== 18/19 how much of the verdict is where the bucket stands? (G3; Tasks 13-14) =="
+# Every score in this study is measured against one rain gauge, and the paper
+# has been caveating that rather than measuring it. This stage measures it from
+# the gauges themselves: 193k GHCN pairs near the study cities, disagreement
+# against separation, extrapolated to zero to separate representativeness error
+# from the irreducible noise in the truth. Then it re-sites the gauge - swapping
+# in a real alternative bucket near each city, every forecast and every day held
+# fixed - and asks which published claims still hold. The checks run first and
+# abort the step; one of them shows that the textbook independent-flip
+# correction would have moved the headline by 18x its own size in a direction
+# the real gauges do not support. No network.
+run_fresh S truth_uncertainty.py -- \
+  data/processed/truth_pairs.parquet \
+  data/processed/truth_separation_curve.parquet \
+  data/processed/truth_rescore.parquet \
+  data/processed/truth_propagation.parquet
+
+echo "== 19/19 build the HTML report =="
 run_fresh S report.py -- dist/index.html
 
 echo

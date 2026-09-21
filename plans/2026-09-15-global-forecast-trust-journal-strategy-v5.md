@@ -41,7 +41,7 @@ Settled; do not re-litigate.
 
 **E3. G17 is closed — quantisation does not drive the divergence.** `data/processed/vendor_pop_quantisation.parquet`, 16,416 city-days: re-deriving vendor PoP at 3-hourly resolution shifts it by a **median of 0.00** and a mean of 0.0089 under snapping. A tail exists — 99th percentile 0.36 under pro-rata — so the control must be reported distributionally, not as a single mean. But resolution mismatch is ruled out as the explanation for the vendor-versus-ensemble gap.
 
-**E4. The triangulation result — the headline, and it is unresolved rather than a tie.** `src/triangulation.py`, 8,572 city-days, 15 capitals, set-identical sample enforced per (boundary mode, lead) cell. **Qualified by E10 below: the lead-1 calibration comparison is not a demonstrated tie, it is a comparison this sample cannot make.**
+**E4. The triangulation result — the headline, and it is unresolved rather than a tie.** `src/triangulation.py`, 8,572 city-days, 15 capitals, set-identical sample enforced per (boundary mode, lead) cell. **Qualified by E10 below: the lead-1 calibration comparison is not a demonstrated tie, it is a comparison this sample cannot make. E22 closes the question for good: it is also a comparison this *truth* cannot make — the gap is 0.2× the amount gauge siting alone moves it, and flips sign in 45% of alternative worlds.**
 
 *Divergence*, vendor `gfs_seamless` minus GEFS-derived, pro-rata:
 
@@ -137,6 +137,24 @@ All seven leads favour the ML system and AIFS wins on BSS and AUC at every lead,
 
 **E14c. The change-point null is deliberately over-conservative, and the cost is measured.** On 60 stationary seasonal series the test fires **0%** of the time at a nominal 5% while still detecting a planted 0.06 step on **100%** of cases, and locating it to within 0 days. The obvious alternatives fail: drop the month effects and it fires **95%**; assume independent days and it fires 8%; resample only the residual around a fitted annual cycle — better-powered and the more natural choice — and it fires **15%**. An over-conservative change-point test reports fewer things; an over-confident one reports wrong ones.
 
+**E20. The truth has a noise floor, and it is large. — NEW.** `src/truth_uncertainty.py`, Task 13 (G3). 192,934 GHCN gauge pairs within 60 km of the 175 study cities, ≥200 shared days each, scored at the study's own 0.2 mm threshold. Disagreement about whether it rained rises smoothly with separation — 0.083 under 1 km, 0.093 at 3–5 km, 0.112 at 10–15 km, 0.142 at 45–60 km — and the fit q(d) = 0.0925 + 0.0747(1 − e^(−d/49 km)) has R² = 0.986. **The intercept is the finding.** At zero separation nothing spatial is left, so the residual 0.083 is not representativeness error: it is bucket against bucket, reader against reader, hour against hour. No forecast can score past it. At the study's typical gauge-to-grid distance of 3.3 km the total is q = 0.093 (asymmetric: 0.151 wet-here-dry-there, 0.068 the mirror). Intervals resample **gauges**, not pairs, because one bad gauge enters dozens of pairs — a checked distinction: pair resampling covers 18% at a nominal 95%, gauge resampling 98%.
+
+**E21. Truth noise does not cancel out of a paired difference — but the textbook correction is wrong anyway. — NEW, and it is the methodological result.** The label-noise identity leaves a residue 2q₁₀E[(f₁−f₂)y] − 2q₀₁E[(f₁−f₂)(1−y)], which vanishes only for rivals differing equally on wet and dry days. A *drier* forecast does not, so for E4 the residue is **−0.0055, eighteen times the difference being measured**. Applying it would have been a disaster: against real neighbouring gauges the same shift is **+0.0003**, agreeing on the spread (0.0017 vs 0.0016) and disagreeing on the bias by a factor of dozens. Independent flips turn a confidently forecast wet day dry as readily as a marginal one; a real gauge 5 km away saw the same weather system and agrees with the forecast on exactly the days the forecast was right about. **The published correction for label noise is inapplicable to spatially correlated truth, and this study can show it rather than assert it.**
+
+**E22. Re-siting the gauge kills E4 and leaves E4a standing. — NEW, and it settles the headline.** The experiment holds every forecast and every day fixed and swaps in a real alternative bucket near each city (8 of 15 cities have one within 25 km; a draw swaps 5.8 on average):
+
+| statistic | study value | siting sd | 95% range | sign flips | ratio |
+|---|---|---|---|---|---|
+| E4 Brier difference | −0.0003 | 0.0017 | −0.0029, +0.0038 | **45%** | **0.2** |
+| vendor bias | −0.0031 | 0.0057 | −0.0191, +0.0027 | 15% | 0.5 |
+| ensemble dry bias | +0.0747 | 0.0057 | +0.0587, +0.0804 | 0% | 13.2 |
+| E4a value at α = 0.05 | −0.5422 | 0.0422 | −0.6479, −0.4876 | **0%** | **12.8** |
+| E4a value at α = 0.10 | −0.2043 | 0.0185 | −0.2594, −0.1816 | 0% | 11.0 |
+
+The Brier comparison is *smaller than the amount gauge siting alone moves it* and changes sign in nearly half of all alternative worlds — E10 said the sample could not resolve it, and E22 says the truth cannot either. The low-cost-loss decision gap is 13× its siting spread and never flips. **Same days, same gauges, same forecasts: the choice of metric decides whether truth error matters.** This is the strongest form of D12 yet available. Caveat: the 7 cities with no alternative gauge contribute no spread, and gauges failing the day-convention scan are dropped, so the quoted spread is a **lower bound**.
+
+**E23. Task 14 returns a negative result, and the negative result is the honest one.** The two halves of pair disagreement — wet here / dry there against its mirror — stay within 0.0087 of each other at every separation, so there is no directional catch difference to find *between neighbouring gauges*. What a pair method cannot see is the part every bucket gets wrong together: wind loss, wetting and evaporation push all gauges the same way and are invisible to it by construction. That residue is **not corrected and not bounded here**, and the paper must say so rather than import a literature factor it has not measured. Separately, changing gauge moves a city's measured rain-day frequency by a median 0.023 and up to 0.184 — climatology is the reference every skill score is quoted against, which is why E22 re-scores rather than merely relabelling.
+
 ---
 
 ## Design Decisions
@@ -191,7 +209,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G2. Probability provenance — largely closed.** GEFS integrated, validated, divergence quantified (E4). Remaining: ECMWF IFS ENS for a second centre, and sustained forward collection.
 
-**G3. Truth uncertainty quantified, not caveated.** Unchanged and now more pressing: E4's 0.0003 Brier gap is far inside any plausible representativeness error, so the tie cannot be claimed as a tie until that error is quantified. Gauge undercatch, representativeness propagated into every interval, IMERG cross-check.
+**G3. Truth uncertainty — closed for the gauge-pair part** (`src/truth_uncertainty.py`, E20–E23). Measured rather than caveated: 193k GHCN pairs give disagreement against separation, an irreducible floor of 0.083 at zero separation, and a re-siting experiment that answers the question the gap was asking. The answer is that E4's Brier gap **does not survive** (0.18× its siting spread, sign flips in 45% of alternative worlds) while E4a's decision gap does (13×, no flips). Remaining: the common-mode part no pair test can see (wind loss, wetting, evaporation — E23), and the IMERG cross-check (Task 12) for low-density regions.
 
 **G4. Explanatory model.** Unchanged.
 
@@ -270,8 +288,8 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 - [ ] Task 10a. **Extend GEFS extraction to the full city set. — NEW.** The ensemble track currently covers 19 capitals; the divergence result must span the same cities as the vendor track. Rationale: G1, G20.
 - [ ] Task 11. Integrate NOAA ISD globally alongside GHCN-Daily; report coverage per continent and income group. Rationale: G1.
 - [ ] Task 12. IMERG cross-check where gauge density is low. Rationale: G3.
-- [ ] Task 13. Quantify representativeness error from GEFS neighbourhood fields. Rationale: G3, D8. **Promoted** — E4's verdict is unclaimable without it.
-- [ ] Task 14. Gauge undercatch correction; report with and without. Rationale: G3, D8.
+- [x] Task 13. Quantify representativeness error — **done** (`src/truth_uncertainty.py`), from GHCN gauge pairs rather than GEFS neighbourhood fields: the pairs measure the truth's own noise, which a model field cannot. E20–E22.
+- [x] Task 14. Gauge undercatch — **done, with a negative result** (E23). A pair method is blind to common-mode catch loss by construction; the directional asymmetry it *can* see is under 0.009 at every separation. Reported as a bound on what the method sees, not as a correction.
 - [ ] Task 15. Evaluate `asos-parquet` as the low-latency truth source. Rationale: G12; the truth source now binds the window, not the ensemble.
 - [ ] Task 16. Formalise the sampling design; cap-sensitivity. Rationale: G14.
 
