@@ -178,6 +178,18 @@ Consequence for the required n: reaching the 0.0015 margin the day-boundary rule
 
 **E29. The country cap changes who is in the sample far more than what the sample says. — G14 closed, reassuringly.** Uncapped, one country supplies 34% of the qualifying pool and three supply 59%; at the cap of 8 the study uses, 4% and 12%, at a cost of 863 cities. Re-weighting the panel that exists to each cap's composition moves pooled BSS by at most **0.0118**, and by ≤0.0005 for every cap ≥ 2. The cap is a rule the paper must *describe*, not one it must defend. Caveat, stated in the stage: this re-weighting cannot see a country the panel has none of — it bounds the cap's effect *within* the sampled world, not the effect of the sampled world, which is E27's business.
 
+**E30. NOAA ISD has a station almost everywhere GHCN does not, and most of those stations do not report rain. — Task 11; G1 partly answered.** (`src/isd_coverage.py`.) Two questions, asked in the order that matters, because the first one flatters ISD and is not the question.
+
+*Stations exist.* Against every GeoNames city of 100,000+ — not the study's pool, which is already filtered to cities holding a GHCN gauge — a station sits within 25 km of 4,337 of 6,276 cities (69%) versus GHCN's 1,074 (17%). **Africa goes from 1 city to 495 and South America from 0 to 493.** On existence alone ISD closes G1 outright.
+
+*They do not all report.* Reading one complete calendar year (2024) for 156 stations, 20 per continent at the largest cities — deliberately the most generous sample, since a provincial town does not report better than a capital airport — the share of local days whose daily total can actually be **reconstructed** has a median of 22% and reaches 80% for only 31% of stations. It splits hard by continent: North America 94% median, Asia 90%, Oceania 67%, against **Europe 28%, Central America 20%, Africa 8%, South America 3%**. Discounting the census by each continent's usable rate gives an upper bound of ~1,860 effective cities, of which Asia supplies 1,071 and Africa and South America 50 and 49.
+
+*In the currency E28 established, the gain is real but smaller than it looks.* Counting countries rather than cities, ISD reaches 168 of the 174 with a city this size against GHCN's 45. That is the upper bound; discounted by the probe's rate (25 of 63 visited countries had a station reporting on at least half the days) it is about **67 countries, still 1.5× GHCN's 45** — and generous, because the probe took the largest cities. So ISD is worth integrating, and for Asia it is transformative, but it does not deliver a globally even panel: **Africa and South America remain unreached by any gauge network in this tree, which is now squarely Task 12's problem.**
+
+Two traps, both of which produced a plausible wrong answer first. Requiring a station's last observation to carry the history file's exact horizon date left 152 of 28,095 stations, which is a measurement of NCEI's ingest lag and not of the network; a 30-day grace gives 12,069, and the count is flat from a fortnight to six months. And probing 2025, whose archive stops in late August, divided every station by 365 days — a perfectly reporting station scored 66% and the "above 80%" column read zero everywhere, which looked exactly like the finding. Both are now checks that abort the stage, the second by requiring a synthetic station that reports every day of the probe year to score 100%.
+
+This does not touch G20. The headline still needs ~612 countries to resolve and the planet has 195: ISD widens the study's **reach**, not its resolution.
+
 ---
 
 ## Design Decisions
@@ -228,7 +240,9 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 ### Blocking Tier A
 
-**G1. Geographic scope — RE-SPECIFIED, because the original target is unreachable.** E27. 19 capitals in the ensemble track, ~109 cities in the vendor track. The old requirement — ≥2,000 cities on all inhabited continents — cannot be met from GHCN-Daily at any population floor: the qualifying pool holds 1 African city and 0 South American ones. The gap is therefore no longer "collect more cities"; it is **"acquire a truth source outside Europe and North America"**, which is Tasks 11 and 12, and the 1,803-city shortfall in `sampling_design.parquet` is its size. E28 adds that the replacement target should be stated in *countries*: a country is the unit that carries information, and a city inside one already sampled carries about a quarter of one.
+**G1. Geographic scope — RE-SPECIFIED, and now half-answered.** E27, E30. 19 capitals in the ensemble track, ~109 cities in the vendor track. The old requirement — ≥2,000 cities on all inhabited continents — cannot be met from GHCN-Daily at any population floor: the qualifying pool holds 1 African city and 0 South American ones. The gap is therefore no longer "collect more cities"; it is **"acquire a truth source outside Europe and North America"**, which is Tasks 11 and 12, and the 1,803-city shortfall in `sampling_design.parquet` is its size. E28 adds that the replacement target should be stated in *countries*: a country is the unit that carries information, and a city inside one already sampled carries about a quarter of one.
+
+Task 11's answer (E30): ISD lifts the reachable country count from 45 to ~67 after discounting for reporting, and lifts Asia from 195 cities to ~1,071 — but Africa and South America gain ~50 and ~49, because the stations are there and largely silent on precipitation. **So G1 is now two gaps, not one:** Asia is solved by integrating ISD (engineering), while Africa and South America are solved only by a non-gauge truth source (Task 12, IMERG) or not at all. The paper's scope caveat has to be written against the second, and E30 gives it numbers instead of an apology.
 
 **G2. Probability provenance — largely closed.** GEFS integrated, validated, divergence quantified (E4). Remaining: ECMWF IFS ENS for a second centre, and sustained forward collection.
 
@@ -309,8 +323,8 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 - [ ] Task 10. **RE-SPECIFIED by E27/E28.** Not "lift the city budget toward the full qualifying pool" — that pool is 1,061 cities and structurally European. Lift the *country* count, and only as far as the truth sources of Tasks 11–12 allow. Rationale: G1.
 - [ ] Task 10a. **Extend GEFS extraction to the full city set. — NEW.** The ensemble track currently covers 19 capitals; the divergence result must span the same cities as the vendor track. Rationale: G1, G20.
-- [ ] Task 11. Integrate NOAA ISD globally alongside GHCN-Daily; report coverage per continent and income group. Rationale: G1.
-- [ ] Task 12. IMERG cross-check where gauge density is low. Rationale: G3.
+- [x] Task 11. ~~Integrate NOAA ISD globally alongside GHCN-Daily; report coverage per continent and income group.~~ **Feasibility answered (E30): worth integrating for Asia, near-useless for Africa and South America.** The integration itself is now a scoped engineering task rather than an open question — and the case for doing it rests on countries, not cities.
+- [ ] Task 12. IMERG cross-check where gauge density is low. Rationale: G3 — and now G1, since E30 leaves Africa and South America unreachable by either gauge network, making IMERG the only remaining route rather than a cross-check.
 - [x] Task 13. Quantify representativeness error — **done** (`src/truth_uncertainty.py`), from GHCN gauge pairs rather than GEFS neighbourhood fields: the pairs measure the truth's own noise, which a model field cannot. E20–E22.
 - [x] Task 14. Gauge undercatch — **done, with a negative result** (E23). A pair method is blind to common-mode catch loss by construction; the directional asymmetry it *can* see is under 0.009 at every separation. Reported as a bound on what the method sees, not as a correction.
 - [ ] Task 15. Evaluate `asos-parquet` as the low-latency truth source. Rationale: G12; the truth source now binds the window, not the ensemble.
