@@ -170,6 +170,14 @@ The changeover sits between **15:00 and 21:00**. Rain does not arrive evenly ove
 
 **E26. A one-day dating error costs 0.09 Brier — two orders of magnitude above anything this study reports.** Re-scoring the E4 panel against truth shifted by ±1 day: vendor Brier 0.1669 → 0.2381 (+1 day) or 0.2667 (−1 day); ensemble 0.1672 → 0.2392 / 0.2607. Against this, E4's unresolvable difference is 0.0003 and E13's resolved physics-versus-ML difference is 0.0068. **A wrong observation hour does not add noise to a league table, it reorders it** — which is why risk 7 made Task 6 a precondition for Task 10 and why the audit fails loudly rather than defaulting.
 
+**E27. The 2,000-city target is not reachable from GHCN-Daily, and the shortfall is the deliverable. — NEW; this is the answer to G1, and it is "no".** At a 100,000 population floor the qualifying pool holds 1,061 cities: Europe 423, North America 409, Asia 186, Oceania 26, Central America & Caribbean 13, **Africa 1, South America 0**. Dropping the floor does not fix this — it buys American and German small towns, because the floor is the only lever and it pulls towards wherever gauges are dense. Against world *urban population*, Europe is over-represented by a ratio of 6.6 and Asia and Africa are the two that are missing. A designed 2,000-city sample allocated by the square root of urban population can supply **198 of 2,001**; the shortfall of 1,803 is almost entirely Africa, South America and Asia. That number is the size of the hole Tasks 11 (NOAA ISD) and 12 (IMERG) exist to fill, measured rather than asserted. `src/sampling.py`, `sampling_pool_census.parquet`, `sampling_design.parquet`.
+
+**E28. Cities inside a country are near-interchangeable: the design effect is 4.3 against a mean country size of 3.8.** Resampling cities one at a time gives sd ∝ n^−0.50 (R² 0.999) — exactly the independent rate, because that draw *cannot see* that two cities are in the same country. Drawing whole countries instead gives **4.3× the variance at a matched 109 cities** (permutation p = 0.005; null median 0.92, 95% of shuffles 0.48–1.67). Since the mean country in the panel holds 3.8 cities, a design effect of 4.3 means the eighth German city buys close to nothing the first did not. The null is obtained by shuffling country labels across cities rather than assumed, because grouping cities at all shifts the variance (raw ratio 0.84 on a panel with no dependence) — dividing by a single null draw would report grouping noise as a finding.
+
+Consequence for the required n: reaching the 0.0015 margin the day-boundary rule already moves things by needs **68,308 cities** drawn this way (naive arithmetic says 15,962) — more than the pool holds at any floor, so it is not a budget question. Reaching 0.0081, what the paired test achieves today, needs 2,300 cities or **612 countries**, and there are 195. **G20 is therefore closed in the negative: 2,000 cities is not a precision argument and the plan must stop justifying it as one.** It is a coverage argument, and the cheap axis is *countries*, not cities.
+
+**E29. The country cap changes who is in the sample far more than what the sample says. — G14 closed, reassuringly.** Uncapped, one country supplies 34% of the qualifying pool and three supply 59%; at the cap of 8 the study uses, 4% and 12%, at a cost of 863 cities. Re-weighting the panel that exists to each cap's composition moves pooled BSS by at most **0.0118**, and by ≤0.0005 for every cap ≥ 2. The cap is a rule the paper must *describe*, not one it must defend. Caveat, stated in the stage: this re-weighting cannot see a country the panel has none of — it bounds the cap's effect *within* the sampled world, not the effect of the sampled world, which is E27's business.
+
 ---
 
 ## Design Decisions
@@ -220,7 +228,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 ### Blocking Tier A
 
-**G1. Geographic scope.** Still the single largest gap. 19 capitals in the ensemble track, ~109 cities in the vendor track, against 8,509 qualifying gauged cities (`src/probe_cities.py:8-13`). E4 rests on **15 European capitals** — insufficient for any global claim. Required: ≥2,000 cities, all inhabited continents.
+**G1. Geographic scope — RE-SPECIFIED, because the original target is unreachable.** E27. 19 capitals in the ensemble track, ~109 cities in the vendor track. The old requirement — ≥2,000 cities on all inhabited continents — cannot be met from GHCN-Daily at any population floor: the qualifying pool holds 1 African city and 0 South American ones. The gap is therefore no longer "collect more cities"; it is **"acquire a truth source outside Europe and North America"**, which is Tasks 11 and 12, and the 1,803-city shortfall in `sampling_design.parquet` is its size. E28 adds that the replacement target should be stated in *countries*: a country is the unit that carries information, and a city inside one already sampled carries about a quarter of one.
 
 **G2. Probability provenance — largely closed.** GEFS integrated, validated, divergence quantified (E4). Remaining: ECMWF IFS ENS for a second centre, and sustained forward collection.
 
@@ -250,7 +258,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G13. ML systems absent from the registry.** Partially resolved.
 
-**G14. Sampling-design defence.** Open.
+**G14. Sampling-design defence — CLOSED.** E29. The cap is swept from 1 to uncapped and its effect on the answer bounded at 0.0118 BSS, ≤0.0005 for any cap ≥ 2. The design, its allocation rule and its shortfall are stated explicitly in `sampling_design.parquet` rather than left implicit.
 
 **G15. Licence segregation.** Open — CC-BY-SA propagation from UKMO.
 
@@ -262,7 +270,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **G19. Non-independent vendor models — CLOSED.** E12. `src/duplicates.py` tests every pair at every city hour by hour on the raw served values; the league table and the threshold-robustness table both consume its verdict and collapse duplicates before ranking, with the alias named on the surviving row rather than deleted. The triangulation stage's aggregate-level check is retained as a smoke alarm and now says so.
 
-**G20. Sample-size honesty on the headline. — NEW, and now quantified.** E4 is 15 European capitals over 21 months with serially correlated days. E10 puts a number on what that buys: differences below 0.008 Brier are invisible to it. Every statement derived from it must carry that scope explicitly, and the claim must be re-tested once G1 is closed. Risk: the tie is a European artefact — and the study cannot presently tell a European artefact from an absence of effect.
+**G20. Sample-size honesty on the headline. — CLOSED, in the negative.** E4 is 15 European capitals over 21 months with serially correlated days; E10 puts the invisible-difference threshold at 0.008 Brier. E28 now prices the fix and finds it unaffordable: closing to the 0.0015 margin would take ~68,308 cities at the measured design effect of 4.3, more than the pool holds. **The headline can therefore never be a precision claim, at any budget.** Every statement derived from it must carry its scope explicitly, and the paper's weight must rest on the decision-value result (E4a), which the sample *does* resolve. Risk: the tie is a European artefact — and the study cannot presently tell a European artefact from an absence of effect, nor buy its way out.
 
 ---
 
@@ -299,14 +307,14 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 
 **Now the critical path.** E4 is a 15-city European result; nothing in the paper generalises until this phase lands.
 
-- [ ] Task 10. Lift the city budget toward the full qualifying pool. Rationale: G1, G20.
+- [ ] Task 10. **RE-SPECIFIED by E27/E28.** Not "lift the city budget toward the full qualifying pool" — that pool is 1,061 cities and structurally European. Lift the *country* count, and only as far as the truth sources of Tasks 11–12 allow. Rationale: G1.
 - [ ] Task 10a. **Extend GEFS extraction to the full city set. — NEW.** The ensemble track currently covers 19 capitals; the divergence result must span the same cities as the vendor track. Rationale: G1, G20.
 - [ ] Task 11. Integrate NOAA ISD globally alongside GHCN-Daily; report coverage per continent and income group. Rationale: G1.
 - [ ] Task 12. IMERG cross-check where gauge density is low. Rationale: G3.
 - [x] Task 13. Quantify representativeness error — **done** (`src/truth_uncertainty.py`), from GHCN gauge pairs rather than GEFS neighbourhood fields: the pairs measure the truth's own noise, which a model field cannot. E20–E22.
 - [x] Task 14. Gauge undercatch — **done, with a negative result** (E23). A pair method is blind to common-mode catch loss by construction; the directional asymmetry it *can* see is under 0.009 at every separation. Reported as a bound on what the method sees, not as a correction.
 - [ ] Task 15. Evaluate `asos-parquet` as the low-latency truth source. Rationale: G12; the truth source now binds the window, not the ensemble.
-- [ ] Task 16. Formalise the sampling design; cap-sensitivity. Rationale: G14.
+- [x] Task 16. Formalise the sampling design; cap-sensitivity. Rationale: G14. **DONE — E29, `src/sampling.py`.**
 
 ### Phase 4 — Methodological depth
 
@@ -360,7 +368,7 @@ Revised for E4. The findings paper loses its most dramatic possible headline and
 2. **Forward ensemble collection silently stops.** Mitigated: systemd timer installed and verified (Task 8a). Residual risk — no alarm on repeated failure; `status` must still be checked periodically.
 3. **~~PoP unavailable at lead times.~~** Confirmed; resolved by D5 and published as a finding.
 4. **~~Vendor-versus-ensemble divergence too small to matter.~~** Partly realised: the *calibration* gap is a tie (E4), though the systematic dry bias and the divergence growth with lead are real. Mitigated by D9/D10/D11 — the paper reports the mechanism rather than an indictment.
-5. **The tie is a European artefact.** New and material. 15 capitals, one continent. Mitigation: Tasks 10 and 10a before any general claim; G20 requires scope stated on every derived statement.
+5. **The tie is a European artefact.** New and material. 15 capitals, one continent. Mitigation: Tasks 11 and 12 to make a non-European panel possible at all — E27 shows Tasks 10/10a cannot do it alone — and G20 requires scope stated on every derived statement. E28 removes the fallback of buying precision instead.
 6. **Further scooping.** C3 time-sensitive. Mitigation: Tasks 3b, 3c, 37; preprint early; prioritise Task 30.
 7. **Scale multiplies a silent convention error.** Mitigation: Task 6 precedes Task 10.
 8. **Rate limits throttle global collection.** Mitigation: resumable cache, multi-day scheduling.
