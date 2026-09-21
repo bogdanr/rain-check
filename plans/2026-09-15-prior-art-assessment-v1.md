@@ -138,12 +138,12 @@ Useful as a concrete instance of the single-basin, deterministic, regional study
 
 | Claim | Status after this pass |
 |---|---|
-| **C1** Global station-verified calibration of served PoP | **Survives.** No paper verifies precipitation probability as a binary event against gauges at scale. |
+| **C1** Global station-verified calibration of served PoP | ~~**Survives.**~~ **NARROWED 2026-09-21 (Task 3c).** No *paper* does this, but ForecastWatch does it commercially at larger scale and has shipped PoP reliability diagrams since July 2026. Claim must become the open-and-reproducible one. See `plans/2026-09-21-grey-literature-assessment-v1.md` §2, §6. |
 | **C2** Provenance: vendor-served versus native ensemble probability | **Survives, untouched.** No paper in this set examines the vendor/post-processing layer. Linsenmeier & Shrader explicitly note it exists and do not study it. |
 | **C3** Physics versus ML probabilistic calibration | **Survives, narrowed and time-limited.** Gupta 2026 did AI-versus-observations, regionally and deterministically. Claim must be *probabilistic calibration, global, gauge-verified*. |
 | **C4** Forecast inequality | **SCOOPED** by Linsenmeier & Shrader 2025, including the gauge-density control. Do not pursue as written. Boundary confirmed: their measure is deterministic ACC on temperature, so *calibration* inequality — and precipitation specifically — remain open. |
-| **C5** Multi-model league table | **Partially anticipated.** WeatherBench 2 ranks models on precipitation via SEEPS against ERA5. Ours differs by truth source and by ranking *served* forecasts. Not a headline. |
-| **C6** Methods — economic value, seasonal weighting, representativeness | **Survives.** No economic value computation in any paper here; Linsenmeier's discussion asks for it. |
+| **C5** Multi-model league table | **Partially anticipated.** WeatherBench 2 ranks models on precipitation via SEEPS against ERA5. Ours differs by truth source and by ranking *served* forecasts. Not a headline. **Confirmed 2026-09-21:** ForecastWatch ranks 25 providers over 2,100 locations on 84 metrics. Do not lead with the league table. |
+| **C6** Methods — economic value, seasonal weighting, representativeness | **Survives, re-worded 2026-09-21.** No economic value computation in any paper here; Linsenmeier's discussion asks for it, and the commercial corpus has zero hits for it either. But relative economic value is textbook (CAWCR portal, Richardson 2000), so the novelty is application and bounded truth error, not method. |
 
 **Corrected framing.** The defensible statement is **not** "nobody does probabilistic verification" — WeatherBench 2 does, extensively. It is:
 
@@ -177,5 +177,5 @@ Task 3 is **not closed**. Outstanding:
 2. ~~No supplementary information examined.~~ **CLOSED 2026-09-15 (Task 3a).** Linsenmeier's SI is bundled in the same PDF and was covered; a 17-term probabilistic scan over all 2,802 lines returned zero hits, and the methods were read directly. See §3.1, "Confirmation pass".
 3. **Term counts remain a proxy** for the other six papers. A paper can perform reliability analysis under vocabulary not searched — though for Linsenmeier the term list is now broad enough that this risk is negligible.
 4. **Seven opportunistically downloaded papers are not a literature search.** The C1–C6 queries against Google Scholar Labs, Web of Science, ECMWF eLibrary and AMS journals are still required.
-5. **Grey literature untouched** — ForecastWatch, EUMETNET, WMO/WWRP working-group reports. These are the most likely home of anything resembling C1 or C5 and are invisible to academic indexes.
-6. **No forward-citation chase** on the WGNE guidance or the CAWCR/WWRP portal.
+5. ~~**Grey literature untouched** — ForecastWatch, EUMETNET, WMO/WWRP working-group reports. These are the most likely home of anything resembling C1 or C5 and are invisible to academic indexes.~~ **CLOSED 2026-09-21 (Task 3c).** The prediction was correct: ForecastWatch computes Brier scores for served PoP against METAR/SYNOP truth over 2,100 locations and ships an eleven-bin reliability diagram, none of it visible to an academic index. EUMETNET is observation infrastructure only. WWRP's verification working group is behind a Google sign-in and remains **unsearched rather than cleared**. Full assessment: `plans/2026-09-21-grey-literature-assessment-v1.md`.
+6. **No forward-citation chase** on the WGNE guidance or the CAWCR/WWRP portal. Needs the same accounts as item 4.

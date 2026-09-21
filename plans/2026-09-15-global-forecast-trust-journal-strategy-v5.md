@@ -296,7 +296,11 @@ All three candidate sources have now been tested and all three fail for the two 
 
 **G4. Explanatory model — closed, in the negative** (`src/explain.py`, E33). Seven city properties against four responses, countries as the resampling unit and leave-one-country-out as the test. Skill and reliability do not transfer at all (CV R² −0.17 and −0.44 against in-sample 0.18 and 0.15); the one response that does transfer is matched by rain frequency alone, which is the metric's base-rate dependence rather than a mechanism. The gap between the in-sample and cross-validated columns is the size of the claim that would otherwise have been made. The study can say how badly the forecast fails and who it fails, and not why.
 
-**G5. Literature positioning — partially closed.** Tasks 3b–3c remain open.
+**G5. Literature positioning — grey-literature half closed, Task 3b remains.** Task 3c done 2026-09-21 (`plans/2026-09-21-grey-literature-assessment-v1.md`), and it cost the study a claim. **C1 is narrowed, not lost:** ForecastWatch computes Brier scores for served PoP against METAR/SYNOP truth over 2,100 locations and 25 providers, and has shipped an eleven-bin PoP reliability diagram with Brier/BSS on an API since July 2026. No academic index shows this. The defensible claim is now the *open and reproducible* one — a verification that states whether its differences are resolvable (E10), bounds the error in its own truth (E20–E22) and reports what the probability is worth to someone acting on it (E4a) — none of which that benchmark does.
+
+Two things came back in the study's favour. Their **public** face is deterministic: the 2026 award categories are temperature and wind only, with no precipitation category at all, and the consumer Accuracy Score methodology contains zero occurrences of "probability", "Brier" or "reliability". That is D12 as a market behaviour rather than an argument, from the organisation with the most data. And their truth is the ISD family, which E30 has measured at 8% of days reconstructable in Africa and 3% in South America — while their own report puts its highest accuracies over those same tropics. That is a contribution to their benchmark, and the strongest thing this study can say to that audience.
+
+Also recorded: the wet-bias precedent (their founder's own work, in Silver 2012) points opposite to E13 and must be addressed explicitly; relative economic value is textbook, so C6's novelty is application not method; EUMETNET runs no forecast-verification programme; and WWRP's verification working group sits behind a sign-in and is **unsearched rather than cleared**.
 
 ### Blocking Tier B credibility
 
@@ -349,7 +353,7 @@ All three candidate sources have now been tested and all three fail for the two 
 ### Phase 1 — Close the literature question, then harden
 
 - [ ] Task 3b. Run the C1–C6 queries against Google Scholar Labs, Web of Science, ECMWF eLibrary and AMS journals; verify every citation by opening the paper. Rationale: G5. **Owner: user** (requires Scholar account).
-- [ ] Task 3c. Grey literature — ForecastWatch, EUMETNET, WMO/WWRP; forward-cite WGNE and the CAWCR/WWRP portal. Rationale: G5.
+- [x] ~~Task 3c. Grey literature — ForecastWatch, EUMETNET, WMO/WWRP; forward-cite WGNE and the CAWCR/WWRP portal.~~ **DONE 2026-09-21.** `plans/2026-09-21-grey-literature-assessment-v1.md`. ForecastWatch narrows C1 and confirms C5 should not lead; EUMETNET negative; WWRP inaccessible; forward-citation chase still needs the Scholar account and stays with Task 3b.
 - [ ] Task 5. Write the literature positioning around the corrected framing. Rationale: G5, D7, D8.
 - [x] Task 6. Per-station observation-time detection — **done** (`src/obs_time.py`). Metadata rule fitted to a measured curve, audited against an independent neighbour-graph measurement, 14 disagreeing stations named and excluded. E24–E26.
 - [ ] Task 7. Add validated ML ids to `PROVIDER_MODELS` for the deterministic track. Rationale: G13, D6.
