@@ -220,6 +220,20 @@ Seven checks police the places a silent error could live and abort the stage: th
 
 *Consequence.* **G1's scope caveat is now a finding rather than a gap.** Africa and South America are not reachable by GHCN (E27), not by ISD (E30), and not by this satellite. The limit on where forecasts can be verified is a property of what exists today, not a collection budget waiting to be spent.
 
+**E33. Nothing measurable about a city predicts how well it is forecast, except how often it rains there — and that is the metric's own base rate, not a mechanism. — Task 27; G4 answered in the negative.** (`src/explain.py`.)
+
+*The design is what makes the null worth anything.* Seven city properties — rain frequency, seasonal amplitude, absolute latitude, distance to the nearest gauge, grid-versus-gauge elevation mismatch, terrain roughness within 50 km, log population — regressed on four responses across 102 cities in 25 countries. E28 measured the design effect at 4.3, so seven predictors are fitted against roughly **25** independent observations, every interval resamples **countries**, and validation is leave-one-country-out. Standardisation happens inside the fold: scaling the whole panel first is worth +0.073 of R², which on these numbers is the difference between a result and nothing.
+
+*The coefficients.* Across the three primary responses, exactly one term clears Benjamini–Hochberg on its response's seven tests: `base_rate` on `v_cal_a10` (−0.385, CI −0.504 to −0.263, q = 0.01). Terrain roughness, gauge distance, elevation mismatch, latitude and population survive nothing anywhere.
+
+*The out-of-sample table is the finding.* `bss_clim` fits at in-sample R² 0.18 and cross-validates at **−0.17**; `reliability` 0.15 and **−0.44**. A negative number means the predictors make the prediction *worse* than knowing nothing about the city. Only `v_cal_a10` transfers, at +0.52 — **and a model given rain frequency alone scores +0.57 on the same folds.** The six other predictors add nothing that survives leaving a country out. A value score is bounded by its base rate exactly as a Brier score is, so the one thing that predicts is the same artefact section 3 already flags on Brier.
+
+*The Brier warning, stated in coefficients.* Rain frequency carries **+0.030** of Brier against **−0.079** of the skill score — opposite signs on the same panel. A regression run on Brier would have reported climate as the answer, because a drier city scores better without being forecast better. This is D12 expressed as a regression rather than as a decision curve.
+
+*Two checks keep the null from being the method's.* The same leave-one-country-out procedure returns a median R² of −0.09 on pure noise and **+0.47 on a planted signal**, so an empty result is the panel's answer and not the design's; and country-block intervals cover 92% at a nominal 95% where city-level ones cover 70%, so the resampling unit is not a stylistic choice. A near-duplicate predictor is flagged at VIF 598, so the table can say which coefficients are not separately identified. All abort the stage.
+
+*Consequence.* **The study can say how badly the forecast fails, who it fails and what it costs them; it cannot say why.** That closes G4 rather than leaving it open — and it removes the temptation the in-sample column represents, since a paper reporting R² 0.18 without the −0.17 beside it would have published a mechanism that does not exist. What the panel cannot rule out is separate and stated: latitude and rain frequency are entangled at r = +0.65 here, so a latitudinal effect could hide inside a climate one, and terrain is missing for 21 cities precisely where gauges are sparse — which is where orography would matter most.
+
 ---
 
 ## Design Decisions
@@ -280,7 +294,7 @@ All three candidate sources have now been tested and all three fail for the two 
 
 **G3. Truth uncertainty — closed for the gauge-pair part** (`src/truth_uncertainty.py`, E20–E23). Measured rather than caveated: 193k GHCN pairs give disagreement against separation, an irreducible floor of 0.083 at zero separation, and a re-siting experiment that answers the question the gap was asking. The answer is that E4's Brier gap **does not survive** (0.18× its siting spread, sign flips in 45% of alternative worlds) while E4a's decision gap does (13×, no flips). Remaining: the common-mode part no pair test can see (wind loss, wetting, evaporation — E23), and the IMERG cross-check (Task 12) for low-density regions.
 
-**G4. Explanatory model.** Unchanged.
+**G4. Explanatory model — closed, in the negative** (`src/explain.py`, E33). Seven city properties against four responses, countries as the resampling unit and leave-one-country-out as the test. Skill and reliability do not transfer at all (CV R² −0.17 and −0.44 against in-sample 0.18 and 0.15); the one response that does transfer is matched by rain frequency alone, which is the metric's base-rate dependence rather than a mechanism. The gap between the in-sample and cross-validated columns is the size of the claim that would otherwise have been made. The study can say how badly the forecast fails and who it fails, and not why.
 
 **G5. Literature positioning — partially closed.** Tasks 3b–3c remain open.
 
@@ -376,7 +390,7 @@ All three candidate sources have now been tested and all three fail for the two 
 
 ### Phase 5 — The headline argument
 
-- [ ] Task 27. Multivariate explanatory model of skill and calibration error. Rationale: G4.
+- [x] Task 27. **Multivariate explanatory model of skill and calibration error.** → E33. `src/explain.py`, pipeline stage 24. Seven city properties against four responses, 102 cities in 25 countries, countries as the resampling unit because E28 measured the design effect at 4.3, and leave-one-country-out as the test. Skill and reliability do not transfer at all (CV R² −0.17 and −0.44 against in-sample 0.18 and 0.15); `v_cal_a10` transfers at +0.52 and rain frequency alone reaches +0.57 on the same folds, so the one thing that predicts is the metric's base-rate dependence and not a mechanism. Checks require the same procedure to find a planted signal (+0.47) and return nothing on noise (−0.09), so the null is the panel's answer rather than the design's. Rationale: G4, closed in the negative.
 - [x] Task 28. **Test whether *calibration* error varies with income group, gauge density and region.** → E31. `src/equity.py`, pipeline stage 22. The panel reaches 25 countries, 4 of them non-high-income and none low-income, so the honest answer is a bounded null rather than a gap. The raw comparison favours the poorer side on every metric — an artefact of a lower rain base rate, not a finding — and caliper matching on base rate removes it. What survives is the width of the interval, and the artefact floor is predicted from a locally fitted curve rather than assumed to be zero.
 - [x] Task 29. **Express any calibration gap in decision terms via the Task 23 curves.** → E31a. The bound is carried onto the cost-loss axis: at α = 0.10 the interval admits a gap no larger than the amount E4a already attributes to the served probability's dry bias, so "no measurable inequity" cannot be read as "none that would matter". Rationale: D7.
 - [x] Task 30. **Physics-versus-ML calibration on the AIFS-ENS matched window.** → E13, E13a, E13b. `src/physics_ml.py`, pipeline stage 16. Both ECMWF ensembles collected from dynamical.org (`src/collect_members.py`, `src/ens_archive.py`, now source-agnostic), accumulated onto one matched 6 h ladder by `ensemble_pop.py --step-hours=native,6`, scored with the same day-block bootstrap as Task 25. The result is *direction without per-lead significance*, and the ladder sensitivity (E13a) is arguably the more publishable half.
