@@ -203,7 +203,34 @@ def compute() -> dict:
                 events=_load_events(), bench=_load_bench(),
                 capitals=_load_capitals(), world=_load_world(),
                 league=report_providers._load_league(),
-                served=_load_served())
+                served=_load_served(), prov=_load_prov())
+
+
+def _load_prov():
+    """Task 31: what the served number actually is, before it is scored.
+
+    Four separate audits that only mean something together - the duplicate
+    scan, the rounding control, the republisher check and the licence trace -
+    so the section renders only if all four are on disk. Any one of them alone
+    reads as housekeeping; the four together are the provenance argument.
+    """
+    import json as _json
+
+    def opt_json(name):
+        p = PROCESSED / name
+        return _json.loads(p.read_text()) if p.exists() else None
+
+    dup = opt_json("duplicate_summary.json")
+    grib = opt_json("gefs_grib_validation.json")
+    qp = PROCESSED / "vendor_pop_quantisation.parquet"
+    sp = PROCESSED / "provenance_sources.parquet"
+    if dup is None or grib is None or not qp.exists() or not sp.exists():
+        return None
+    return {"dup": dup, "grib": grib,
+            "pairs": pd.read_parquet(PROCESSED / "duplicate_pairs.parquet")
+            if (PROCESSED / "duplicate_pairs.parquet").exists() else None,
+            "quant": pd.read_parquet(qp),
+            "src": pd.read_parquet(sp)}
 
 
 def _load_served():
@@ -1195,6 +1222,130 @@ it.</p>
 """
 
 
+def sec_provenance(c) -> str:
+    """Task 31: what the served number is, before anybody scores it.
+
+    Four audits that are housekeeping apart and an argument together. The
+    order is deliberate - identity, then rounding, then the republisher, then
+    ownership - because each one asks the same question at a different depth:
+    is the number on the screen the thing you think it is?
+    """
+    p = c.get("prov")
+    if p is None:
+        return ""
+    dup, grib, quant = p["dup"], p["grib"], p["quant"]
+
+    prob_pairs = [d for d in dup["duplicate_pairs"]
+                  if d["channel"] == "precipitation_probability"]
+    if not prob_pairs:
+        return ""
+    sep = dup["separation"]["precipitation_probability"]
+
+    def named(a, b, pairs):
+        for d in pairs:
+            if {d["model_a"], d["model_b"]} == {a, b}:
+                return d
+        return None
+
+    metno = named("ecmwf_ifs025", "metno_seamless", prob_pairs)
+    if metno is None:
+        return ""
+
+    # The channel asymmetry is the whole point of scanning channels
+    # separately, so it is read back from the pair table rather than asserted.
+    amt = ""
+    pairs = p.get("pairs")
+    if pairs is not None:
+        m = pairs.query("channel == 'precipitation' and "
+                        "model_a == 'ecmwf_ifs025' and "
+                        "model_b == 'metno_seamless'")
+        if len(m):
+            amt = (f" Its rainfall <i>amounts</i> are its own: identical on "
+                   f"{m.frac_exact.mean():.0%} of hours, differing by up to "
+                   f"{m.max_abs_diff.max():.1f}&nbsp;mm.")
+
+    rows = "".join(
+        f"<tr><td><code>{esc(d['model_a'])}</code> = "
+        f"<code>{esc(d['model_b'])}</code></td>"
+        f"<td>{esc(d['channel'].replace('precipitation_probability', 'probability').replace('precipitation', 'amount'))}</td>"
+        f"<td class='num'>{d['n_cities_duplicate']} / {d['n_cities_comparable']}</td>"
+        f"<td class='num'>{d['n_hours_min']:,}</td>"
+        f"<td class='num'>{d['min_frac_exact']:.0%}</td></tr>"
+        for d in dup["duplicate_pairs"])
+
+    lab = quant.vendor_pop_label.dropna()
+    step = lab.nunique()
+    qmed = quant.d_quantisation_prorata.abs().median()
+    q99 = quant.d_quantisation_prorata.abs().quantile(0.99)
+
+    flips = grib["event_flips_at_0.2mm_tol"]
+    src = p["src"]
+    n_sa = int(src.share_alike.sum())
+
+    return f"""
+<h2 id="provenance">What is the number, before anyone scores it?</h2>
+<p>Everything above treats the published probability as a given and asks
+whether it is any good. This section asks something prior and less
+comfortable: <b>is it the thing you think it is?</b> Four checks, none of
+which needs a single observation of the weather.</p>
+
+<h3>1. Two names, one forecast</h3>
+<p>Every pair of models was compared hour by hour on the raw values as
+served, before any daily reduction could launder a difference away &mdash;
+{sep['n_pairs']:,} comparisons on the probability alone.</p>
+<table><thead><tr><th>Pair</th><th>Channel</th>
+<th class="num">Cities</th><th class="num">Hours</th>
+<th class="num">Identical</th></tr></thead><tbody>{rows}</tbody></table>
+<div class="callout"><b>MET Norway serves ECMWF's probability.</b> Not
+similar to it &mdash; the same number, to the last digit, on
+{metno['n_hours_min']:,} hours at every one of
+{metno['n_cities_comparable']} cities.{amt} So a test demanding that two
+models match on <i>both</i> channels would have called this pair distinct and
+missed the duplication in the one field this study scores. Duplication is a
+property of the field you are reading, not of the model's name.</div>
+<p class="muted">The cut is checked rather than trusted: every flagged pair
+sits at exactly 100%, nothing at all lands between 99% and 99.9%, and the
+closest unflagged pair is {sep['max_frac_among_distinct']:.2%}. Any threshold
+in that empty band gives this same answer. A reader counting providers is
+counting fewer independent opinions than the menu suggests.</p>
+
+<h3>2. The number is rounded before you see it</h3>
+<p>The served probability takes {step} distinct values &mdash; whole
+percentage points. That rounding is not free, but it is also not the
+explanation for anything here: re-deriving the vendor's own daily figure at
+three-hourly resolution moves it by a median of {qmed:.2f}, with a 99th
+percentile of {q99:.2f}. Small in the middle, occasionally large in the tail,
+so it is reported as a distribution rather than waved away with an
+average.</p>
+
+<h3>3. Is the archive the same as the source?</h3>
+<p>The raw-ensemble comparison leans on a third party's republication of
+NOAA's data, which is an obvious thing to distrust. So it was checked against
+NOAA's own GRIB2 files, byte-range by byte-range:
+{grib['n_comparisons']} comparisons, mean absolute difference
+{grib['mean_abs_diff_mm']:.4f}&nbsp;mm, largest
+{grib['max_abs_diff_mm']:.2f}&nbsp;mm, {grib['n_exact']} of them bit-exact,
+and <b>{flips} days where the two disagree about whether it rained</b>.</p>
+<p class="muted">Two raw values come back slightly negative
+({grib['min_raw_mm']:.2f}&nbsp;mm), an artefact of the rounded-mantissa
+compression rather than of the weather. Disclosed rather than clipped
+silently, because a reader who finds it themselves is entitled to wonder what
+else was tidied.</p>
+
+<h3>4. Who owns it</h3>
+<p>{len(src)} input sources, each read from its own licence page rather than
+from a summary of one. {n_sa} of them is share-alike, and tracing which
+published files inherit that term turned up a file republishing its output as
+<i>served values</i> rather than as a statistic &mdash; the larger obligation,
+and one that a scan of the forecast registry alone would have missed. The
+full record, with the wording, the URL and the date each was read, is in
+<code>NOTICE.md</code>.</p>
+<p class="muted">Auditing our own compliance found the first failure: this site
+named its data source in plain text on every page without the link the licence
+requires. That is fixed, and the build now fails on any page that regresses.</p>
+"""
+
+
 def sec_limits(c) -> str:
     m, pop = c["m"], c["pop"]
     mae = c["lead_mae"]
@@ -1273,7 +1424,7 @@ def responsive_tables(html: str) -> str:
 NAV = [("answer", "Verdict"), ("curve", "Calibration"), ("season", "Seasons"),
        ("scorecard", "Scorecard"), ("hourly", "Hourly"), ("capitals", "Capitals"),
        ("providers", "Providers"), ("league", "League"),
-       ("served", "Served vs raw"),
+       ("served", "Served vs raw"), ("provenance", "Provenance"),
        ("events", "Frost & heat"), ("limits", "Limits"),
        ("consulting", "Work with us"), ("glossary", "Glossary")]
 
@@ -1431,6 +1582,7 @@ def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
         + report_providers.sec_providers()
         + report_providers.sec_league(c)
         + sec_served(c)
+        + sec_provenance(c)
         + report_providers.sec_app_callout(c))
     ref = responsive_tables(report_providers.sec_consulting(c)
                             + sec_improve() + sec_gloss())
