@@ -64,6 +64,7 @@ from config import (
     RAIN_THRESHOLD_MM,
     RAW,
     load_capitals,
+    load_cities,
 )
 from metrics import HEADLINE_ALPHAS, roc_auc, sharpness, value_curve, value_summary
 
@@ -78,7 +79,24 @@ BY_CITY_TABLE = PROCESSED / "triangulation_by_city.parquet"
 
 GEFS_POP_TABLE = PROCESSED / "gefs_pop.parquet"
 TRUTH_TABLE = PROCESSED / "capitals_pinned_daily.parquet"
+WORLD_TRUTH_TABLE = PROCESSED / "cities_pop.parquet"
 QUANTISATION_TABLE = PROCESSED / "vendor_pop_quantisation.parquet"
+
+# Task 10a. The capitals comparison is the published one and its tables keep
+# their names; the world scope writes beside it rather than over it, so the
+# headline sample stays reproducible and the widening is a second result a
+# reader can compare against the first rather than a silent replacement of it.
+WORLD_SUFFIX = "_world"
+
+
+def tables_for(scope: str) -> dict[str, object]:
+    sfx = WORLD_SUFFIX if scope == "world" else ""
+    return {
+        "table": PROCESSED / f"triangulation{sfx}.parquet",
+        "divergence": PROCESSED / f"triangulation_divergence{sfx}.parquet",
+        "reliability": PROCESSED / f"triangulation_reliability{sfx}.parquet",
+        "by_city": PROCESSED / f"triangulation_by_city{sfx}.parquet",
+    }
 
 # A city contributing fewer paired days than this cannot carry a per-city
 # score worth printing; it still contributes to the pooled sample.
@@ -129,7 +147,7 @@ def vendor_daily_pop(city_name: str, timezone: str, model: str) -> pd.DataFrame:
     })
 
 
-def load_truth() -> pd.DataFrame:
+def load_truth(scope: str = "capitals") -> pd.DataFrame:
     """Observed daily rainfall per city-day, from the existing verification table.
 
     `capitals_pinned_daily.parquet` carries the station record already joined
@@ -138,10 +156,35 @@ def load_truth() -> pd.DataFrame:
     scores against. One row per (city, local_date) is asserted, not assumed:
     the table is long over vendor models, and a city-day whose observation
     differed between models would mean the join upstream is broken.
+
+    The world scope unions the world-city verification table on top. That
+    table is built by the same daily reduction against the same gauge record,
+    so the two can be concatenated - but a city present in both must agree,
+    and that is checked rather than resolved by preferring one file, because a
+    disagreement would mean the two tracks are scoring different weather.
     """
     if not TRUTH_TABLE.exists():
         die(f"{TRUTH_TABLE} missing - run `capitals.py providers` first")
     t = pd.read_parquet(TRUTH_TABLE)[["city", "local_date", "obs_precip_mm"]]
+    if scope == "world":
+        if not WORLD_TRUTH_TABLE.exists():
+            die(f"{WORLD_TRUTH_TABLE} missing - run `cities.py` first; the "
+                f"world scope has no truth without it")
+        w = pd.read_parquet(WORLD_TRUTH_TABLE)[
+            ["city", "local_date", "obs_precip_mm"]]
+        both = set(t.city) & set(w.city)
+        if both:
+            a = t[t.city.isin(both)].drop_duplicates(["city", "local_date"])
+            b = w[w.city.isin(both)].drop_duplicates(["city", "local_date"])
+            m = a.merge(b, on=["city", "local_date"], suffixes=("_a", "_b"))
+            gap = (m.obs_precip_mm_a - m.obs_precip_mm_b).abs()
+            if len(m) and float(gap.max()) > 1e-6:
+                die(f"the capitals and world verification tables disagree "
+                    f"about the observed rainfall on {int((gap > 1e-6).sum())} "
+                    f"shared city-days (largest {float(gap.max()):.3f} mm); "
+                    f"they are not scoring the same weather and must not be "
+                    f"pooled")
+        t = pd.concat([t, w[~w.city.isin(both)]], ignore_index=True)
     t = t.dropna(subset=["obs_precip_mm"])
     spread = t.groupby(["city", "local_date"]).obs_precip_mm.nunique()
     if (spread > 1).any():
@@ -176,16 +219,17 @@ def load_gefs() -> pd.DataFrame:
 # --------------------------------------------------------------------------
 # The paired sample
 # --------------------------------------------------------------------------
-def build_paired(model: str = LIKE_FOR_LIKE_MODEL) -> pd.DataFrame:
+def build_paired(model: str = LIKE_FOR_LIKE_MODEL,
+                 scope: str = "capitals") -> pd.DataFrame:
     """One long frame: city x local_date x lead x boundary_mode, all series present.
 
     The intersection is taken ONCE, over the union of requirements, and then
     applied to every series. Nothing is reindexed and nothing is filled: a
     city-day that any series cannot supply is removed from all of them.
     """
-    cities = load_capitals()
+    cities = load_cities() if scope == "world" else load_capitals()
     gefs = load_gefs()
-    truth = load_truth()
+    truth = load_truth(scope)
 
     vend = [vendor_daily_pop(name, c.timezone, model)
             for name, c in sorted(cities.items())]
@@ -506,6 +550,38 @@ def _fmt(df: pd.DataFrame, cols) -> str:
     return df[cols].to_string(index=False, float_format=lambda v: f"{v:.3f}")
 
 
+def panel_composition(cities) -> str:
+    """'105 cities in 25 countries, 69% of them European' - measured, not asserted.
+
+    Both this stage and src/significance.py close with a caveat about how
+    narrow the panel is, and both used to state that width as a literal.
+    After Task 10a widened the panel from 19 capitals to 105 cities the
+    literal was wrong in every direction at once - wrong count, wrong
+    countries, and wrong about the continents, since the wider set reaches
+    Oceania and the Caribbean. A caveat that can go stale silently is worse
+    than no caveat, because a reader has no way to tell. Returns a bare
+    count if the coverage file cannot supply the rest.
+    """
+    cities = sorted(set(cities))
+    txt = f"{len(cities)} cities"
+    try:
+        import json
+        from sampling import continent
+        cov = json.loads((RAW / "city_coverage.json").read_text())["included"]
+        rows = [(v.get("country"), v.get("timezone"))
+                for k, v in cov.items() if k in set(cities)]
+        rows = [r for r in rows if r[0] and r[1]]
+        if not rows:
+            return txt
+        conts = [continent(a, b) for a, b in rows]
+        top = max(set(conts), key=conts.count)
+        share = conts.count(top) / len(conts)
+        return (f"{txt} in {len({r[0] for r in rows})} countries, "
+                f"{share:.0%} of them in {top}")
+    except Exception:
+        return txt
+
+
 def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
            by_city: pd.DataFrame, cross: pd.DataFrame) -> None:
     mode = GEFS_BOUNDARY_PRIMARY
@@ -746,16 +822,19 @@ def report(paired: pd.DataFrame, div: pd.DataFrame, tbl: pd.DataFrame,
           "primary is a day\n     total; the any-step row bounds that "
           "confound and the quantisation control\n     bounds the resolution "
           "one.")
-    print(f"  5. {paired.city.nunique()} European capitals over "
+    print(f"  5. {panel_composition(paired.city)}, over "
           f"{(pd.Timestamp(paired.local_date.max()) - pd.Timestamp(paired.local_date.min())).days // 30}"
-          f" months: the sample is regionally\n     narrow and the days are "
-          f"serially correlated, so differences of a few thousandths\n     of "
-          f"Brier should not be read as significant.")
+          f" months, and the days are\n     serially correlated. Every "
+          f"difference quoted above is untested here;\n     "
+          f"src/significance.py resamples whole days in blocks and is the "
+          f"only place a\n     verdict on one may be read.")
 
 
 # --------------------------------------------------------------------------
 def main() -> None:
-    mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    mode = args[0] if args else "all"
+    scope = "world" if "--scope=world" in sys.argv else "capitals"
 
     print("=== correctness checks ===")
     if mode in ("selftest", "check"):
@@ -763,7 +842,7 @@ def main() -> None:
         print("all checks passed")
         return
 
-    paired = build_paired(LIKE_FOR_LIKE_MODEL)
+    paired = build_paired(LIKE_FOR_LIKE_MODEL, scope=scope)
     selftest(paired)
 
     print(f"\n=== scoring {paired.groupby(['boundary_mode', 'lead_days']).ngroups}"
@@ -780,7 +859,7 @@ def main() -> None:
             cross_rows.append(div)
             continue
         try:
-            p = build_paired(m)
+            p = build_paired(m, scope=scope)
             check_paired(p)
         except SystemExit as exc:
             print(f"  {m}: skipped ({exc})")

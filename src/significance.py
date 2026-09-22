@@ -821,6 +821,28 @@ def report(head: pd.DataFrame, cells: pd.DataFrame, sens: pd.DataFrame,
               f"at lead 1, and the\n  difference survives both the spatial "
               f"and the serial dependence. This overturns\n  the dead-heat "
               f"reading in triangulation.py.")
+        # The vendor's daily number is a max over hours, so the event it
+        # actually answers is "some hour was wet", not "the day total was
+        # wet". Scoring it against the ensemble's any-step event is the
+        # like-for-like version of the same comparison - and if the verdict
+        # reverses there, then the winner is a property of the event
+        # definition rather than of the forecast, which a single Brier
+        # number cannot express. Reported whenever both are resolved.
+        a = h1[h1.statistic == "brier_diff_anystep"]
+        if len(a):
+            a = a.iloc[0]
+            if a.p_boot < ALPHA_TEST and (a.estimate > 0) != (b.estimate > 0):
+                other = "member-derived" if better == "vendor" else "vendor"
+                print(f"  BUT THE EVENT DEFINITION REVERSES IT. Against the "
+                      f"ensemble's any-step event -\n  the one the vendor's "
+                      f"max-over-hours actually answers - the difference is "
+                      f"{a.estimate:+.4f}\n  (95% CI {a.ci_lo:+.4f} to "
+                      f"{a.ci_hi:+.4f}), p = {a.p_boot:.3f}, favouring the "
+                      f"{other}. Both\n  directions are resolved, so this is "
+                      f"not ambiguity: which series is 'better\n  calibrated' "
+                      f"depends on which of two defensible definitions of a "
+                      f"rainy day is\n  used, and neither the vendor nor the "
+                      f"score discloses the choice.")
 
     print("\n--- 2. What the dependence handling costs, per standard error ---")
     m = h1[h1.statistic.isin(MEAN_STATISTICS)]
@@ -834,14 +856,31 @@ def report(head: pd.DataFrame, cells: pd.DataFrame, sens: pd.DataFrame,
           "too confident.\n  Any published verdict on these data that does "
           "not resample whole days is wrong by\n  about that factor.")
 
-    print("\n--- 3. Decision value: the claim the Brier tie conceals (E4a) ---")
+    br = h1[h1.statistic == "brier_diff"].iloc[0]
+    brier_resolved = bool(br.p_boot < ALPHA_TEST)
+    print("\n--- 3. Decision value: what the average score does not say (E4a) ---")
     for _, r in h1[h1.statistic.str.startswith("value_diff")].iterrows():
         al = int(r.statistic[-2:])
         print(f"   alpha = 0.{al:02d}   V(vendor) - V(GEFS) = {r.estimate:+.3f} "
               f"[{r.ci_lo:+.3f}, {r.ci_hi:+.3f}]  p = {r.p_boot:.4f} "
               f"{_stars(r.p_boot)}")
     lo = h1[h1.statistic == "value_diff_a05"].iloc[0]
-    if lo.p_boot < ALPHA_TEST and lo.estimate < 0:
+    if lo.p_boot < ALPHA_TEST and lo.estimate < 0 and brier_resolved and br.estimate < 0:
+        # The strongest form of D12 available: not a concealed difference but
+        # an inverted one. The same days, the same two series, and the two
+        # metrics disagree about which forecast is better - so a reader's
+        # verdict is decided by the choice of metric and not by the evidence.
+        print(f"  The two metrics do not merely differ in power here, they "
+              f"disagree in SIGN.\n  Brier prefers the vendor by "
+              f"{abs(br.estimate):.4f} (p = {br.p_boot:.4f}); at a cost-loss "
+              f"ratio of 0.05 the\n  same days prefer the ensemble by "
+              f"{abs(lo.estimate):.2f} (p = {lo.p_boot:.4f}). Both are "
+              f"resolved, so this\n  is not one claim being noisier than the "
+              f"other: a reader told 'better calibrated'\n  and a reader who "
+              f"acts cheaply and often would be given opposite advice from "
+              f"one\n  sample. That is D12 in its strongest form - the metric "
+              f"decides the verdict.")
+    elif lo.p_boot < ALPHA_TEST and lo.estimate < 0:
         print(f"  The low-cost-ratio user's loss IS resolved by this sample "
               f"even though the average\n  score is not: the same days that "
               f"cannot separate two Brier scores separate these\n  value "
@@ -938,16 +977,19 @@ def report(head: pd.DataFrame, cells: pd.DataFrame, sens: pd.DataFrame,
           "methodological\n     sensitivity. A reader who thinks a smaller "
           "Brier difference matters is entitled\n     to, and the CI is "
           "printed so they can apply their own margin.")
-    print("  4. Every number here rests on 15 European capitals over 21 "
-          "months. These tests say\n     what this sample can and cannot "
-          "resolve; they say nothing about any other\n     region, and the "
-          "unresolved Brier comparison stays unresolved until the city\n     "
-          "count rises (G1, G20).")
+    print(f"  4. Every number here rests on "
+          f"{triangulation.panel_composition(cells.city)}, over 21 months.\n"
+          f"     These tests say what this sample can and cannot resolve; "
+          f"they say nothing\n     about any region the panel does not "
+          f"contain, and E27 established that no\n     gauge panel can be "
+          f"built for most of them (G1).")
 
 
 # ---------------------------------------------------------------------------
 def main() -> None:
-    arg = sys.argv[1] if len(sys.argv) > 1 else "all"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    arg = args[0] if args else "all"
+    scope = "world" if "--scope=world" in sys.argv else "capitals"
     n_boot = 300 if arg == "quick" else BOOTSTRAP_N
 
     print("=== correctness checks ===")
@@ -956,7 +998,7 @@ def main() -> None:
         print("all checks passed")
         return
 
-    paired = triangulation.build_paired(LIKE_FOR_LIKE_MODEL)
+    paired = triangulation.build_paired(LIKE_FOR_LIKE_MODEL, scope=scope)
     triangulation.check_paired(paired)
     margin = equivalence_margin(paired)
 

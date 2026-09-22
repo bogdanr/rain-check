@@ -30,6 +30,7 @@ from config import (
     RAW,
     City,
     load_capitals,
+    load_cities,
 )
 from constants import POP_ARCHIVE_START
 from fetch import fetch_json, is_error, network_calls, reason
@@ -208,6 +209,38 @@ def collect_era5() -> pd.DataFrame:
     return df
 
 
+def collect_one_model_world(model: str) -> None:
+    """One pinned model across the whole world-city set (Task 10a).
+
+    The capitals carry all twelve provider models because the league table
+    ranks them against each other. The world cities do not, and do not need
+    to: the served-versus-ensemble comparison pins exactly one vendor model -
+    the one from the same centre as the ensemble it is compared against - so
+    widening that comparison needs this model and no other.
+
+    Kept apart from `collect_all_providers` rather than folded into it with a
+    flag, because that function's contract is "every model at every capital"
+    and this one's is "one model everywhere". Running the twelve-model loop
+    over 109 cities would be roughly 5,000 requests to answer a question that
+    needs 500.
+    """
+    import time
+
+    caps = set(load_capitals())
+    cities = [c for name, c in sorted(load_cities().items()) if name not in caps]
+    print(f"{model}: {len(cities)} world cities beyond the {len(caps)} capitals")
+    for i, city in enumerate(cities):
+        try:
+            _, n_req = collect_provider_pop(city, model)
+        except RuntimeError as exc:
+            if "429" not in str(exc) and "limit" not in str(exc).lower():
+                raise
+            print(f"  {city.name}: hourly limit reached - re-run to resume")
+            n_req = 99
+        if n_req > 2 and i < len(cities) - 1:
+            time.sleep(PROVIDER_SPACING_S)
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
     if cmd == "previous_runs":
@@ -218,6 +251,9 @@ if __name__ == "__main__":
         collect_era5()
     elif cmd == "all-providers":
         collect_all_providers(sys.argv[2] if len(sys.argv) > 2 else None)
+    elif cmd == "model-world":
+        collect_one_model_world(sys.argv[2] if len(sys.argv) > 2
+                                else "gfs_seamless")
     elif cmd == "all":
         collect_previous_runs()
         collect_hist_pop()

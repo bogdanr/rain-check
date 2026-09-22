@@ -164,7 +164,7 @@ echo "== 14/26 served vs member-derived probability (Task 21, triangulation) =="
 # Every series is scored on one identical sample of city-days; the module
 # aborts loudly (stage-5 style) if that sample is not identical, and its
 # selftest runs first.
-run_fresh S triangulation.py -- \
+run_fresh S triangulation.py all --scope=world -- \
   data/processed/triangulation.parquet \
   data/processed/triangulation_divergence.parquet \
   data/processed/triangulation_reliability.parquet \
@@ -172,14 +172,14 @@ run_fresh S triangulation.py -- \
 
 echo "== 15/26 paired significance and FDR control (Tasks 25-26) =="
 # Whether the stage-14 verdicts survive the two dependencies in the sample:
-# rain persists for days, and 15 capitals share the same weather systems. The
+# rain persists for days, and 105 cities share the same weather systems. The
 # resampling unit is therefore the calendar day carrying all its cities, drawn
 # in blocks whose length is measured from the data rather than assumed. The
 # correctness checks run first and abort the step: they demonstrate, against a
 # known truth, that the naive independent-sample interval covers about a third
 # of the time at a nominal 95% - which is the size of mistake this stage
 # exists to prevent. Two minutes, no network.
-run_fresh S significance.py -- \
+run_fresh S significance.py all --scope=world -- \
   data/processed/significance_headline.parquet \
   data/processed/significance_cells.parquet \
   data/processed/significance_block_sensitivity.parquet

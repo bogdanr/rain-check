@@ -41,33 +41,32 @@ Settled; do not re-litigate.
 
 **E3. G17 is closed — quantisation does not drive the divergence.** `data/processed/vendor_pop_quantisation.parquet`, 16,416 city-days: re-deriving vendor PoP at 3-hourly resolution shifts it by a **median of 0.00** and a mean of 0.0089 under snapping. A tail exists — 99th percentile 0.36 under pro-rata — so the control must be reported distributionally, not as a single mean. But resolution mismatch is ruled out as the explanation for the vendor-versus-ensemble gap.
 
-**E4. The triangulation result — the headline, and it is unresolved rather than a tie.** `src/triangulation.py`, 8,572 city-days, 15 capitals, set-identical sample enforced per (boundary mode, lead) cell. **Qualified by E10 below: the lead-1 calibration comparison is not a demonstrated tie, it is a comparison this sample cannot make. E22 closes the question for good: it is also a comparison this *truth* cannot make — the gap is 0.2× the amount gauge siting alone moves it, and flips sign in 45% of alternative worlds.**
+**E4. The triangulation result — the headline, now measured on 105 cities. — REVISED (Task 10a).** `src/triangulation.py`, **60,891 city-days, 105 cities in 25 countries**, set-identical sample enforced per (boundary mode, lead) cell. The earlier scope was 8,572 city-days over 15 capitals; those numbers are superseded throughout. **Qualified by E10 below: at this scope the lead-1 calibration comparison resolves, but its sign depends on the event definition. E22's warning still applies to any single-definition reading of it — the gap is small relative to what gauge siting alone moves.**
 
 *Divergence*, vendor `gfs_seamless` minus GEFS-derived, pro-rata:
 
 | lead | bias | mean abs | median abs | Pearson r | share >0.2 |
 |---|---|---|---|---|---|
-| 1 | −0.078 | 0.134 | 0.032 | 0.861 | 24% |
-| 3 | −0.068 | 0.178 | 0.097 | 0.786 | 33% |
-| 5 | −0.061 | 0.245 | 0.194 | 0.648 | 47% |
-| 7 | −0.069 | 0.301 | 0.258 | 0.510 | 60% |
+| 1 | −0.095 | 0.143 | 0.032 | 0.841 | 26% |
+| 3 | −0.088 | 0.179 | 0.097 | 0.777 | 33% |
+| 5 | −0.089 | 0.236 | 0.164 | 0.661 | 45% |
+| 7 | −0.096 | 0.284 | 0.241 | 0.552 | 56% |
 
-Vendor PoP is systematically **drier** than the raw ensemble supports, by 0.06–0.08 at every lead.
+Vendor PoP is systematically **drier** than the raw ensemble supports, by 0.09–0.10 at every lead — a larger gap than the 0.06–0.08 seen at the capitals, and now resolved at p = 0.001.
 
-*Calibration at lead 1 — the only same-lead comparison:* Brier **vendor 0.1669 vs GEFS 0.1672**. The gap, 0.0003, is **smaller than the 0.0015 the ensemble's own Brier moves under the day-boundary rule alone**. ~~This is a tie, and is reported as one.~~ **Superseded by E10: it is an *unresolved* comparison, not a demonstrated tie, and is reported that way both in the paper and on the site.** Vendor has better reliability (0.0151 vs 0.0214 — the raw 31-member frequency over-forecasts); GEFS has better discrimination (AUC 0.862 vs 0.846) and resolution. The ensemble's any-step variant beats both (Brier 0.1579, BSS 0.322). Vendor wins in 63% of 105 city × lead cells.
+*Calibration at lead 1 — the only same-lead comparison:* Brier **vendor 0.1546 vs GEFS 0.1607**, a gap of 0.0061 that E10 resolves at p = 0.001. Vendor has better reliability (0.0136 vs 0.0229 — the raw 31-member frequency over-forecasts); GEFS has better discrimination (AUC 0.8719 vs 0.8599) and marginally better resolution. **The ensemble's any-step variant beats both (Brier 0.1470, BSS 0.332), and scoring the vendor against that event reverses the verdict — see E10.** Vendor wins in 76% of 735 city × lead cells.
 
-**E4a. The Brier tie conceals a real decision-value gap at low cost-loss ratios. — IMPORTANT.** At lead 1, on the identical paired sample, relative economic value:
+**E4a. The average score conceals a large decision-value gap at low cost-loss ratios. — IMPORTANT; REVISED at 105 cities.** At lead 1, on the identical paired sample, relative economic value:
 
 | α | vendor | GEFS-derived |
 |---|---|---|
-| 0.05 | **−0.748** | **−0.206** |
-| 0.10 | **−0.080** | **+0.124** |
-| 0.20 | 0.282 | 0.376 |
-| 0.30 | 0.456 | 0.497 |
-| 0.50 | 0.481 | 0.465 |
-| peak | 0.571 | 0.574 |
+| 0.05 | **−0.464** | **−0.018** |
+| 0.10 | 0.060 | 0.239 |
+| 0.20 | 0.370 | 0.446 |
+| 0.30 | 0.515 | 0.545 |
+| 0.50 | 0.459 | 0.433 |
 
-Peak value and Brier are tied, but for the **low-cost-ratio user — who acts cheaply and often to protect against a rare expensive loss — the served probability is actively harmful where the member-derived one is not.** The vendor's dry bias (E4) is exactly what destroys value at low α: a systematically too-low probability fails to trigger action at low thresholds. The honest verdict is therefore *tied on average scores, materially worse for an identifiable and decision-relevant class of user.* This is a sharper claim than the original hypothesis, and it is **invisible to Brier** — which is itself an argument for reporting economic value, per D7.
+For the **low-cost-ratio user — who acts cheaply and often to protect against a rare expensive loss — the served probability is worse than useless at α = 0.05 (−0.46), where the member-derived one is roughly break-even.** The vendor's dry bias (E4) is exactly what destroys value at low α: a systematically too-low probability fails to trigger action at low thresholds. The gap is −0.446 at α = 0.05 and −0.178 at α = 0.10, both at p = 0.001 (E10). At the capitals scope the corresponding figures were −0.748 vs −0.206 and −0.080 vs +0.124; the wider panel softens the levels and keeps the ordering and the significance. The honest verdict is *ahead on average accuracy under one event definition, behind under the other, and materially worse for an identifiable and decision-relevant class of user under both.* This is **invisible to Brier**, which is itself an argument for reporting economic value, per D7.
 
 **E5. Decision value is established.** `src/decision_metrics.py`, 65 capital × model series plus 104 world cities. Peak relative economic value **median 0.559 at α ≈ 0.40**; positive somewhere for **100%** of series; positive across a median 66% of the cost-loss range. Persistence peaks at 0.089. **The price of miscalibration — acting on the served number versus the best trigger — is a median of only 0.017 at the peak.** At α = 0.10 the acting rule gives median V = 0.092 and is positive for just 55% of series, against 0.196 for the best trigger: the low-cost-ratio user is where miscalibration actually bites.
 
@@ -94,26 +93,27 @@ Peak value and Brier are tied, but for the **low-cost-ratio user — who acts ch
 
 **E12c. The league table was double-counting, and its rank intervals were broken.** 16 rows collapsed across 16 cities. Separately, `league.py` was ranking each model's 600 bootstrap replicates against *each other* instead of ranking models within each replicate, so every published row carried an identical, meaningless interval of 16–585 — a range wider than the number of models. Both are fixed; an assertion now makes the rank error fatal rather than printable. Threshold robustness inherits the collapse: the "rankings move" tally falls from 57/85 to 44/69.
 
-**E10. The lead-1 "tie" does not survive testing — and neither does its negation. — NEW, and it changes the paper's central sentence.** `src/significance.py`, Tasks 25 and 26. Paired block bootstrap resampling whole calendar days (all 15 cities together, blocks of 14 days chosen from the measured decorrelation time τ = 1.9 days), 2,000 replicates:
+**E10. At 105 cities the lead-1 comparison resolves — and the verdict reverses with the definition of a rainy day. — REVISED at the wider panel (Task 10a); supersedes the 15-capital numbers below.** `src/significance.py`, Tasks 25 and 26. Paired block bootstrap resampling whole calendar days (all 105 cities together, blocks of 14 from the measured τ = 2.4 days), 2,000 replicates, 60,891 paired city-days over 631 days:
 
 | statistic, vendor − GEFS | estimate | 95% CI | p |
 |---|---|---|---|
-| Brier | −0.0003 | −0.0063, +0.0049 | 0.91 |
-| reliability | −0.0063 | −0.0103, −0.0023 | 0.003 |
-| resolution | −0.0045 | −0.0082, −0.0018 | 0.019 |
-| AUC | −0.0160 | −0.0207, −0.0095 | 0.001 |
-| dry bias | −0.0778 | −0.0871, −0.0698 | 0.001 |
-| V at α = 0.05 | −0.542 | −0.733, −0.402 | 0.001 |
-| V at α = 0.10 | −0.204 | −0.301, −0.126 | 0.001 |
-| V at α = 0.50 | +0.017 | −0.000, +0.037 | 0.13 |
+| Brier, day-total event | **−0.0061** | −0.0093, −0.0030 | **0.001** |
+| Brier, **any-step** event | **+0.0075** | +0.0053, +0.0097 | **0.001** |
+| reliability | −0.0094 | −0.0126, −0.0063 | 0.001 |
+| resolution | −0.0021 | −0.0055, −0.0003 | 0.32 |
+| AUC | −0.0120 | −0.0149, −0.0091 | 0.001 |
+| dry bias | −0.0951 | −0.1017, −0.0901 | 0.001 |
+| V at α = 0.05 | −0.446 | −0.529, −0.384 | 0.001 |
+| V at α = 0.10 | −0.178 | −0.218, −0.146 | 0.001 |
+| V at α = 0.50 | +0.026 | +0.014, +0.038 | 0.002 |
 
-The Brier difference is not significant, **and TOST at the 0.0015 boundary-rule margin does not establish equivalence either (p = 0.34)**. The minimum detectable difference at 80% power is **0.0081 — five times the margin** — so no sample of this size and correlation could ever have demonstrated the tie. "The served probability is as well calibrated as the ensemble" is therefore **not a finding of this study**; what is a finding is that any difference is smaller than 0.006 Brier. The verdict is stable across block lengths 7–28 and both boundary rules.
+Widening the panel from 15 capitals to 105 cities in 25 countries turns the unresolved comparison into a resolved one, exactly as E28's design effect predicts: the gain came from *countries*, not from days. But the win is definition-dependent and that is the stronger result. Against the day-total event the vendor is better by 0.0061; against the any-step event — the one the vendor's max-over-hours actually answers — the **ensemble** is better by 0.0075. **Both directions are firmly resolved (p = 0.001 each), so this is not ambiguity from thin data: which series is "better calibrated" is decided by an undisclosed definitional choice.** At 15 capitals the earlier reading was −0.0003 (CI −0.0063, +0.0049, p = 0.91) with TOST also failing at the 0.0015 margin — that null was a power limit, and it is superseded rather than contradicted.
 
-**E10a. Everything else the paper wants to say IS resolved by the same sample.** The dry bias, the reliability/resolution trade (D10), the discrimination gap and the entire low-α decision-value gap (E4a) all clear significance comfortably on the identical days that cannot separate two Brier scores. The asymmetry is itself the argument for D12: the choice of metric, not the quantity of data, decides whether a reader sees the harm.
+**E10a. The metric still decides the verdict — now by sign rather than by resolvability.** At the 15-capital scope the argument for D12 was an asymmetry in power: the decision-value gap resolved on the same days that could not separate two Brier scores. At 105 cities both resolve, and they **disagree in sign** — Brier prefers the vendor by 0.0061 while α = 0.05 economic value prefers the ensemble by 0.446, on identical days. A reader told "better calibrated" and a reader who acts cheaply and often are given opposite advice from one sample. That is D12 in its strongest available form.
 
 **E10b. The dependence handling is not a formality.** Against a synthetic panel with the study's own dependence structure and a known truth, the naive independent-sample interval covers **28%** of the time at a nominal 95% and rejects true nulls **72%** of the time; the day-block bootstrap covers 94% and rejects 3%. On the real data the naive standard error understates the dry-bias error by 1.8×. Any published verdict on these data that does not resample whole days is wrong by about that factor.
 
-**E11. The per-city panel is a direction, not 105 findings. — NEW.** Task 26. Of 105 city × lead cells, 34 reach p < 0.05 uncorrected, **27 survive Benjamini-Hochberg at q = 0.10 and 19 survive Benjamini-Yekutieli** (valid under arbitrary dependence). Every surviving cell is at lead 5–7, i.e. in the region where the comparison is not like-for-like. The "vendor wins 63% of cells" figure in E4 must therefore be quoted as a direction only.
+**E11. The per-city panel is a direction, not 735 findings. — REVISED at the wider panel.** Task 26. Of **735** city × lead cells, 365 reach p < 0.05 uncorrected, **364 survive Benjamini-Hochberg at q = 0.10 and 235 survive Benjamini-Yekutieli** (valid under arbitrary dependence). The vendor has the lower Brier in 557 of 735 cells (76%), but the surviving cells concentrate at the longer leads where the comparison is not like-for-like, so the cell-win share is a direction only.
 
 **E13. ML beats physics on daily rain probability — in direction everywhere, in significance nowhere once the family is counted. — NEW.** `src/physics_ml.py`, Task 30. ECMWF's IFS ENS and AIFS ENS, 51 members each, one grid, one initialisation, one republisher, so the forecast *method* is very nearly the only difference. 4,655 city-days × 7 leads over 15 capitals, 2025-07-09 .. 2026-05-31:
 

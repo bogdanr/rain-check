@@ -121,6 +121,7 @@ from config import (
     RAW,
     City,
     load_capitals,
+    load_cities,
 )
 
 STEP_H = GEFS_STEP_SECONDS / 3600.0
@@ -820,8 +821,18 @@ if __name__ == "__main__":
         step = None if raw is None else tuple(
             None if p in ("native", "none") else float(p)
             for p in raw.split(","))
+        # --cities=world widens the derivation beyond the capitals (Task
+        # 10a). It is a flag rather than the default because the published
+        # capitals table has to stay reproducible from the same command that
+        # produced it; a silent widening would change the headline sample
+        # without changing a single line of the code that reads it.
+        who = next((a.split("=")[1] for a in args
+                    if a.startswith("--cities=")), "capitals")
+        if who not in ("capitals", "world"):
+            raise SystemExit(f"--cities must be capitals or world, got {who}")
         compute(key, modes=GEFS_BOUNDARY_MODES if mode == "all" else (mode,),
-                step_hours=step)
+                step_hours=step,
+                cities=load_cities() if who == "world" else None)
     elif cmd == "compare":
         compare_boundary_modes(key)
     elif cmd == "vendor-control":

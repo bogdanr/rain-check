@@ -1110,11 +1110,6 @@ def sec_served(c) -> str:
 
     bd = sig.loc["brier_diff"]
     v05, v10 = sig.loc["value_diff_a05"], sig.loc["value_diff_a10"]
-    # The equivalence margin is not a round number chosen for the page: it is
-    # how far the ensemble's own score moves under the day-boundary rule, the
-    # smallest difference this design can call real.
-    margin = float(bd.equivalence_margin)
-
     # The two samples are kept apart rather than pooled. They are different
     # panels -- 15 capitals seen through several providers, and 104 cities seen
     # through one each -- and a single median over both would be a number
@@ -1142,7 +1137,7 @@ the way a forecaster would &mdash; take the American ensemble's
 {GEFS_MEMBERS} members, count how many produce rain,
 publish the fraction &mdash; and put the two side by side on
 {int(cell('vendor', 1, 'n')):,} city-days across {int(div.n_cities.iloc[0])}
-capitals.</p>
+cities.</p>
 <table><thead><tr><th class="num">Days ahead</th>
 <th class="num">Served says</th><th class="num">Ensemble says</th>
 <th class="num">Gap</th><th class="num">Typical distance</th>
@@ -1152,18 +1147,23 @@ drift apart as the forecast reaches further out: at a week ahead they are
 barely related to each other. That is a description of the pipeline, not yet a
 verdict on it &mdash; drier could mean better.</p>
 
-<h3>Is the served number better calibrated? We cannot tell.</h3>
-<p>At one day ahead, the only lead where the comparison is clean, the two score
-almost identically: a difference in accuracy of
-{bd.estimate:+.04f}. It is tempting to call that a tie. It is not one. Allowing
-for the fact that weather persists for days and that {int(bd.n_cities)} capitals
-share the same weather systems, the honest interval on that difference runs from
-{bd.ci_lo:+.04f} to {bd.ci_hi:+.04f} &mdash; wide enough to contain a real
-advantage either way. The smallest difference this data could have detected is
-{bd.mde_80:.04f}, about {bd.mde_80 / margin:.0f}&times; larger than the
-{margin:.04f} that would count as a meaningful one. So the answer is
-<b>unresolved</b>, and no amount of careful analysis of these two years could
-have made it otherwise.</p>
+<h3>Is the served number better calibrated? It depends what you mean by a rainy day.</h3>
+<p>At one day ahead, the only lead where the comparison is clean, the served
+number is the more accurate of the two by {abs(bd.estimate):.04f}
+(interval {bd.ci_lo:+.04f} to {bd.ci_hi:+.04f}, p&nbsp;=&nbsp;{bd.p_boot:.03f}),
+allowing for the fact that weather persists for days and that
+{int(bd.n_cities)} cities share the same weather systems. That looks like a
+clean win.</p>
+<p>It survives exactly one change of definition. Scored instead against the
+event the served number actually answers &mdash; rain at <i>any point</i> in the
+day, rather than a day-total crossing the threshold &mdash; the sign reverses:
+the raw ensemble is ahead by
+{abs(float(sig.loc['brier_diff_anystep'].estimate)):.04f}
+(p&nbsp;=&nbsp;{float(sig.loc['brier_diff_anystep'].p_boot):.03f}). Both
+directions are firmly resolved, so this is not the data being too thin to tell.
+<b>Which forecast is &lsquo;better calibrated&rsquo; depends on which of two
+defensible definitions of a rainy day you pick &mdash; and neither the app nor
+the score tells you which one was used.</b></p>
 
 <h3>Where it does matter: the person who acts on cheap precautions</h3>
 <p>Average accuracy is an average over users. Consider instead someone whose
@@ -1188,15 +1188,19 @@ each forecast actually delivers to that user:</p>
 <td class="num">{sig.loc['value_diff_a50'].estimate:+.02f} <span class="muted">(p&nbsp;=&nbsp;{sig.loc['value_diff_a50'].p_boot:.03f})</span></td></tr>
 </tbody></table>
 <p>A negative number means following the forecast leaves the user worse off
-than a standing habit of always acting, or never acting. For the cheap-action
-user the served probability is not merely less useful than the ensemble
-&mdash; it is <b>worse than useless</b>, and the dry bias in the table above is
-why. By the halfway point the gap has closed and both are genuinely
-useful.</p>
-<p>The two findings belong together. The same days that cannot resolve a
-difference in average accuracy resolve this gap comfortably. Which is the
-point: <b>the choice of measure, not the amount of data, decides whether a
-reader ever sees the harm.</b></p>
+than a standing habit of always acting, or never acting. At the cheapest
+action the served probability is not merely less useful than the ensemble
+&mdash; it is <b>worse than useless</b>, while the ensemble roughly breaks
+even; and the dry bias in the table above is why, because a number that runs
+low never crosses a low threshold. The gap narrows as acting gets more
+expensive, and by the halfway point it has closed.</p>
+<p>The two findings belong together, and they point opposite ways. On average
+accuracy the served number wins; on the same days, for the cheap-action user,
+it loses heavily. Both are resolved, so a reader told &lsquo;better
+calibrated&rsquo; and a reader who acts on small chances would be given
+contradictory advice from one sample. Which is the point: <b>the choice of
+measure, not the amount of data, decides whether a reader ever sees the
+harm.</b></p>
 <figure><img src="{fig(FIGURES / 'economic_value.png')}" alt="economic value">
 <figcaption>The full curve behind that table: benefit delivered, against how
 cheaply the reader can afford to act. The left-hand edge, where the curves dive
