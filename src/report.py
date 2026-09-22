@@ -1486,9 +1486,12 @@ those days? Checked against real station measurements across
 {body}
 {ref}
 <footer>Generated {dt.date.today().isoformat()} &middot;
-Forecasts: Open-Meteo &middot; Truth: {esc(stations)} (GHCN-Daily) &middot;
+Forecasts: <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>
+(CC&nbsp;BY&nbsp;4.0) &middot;
+Truth: {esc(stations)} (GHCN-Daily, Menne et al. 2012) &middot;
 {len(c['pop'])} Bucharest days, {len(cities)} capitals &middot;
-Reproducible via <code>./run_all.sh</code>
+Reproducible via <code>./run_all.sh</code> &middot;
+Full attribution in <code>NOTICE.md</code>
 </footer>
 </div>
 {'' if STANDALONE else palette()}

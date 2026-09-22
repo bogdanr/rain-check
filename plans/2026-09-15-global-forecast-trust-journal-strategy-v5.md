@@ -234,6 +234,18 @@ Seven checks police the places a silent error could live and abort the stage: th
 
 *Consequence.* **The study can say how badly the forecast fails, who it fails and what it costs them; it cannot say why.** That closes G4 rather than leaving it open — and it removes the temptation the in-sample column represents, since a paper reporting R² 0.18 without the −0.17 beside it would have published a mechanism that does not exist. What the panel cannot rule out is separate and stated: latitude and rain frequency are entangled at r = +0.65 here, so a latitudinal effect could hide inside a climate one, and terrain is missing for 21 cities precisely where gauges are sparse — which is where orography would matter most.
 
+**E34. One of nine input sources is share-alike, six published files inherit it, and no reported number does. — Task 9; G15 closed.** (`src/provenance.py`.)
+
+*The sources.* Nine publishers read from their own licence statements on 2026-09-22 and recorded with the wording, the URL and the date. Open-Meteo states CC BY 4.0 across its API and requires a link beside any display of the data; its own upstream list nonetheless gives **UK Met Office data as CC BY-SA 4.0**, so the blanket statement cannot be relied on for that upstream and the stricter term is assumed. GHCN-Daily and ISD are US Government works — GHCN asks for a citation, ISD states no licence at all. CHIRPS is CC0. dynamical.org's *datasets* are CC BY 4.0 while its *website prose* is CC BY-NC-SA, so its validation reports cannot be quoted into a commercially published paper as they stand.
+
+*The propagation.* 334 published files scanned for the model identifiers whose values reach them: 27 carry model-derived values and **6 inherit the share-alike term**. One of the six republishes Met Office output *as served values* rather than as a statistic computed from it — the larger obligation, and the one a scan of the forecast-API registry alone would have missed, because those ids live in the ensemble registry where the same organisations are spelled differently and a defaulting lookup filed them under CC BY.
+
+*What is claimed, and what is checked.* The lineage is not clean — `league.py` reads the duplicate table, Met Office rows included — so the testable claim is the narrower one: no Met Office model is pinned in any league city, so those rows collapse nothing, and no headline table carries a Met Office series. The stage fails if that stops being true.
+
+*A defect found and fixed.* Open-Meteo's licence requires a link, not just a name, beside displayed data. The audit found city pages naming Open-Meteo without linking it; `src/report.py` now emits the link, and the check fails the build on any page that names the source without it — 109 of 109 pages compliant.
+
+*What this does not settle.* ISD's terms are recorded as **unresolved rather than cleared**: it aggregates foreign national reports, some under WMO Resolution 40, and this study publishes coverage counts rather than observations, so nothing is redistributed. None of it is legal advice; it is a record of what each publisher states and when it was read.
+
 ---
 
 ## Design Decisions
@@ -324,7 +336,7 @@ Also recorded: the wet-bias precedent (their founder's own work, in Silver 2012)
 
 **G14. Sampling-design defence — CLOSED.** E29. The cap is swept from 1 to uncapped and its effect on the answer bounded at 0.0118 BSS, ≤0.0005 for any cap ≥ 2. The design, its allocation rule and its shortfall are stated explicitly in `sampling_design.parquet` rather than left implicit.
 
-**G15. Licence segregation.** Open — CC-BY-SA propagation from UKMO.
+**G15. Licence segregation.** ~~Closed by E34~~ — one share-alike input (UK Met Office via Open-Meteo), six inheriting files segregated under CC BY-SA 4.0, no reported number affected, checked rather than asserted. `NOTICE.md` generated from the audit.
 
 **G16. Third-party republication dependency — CLOSED.** E2. Remaining housekeeping: disclose the compression and the negative-value artefact, resolve URLs from STAC at run time (`data.dynamical.org` URLs retire 2026-09-30), archive extracted point data to Zenodo.
 
@@ -357,7 +369,7 @@ Also recorded: the wet-bias precedent (their founder's own work, in Silver 2012)
 - [ ] Task 5. Write the literature positioning around the corrected framing. Rationale: G5, D7, D8.
 - [x] Task 6. Per-station observation-time detection — **done** (`src/obs_time.py`). Metadata rule fitted to a measured curve, audited against an independent neighbour-graph measurement, 14 disagreeing stations named and excluded. E24–E26.
 - [ ] Task 7. Add validated ML ids to `PROVIDER_MODELS` for the deterministic track. Rationale: G13, D6.
-- [ ] Task 9. Record licence provenance per model; segregate CC-BY-SA outputs. Rationale: G15.
+- [x] Task 9. Record licence provenance per model; segregate CC-BY-SA outputs. Rationale: G15. → E34.
 
 ### Phase 2 — External ensemble integration
 
