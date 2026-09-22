@@ -118,6 +118,7 @@ from config import (
     PROCESSED,
     RAIN_THRESHOLD_MM,
     RAIN_THRESHOLD_VARIANTS_MM,
+    RANDOM_SEED,
     RAW,
     City,
     load_capitals,
@@ -381,7 +382,10 @@ def _source(src):
 def compute(src=None, modes=(GEFS_BOUNDARY_PRIMARY,),
             thresholds=RAIN_THRESHOLD_VARIANTS_MM,
             lead_days=LEAD_DAYS, cities=None,
-            step_hours: float | None | tuple = None) -> pd.DataFrame:
+            step_hours: float | None | tuple = None,
+            member_subset: int | None = None,
+            subset_seed: int = RANDOM_SEED,
+            write: bool = True, quiet: bool = False) -> pd.DataFrame:
     """Member-derived PoP for every collected city-day. Long form.
 
     Long over (boundary mode x threshold) rather than wide, for the same
@@ -401,8 +405,22 @@ def compute(src=None, modes=(GEFS_BOUNDARY_PRIMARY,),
     between them, and two files would let a later run leave the matched and
     native halves derived from different collections without anything
     noticing.
+
+    `member_subset` keeps only the first N members after a fixed shuffle, for
+    Task 20b: GEFS carries 31 members and IFS ENS 51, so a comparison of the
+    two centres' probabilities has an ensemble-size difference inside it. A
+    member fraction is an unbiased estimate of the exceedance probability at
+    any N, so size cannot move the MEAN in expectation - but that is an
+    argument, and the argument is worth a measurement. Such a run never
+    overwrites the source's own table: `write` must be False, because the
+    published PoP for a source is the one derived from all of its members.
     """
     src = _source(src)
+    if member_subset is not None and write:
+        raise ValueError(
+            "a member-subset run must not write the source's PoP table - "
+            "pass write=False and keep the result in memory or under a "
+            "different name")
     cities = cities or load_capitals()
     ladders = (step_hours if isinstance(step_hours, (tuple, list))
                else (step_hours,))
@@ -418,6 +436,18 @@ def compute(src=None, modes=(GEFS_BOUNDARY_PRIMARY,),
                 f"{name}: {n_members} members on disk, registry says "
                 f"{src.members} - PoP resolution and every sharpness "
                 f"comparison depend on the member count")
+        if member_subset is not None:
+            if member_subset > n_members:
+                raise ValueError(f"{name}: asked for {member_subset} of "
+                                 f"{n_members} members")
+            # One shuffle for every city, so the subset is the same set of
+            # member indices everywhere: drawing per city would let the
+            # comparison confound ensemble size with which members happened
+            # to be picked where.
+            pick = np.random.default_rng(subset_seed).permutation(
+                n_members)[:member_subset]
+            cube = cube[:, np.sort(pick), :]
+            n_members = int(member_subset)
         native = ladder_of(df, cube.shape[2])
         for want in ladders:
             if want is None:
@@ -426,13 +456,16 @@ def compute(src=None, modes=(GEFS_BOUNDARY_PRIMARY,),
                 cube_l, ladder = coarsen(cube, native, want)
             _accumulate(rows, src, name, city, inits, cube_l, ladder,
                         n_members, modes, thresholds, lead_days)
-        print(f"  {name}: {len(inits)} inits x {len(lead_days)} leads"
-              f"{'' if len(ladders) == 1 else f' x {len(ladders)} ladders'}")
+        if not quiet:
+            print(f"  {name}: {len(inits)} inits x {len(lead_days)} leads"
+                  f"{'' if len(ladders) == 1 else f' x {len(ladders)} ladders'}")
     out = pd.DataFrame(rows)
     if out.empty:
         raise SystemExit(f"nothing computed - run `python "
                          f"src/collect_members.py collect {src.key}` first")
     out["usable"] = out["usable"].astype(bool)
+    if not write:
+        return out
     table = src.pop_table
     table.parent.mkdir(parents=True, exist_ok=True)
     out.to_parquet(table, index=False)

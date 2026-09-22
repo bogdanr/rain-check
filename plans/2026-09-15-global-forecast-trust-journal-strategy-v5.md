@@ -246,6 +246,20 @@ Seven checks police the places a silent error could live and abort the stage: th
 
 *What this does not settle.* ISD's terms are recorded as **unresolved rather than cleared**: it aggregates foreign national reports, some under WMO Resolution 40, and this study publishes coverage counts rather than observations, so nothing is redistributed. None of it is legal advice; it is a record of what each publisher states and when it was read.
 
+**E36. The dry bias is a property of the served forecast, not of the reference centre — and so is the decision-value harm. — Task 20b.** (`src/reference_centre.py`.) E13 measured the served probability as drier than the GEFS members that ought to support it, and the obvious objection is that this says something about NOAA rather than about the forecast. A second, independent centre answers it: ECMWF IFS ENS, 51 members, on the **identical** 15 cities × 327 days × 7 leads, at a matched 3-hourly ladder so E23's boundary artefact cannot leak in.
+
+*The bias.* The served number is drier than **both** references at lead 1 — −0.0835 against GEFS and −0.1189 against IFS, both p = 0.001. The two references disagree with each other by only 0.0354, **30% of the larger vendor gap**, and that ratio stays between 30% and 42% across all seven leads. The dry bias is not mostly a statement about one centre. It is also the stronger of the two comparisons in the direction that matters: the vendor series is `gfs_seamless`, NOAA-derived, so being drier than an *ECMWF* ensemble too is the harder result to explain away.
+
+*What does not resolve, and must be said so.* Under the day-total event neither Brier comparison resolves on this panel — −0.0011 (p = 0.895) against GEFS and +0.0003 (p = 0.727) against IFS. Those differ in sign, and **that is not a reversal; it is two nulls** on 15 cities, where E35 needed 105 to separate 0.006. The stage's verdict logic states this rather than reading a sign flip out of noise.
+
+*What does resolve, and agrees across centres.* Under the any-step event the member-derived probability wins against **both** — +0.0096 and +0.0176, both p = 0.001. So the same days that cannot separate the two under one event definition separate them decisively under the other, and agree across centres when they do. **The event definition is doing more work here than the choice of centre**, which is E35's finding confirmed from a second direction.
+
+*E4a survives.* The cheap-action user loses against both references: at α = 0.05, −0.523 against GEFS and −0.768 against IFS; at α = 0.10, −0.207 and −0.343. The paper's organising claim is not an artefact of which ensemble it is measured against.
+
+*Two controls.* **Member count** — re-deriving IFS from 31 of its 51 members moves its probability by −0.0008 [−0.0017, +0.0001] against a vendor gap of 0.1189, explaining 0.6% of the gap it could have explained entirely; the distinct-value count matches GEFS's (32 against 32) so the coarseness is matched rather than assumed. **Window** — the second archive starts later, so this panel is shorter than E13's; the window alone moves the vendor–GEFS bias by −0.0057, against a reference-centre disagreement of 0.0354.
+
+*What this does not settle.* Two centres are not a population of centres: two agreeing **bounds** the reference effect at this panel's size, it does not estimate it. And this is the 15-capital panel, not E35's 105-city one, because the second archive does not reach the others — widening it is collection, not analysis.
+
 ---
 
 ## Design Decisions
@@ -374,7 +388,7 @@ Also recorded: the wet-bias precedent (their founder's own work, in Silver 2012)
 ### Phase 2 — External ensemble integration
 
 - [x] Task 20a. **Integrate GEFS; member-derived PoP at all leads for the headline window.** → E1.
-- [ ] Task 20b. Integrate `ecmwf-ifs-ens-forecast-15-day-0-25-degree`. Rationale: two independent centres — now more important, since E9 shows the vendor track has fewer independent centres than it appears.
+- [x] Task 20b. **Integrate `ecmwf-ifs-ens-forecast-15-day-0-25-degree` as a second reference centre.** → E36. The dry bias and the decision-value harm both hold against ECMWF as well as NOAA; the day-total Brier verdict resolves against neither on this panel, and the any-step verdict resolves against both.
 - [x] Task 20c. **Validate against raw GRIB2 byte-ranges.** → E2.
 - [x] Task 20d. **Local-day accumulation with boundary handling, plus the 3-hourly vendor control.** → E3.
 - [x] Task 21. **Publish the vendor-versus-ensemble divergence as a primary result.** → E4, `src/triangulation.py`, stage 14/15.
