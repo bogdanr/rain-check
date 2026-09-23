@@ -632,10 +632,11 @@ median capital sits at {med1:.2f}&nbsp;&deg;C one day ahead and
 {med7:.2f}&nbsp;&deg;C seven days ahead, once each site's constant offset is
 removed. meteoblue publish {1.66:.2f}&nbsp;&deg;C for the best raw model at day
 one globally, so this archive is in the expected place &mdash; a reassurance
-that nothing in the pipeline is quietly broken.</p>
-<figure><img src="{fig(FIGURES / 'capitals_lead_mae.png')}" alt="lead mae">
-<figcaption>Temperature error grows with lead time at much the same rate
-everywhere; the level differs, the slope barely does.</figcaption></figure>"""
+that nothing in the pipeline is quietly broken. Error grows with lead time at
+much the same rate everywhere; the level differs, the slope barely does. The
+curves themselves are drawn once, interactively, in the
+<a class="jump" href="#world">world-cities section</a>, with your selected
+city picked out.</p>"""
 
     prov_html = ""
     pin, prov = k.get("pinned"), k.get("prov")
@@ -731,12 +732,12 @@ once the records arrived.</p>
 {b.rank_lo:.0f}&ndash;{b.rank_hi:.0f}. With about two years per city, most of
 the ordering is not resolvable, and a league table with a winner would be
 reading noise. The rank column is deliberately a range for every city.</div>
-<figure><img src="{fig(FIGURES / 'capitals_reliability.png')}" alt="capitals">
-<figcaption>The same calibration curve, city by city, Bucharest in red.</figcaption></figure>
+<p class="muted">The calibration curves and the skill-against-rain-frequency
+scatter for every verified city &mdash; capitals included &mdash; are drawn
+once, interactively, in the <a class="jump" href="#world">world-cities
+section below</a>, where they follow whichever city you have selected instead
+of keeping Bucharest in red for everyone.</p>
 {wb_html}
-<figure><img src="{fig(FIGURES / 'capitals_baserate.png')}" alt="base rate">
-<figcaption>Why the raw Brier score cannot be compared across cities, and the
-skill score can.</figcaption></figure>
 {dr_html}
 {lead_html}
 {prov_html}
@@ -809,6 +810,11 @@ continues to rule out the obvious measurement artefact.</p>"""
 
     wb_html = ""
     wb = w.get("wb")
+
+    # One computed sentence per chart, derived from the same tables as the
+    # geometry, so the words above a figure can never drift from the picture.
+    hl = city_charts.headlines(w.get("pop"), met, w.get("lead"), wb)
+
     if wb is not None and "eu" in wb:
         out = wb[~wb.eu]
         lo_all = int((wb.low_gap > 0).sum()); lo_sig = int((wb.low_lo > 0).sum())
@@ -827,7 +833,15 @@ outside ICON-EU's domain, so a different model entirely is answering the
 request. The low-end under-forecasting still appears in <b>{o_lo} of
 {len(out)}</b> of them ({o_sig} significant). Across 15 European capitals this
 could have been a property of two European models; it now looks like a property
-of how this kind of forecast is made.</div>"""
+of how this kind of forecast is made.</div>
+<p class="chart-headline">{esc(hl.get('fp', ''))}</p>
+<figure>{lazy_chart(city_charts.fingerprint_chart(wb), 'cities_fingerprint')}
+<figcaption>Each city's calibration fingerprint: how much more it rains than
+the low forecasts said (across), against how much less it rains than the high
+forecasts said (up). A perfectly calibrated city sits at the centre cross.
+Every city is one dot &mdash; hover to name it, click to select it; the
+extremes are named.</figcaption>
+<p class="chart-note" data-note="fp" hidden></p></figure>"""
 
     lead_html = ""
     lead = w.get("lead")
@@ -840,9 +854,13 @@ of how this kind of forecast is made.</div>"""
 removing each site's constant bias: a median of
 {med.get(1, float('nan')):.2f}&nbsp;&deg;C at one day ahead, rising to
 {med.get(7, float('nan')):.2f}&nbsp;&deg;C at seven.</p>
-<figure>{lazy_chart(city_charts.lead_mae_lines(lead), 'cities_lead_mae')}
-<figcaption>Daily-max temperature error against lead time. One line per city,
-<i>median</i> in black, <b>your selected city</b> picked out.</figcaption></figure>
+<p class="chart-headline">{esc(hl.get('lead', ''))}</p>
+<figure>{lazy_chart(city_charts.lead_chart(lead), 'cities_lead_mae')}
+<figcaption>Daily-max temperature error against lead time. The shaded bands
+hold the middle 50% and 80% of cities; the solid line is the median city,
+named on the chart. Select any city and its own curve is drawn on top with
+its name at the end.</figcaption>
+<p class="chart-note" data-note="lead" hidden></p></figure>
 <p class="muted">This covers <b>{nl} of the {n}</b> cities, not all of them:
 the deterministic track is the most request-hungry step in the study and runs
 into the weather API's hourly quota. It stops cleanly and keeps what it has
@@ -866,18 +884,23 @@ Cities sharing a gauge are counted once, so these remain independent samples.</p
 is unchanged to three decimals from the single-city and capitals runs, which is
 the regression test for this whole expansion: adding {n - 1} cities did not
 perturb the original answer.</div>
-<figure>{lazy_chart(city_charts.reliability_spaghetti(w['pop'], met), 'cities_reliability') if w.get('pop') is not None else ''}
-<figcaption>Every city's calibration curve at once. Hover any line to name it;
-the black line is the median city and the highlighted one is whichever city you
-have selected above.</figcaption></figure>
-<p class="chartkey"><span><i></i>median city</span>
-<span><b>&#9679;</b> your selection</span>
-<span>each faint line = one city</span></p>
+<p class="chart-headline">{esc(hl.get('rel', ''))}</p>
+<figure>{lazy_chart(city_charts.reliability_chart(w['pop'], met), 'cities_reliability') if w.get('pop') is not None else ''}
+<figcaption>Where {n} cities' calibration curves sit, bin by bin. The shaded
+bands hold the middle 50% and 80% of cities; the solid line is the median
+city. Select any city above (or click a dot on the charts below) and its own
+curve is drawn on top, named at the end of the line.</figcaption>
+<p class="chart-note" data-note="rel" hidden></p></figure>
+<p class="chartkey"><span class="cmp-key" hidden><b class="cmp-i">&#9670;</b>
+<span class="cmp-name"></span> (pinned for comparison &mdash; click to remove)</span></p>
 {rep_html}
+<p class="chart-headline">{esc(hl.get('base', ''))}</p>
 <figure>{lazy_chart(city_charts.baserate_scatter(met), 'cities_baserate')}
 <figcaption>The base-rate confound at {n} cities: skill against how often it
-rains. The vertical spread at any given rain frequency is what killed the
-capitals-era correlation.</figcaption></figure>
+rains. Every city is one dot &mdash; hover to name it, click to select it.
+The vertical spread at any given rain frequency is what killed the
+capitals-era correlation.</figcaption>
+<p class="chart-note" data-note="base" hidden></p></figure>
 {wb_html}
 {lead_html}
 """
@@ -1425,12 +1448,108 @@ def responsive_tables(html: str) -> str:
                .replace("</table></div></div>", "</table></div>")
 
 
-NAV = [("answer", "Verdict"), ("curve", "Calibration"), ("season", "Seasons"),
-       ("scorecard", "Scorecard"), ("hourly", "Hourly"), ("capitals", "Capitals"),
-       ("providers", "Providers"), ("league", "League"),
-       ("served", "Served vs raw"), ("provenance", "Provenance"),
-       ("events", "Frost & heat"), ("limits", "Limits"),
-       ("consulting", "Work with us"), ("glossary", "Glossary")]
+# The sections, grouped the way a reader moves through them rather than as one
+# flat list: what your city says, how it compares, the Bucharest-only depth,
+# the machinery, and the reference material. The rail renders the group
+# headings and the palette searches the leaves.
+NAV = [
+    ("Your city", [("answer", "Verdict"), ("curve", "Calibration"),
+                   ("season", "Seasons")]),
+    ("Across cities", [("capitals", "Capitals"), ("world", "World cities"),
+                       ("league", "League")]),
+    ("Bucharest deep dive", [("scorecard", "Scorecard"), ("hourly", "Hourly"),
+                             ("events", "Frost & heat"),
+                             ("limits", "Limits")]),
+    ("Methods", [("providers", "Providers"), ("served", "Served vs raw"),
+                 ("provenance", "Provenance")]),
+    ("Reference", [("consulting", "Work with us"),
+                   ("glossary", "Glossary")]),
+]
+
+
+def fold(title: str, note: str, body: str, lazy: str = "") -> str:
+    """A section the reader opens on demand.
+
+    The report grew past the point where every section can compete for the
+    same scroll. Folding is progressive disclosure, not omission: the content
+    stays in the document (so no-JS readers, searchers and the standalone
+    build all keep it), the summary line is the section's plain-language
+    one-sentence version, and a deep link to any anchor inside is opened by
+    `app.js` before the browser scrolls to it.
+
+    `lazy` names an asset and ships the body separately, fetched when the
+    reader first opens the fold. That trades the guarantees above - no-JS
+    readers and crawlers see the summary line only - so it is reserved for
+    folds whose headings are *not* navigation targets: the moment a rail link
+    or the palette can name an anchor inside, deferring the body would leave
+    that link pointing at nothing. The standalone build always inlines.
+    """
+    if not body.strip():
+        return ""
+    if lazy and not STANDALONE and SITE is not None:
+        # The page-wide `heading_anchors` pass runs on the assembled document,
+        # which this body has just left, so it is applied here instead - the
+        # fragment should arrive looking exactly like the inline version.
+        src = SITE.add_text("frag", f"{lazy}.html",
+                            heading_anchors(f'<div class="fold-b">{body}</div>'))
+        return f"""
+<details class="fold" data-fold-src="{src}">
+<summary><span class="fold-t">{title}</span>
+<span class="fold-s">{note}</span></summary>
+</details>"""
+    return f"""
+<details class="fold">
+<summary><span class="fold-t">{title}</span>
+<span class="fold-s">{note}</span></summary>
+<div class="fold-b">{body}</div>
+</details>"""
+
+
+def sec_primer() -> str:
+    """The on-ramp for a reader who has never met forecast verification.
+
+    Two audiences read this page: practitioners, who skip straight to the
+    tables, and curious readers, for whom \"calibration\" and \"skill\" are
+    jargon. Five sentences here save the second group a trip to the glossary
+    before they have a reason to care.
+    """
+    return """
+<details class="primer" id="primer">
+<summary>New here? How to read this report</summary>
+<div class="fold-b">
+<p>When a forecast says <b>\u201c40% chance of rain\u201d</b>, it is making a
+checkable promise: across all the days it says 40%, it should rain on about
+4 in 10 of them. This report collects years of forecasts, lines each one up
+against what a rain gauge actually measured, and reports whether the promise
+was kept.</p>
+<p>Two numbers do most of the work. <b>Calibration</b> is honesty: when the
+forecast said 40%, how often did it rain? On the calibration charts, the
+dashed diagonal is a perfectly honest forecast. The
+<a class="jump" href="#bss">skill score</a> is usefulness: 0 means no better
+than always quoting the local average, 1 would be perfect, and anything above
+about 0.35 is genuinely worth acting on.</p>
+<p>Pick your city with the globe or the search button above; every chart and
+verdict follows your selection. Sections marked with a fold hold the
+machinery \u2014 open them if you want to know <i>how</i> a number was made,
+not just what it is. Every term is defined in plain language in the
+<a class="jump" href="#glossary">glossary</a>.</p>
+</div>
+</details>"""
+
+
+def heading_anchors(html: str) -> str:
+    """Give every identified section heading a copyable link.
+
+    Professionals cite sections; a heading that cannot be linked to cannot be
+    cited. Done as a post-pass for the same reason `responsive_tables` is:
+    the anchor is presentational, and threading it through every f-string
+    would add noise to code that is about data.
+    """
+    return re.sub(
+        r'<h2 id="([^"]+)">(.*?)</h2>',
+        r'<h2 id="\1">\2 <a class="hlink" href="#\1"'
+        r' aria-label="Link to this section">#</a></h2>',
+        html, flags=re.S)
 
 
 def topbar(cities: list[dict], sel: dict, default_slug: str) -> str:
@@ -1467,8 +1586,13 @@ def topbar(cities: list[dict], sel: dict, default_slug: str) -> str:
 
 
 def rail() -> str:
-    links = "".join(f'<a href="#{i}"><i></i><span>{esc(t)}</span></a>' for i, t in NAV)
-    return f'<nav class="rail" id="rail" aria-label="Sections">{links}</nav>'
+    parts = []
+    for group, links in NAV:
+        parts.append(f'<span class="rail-g">{esc(group)}</span>')
+        parts.extend(f'<a href="#{i}"><i></i><span>{esc(t)}</span></a>'
+                     for i, t in links)
+    return (f'<nav class="rail" id="rail" aria-label="Sections">'
+            f'{"".join(parts)}</nav>')
 
 
 def globe_block(cities: list[dict], dropped: list[dict], card: str) -> str:
@@ -1480,10 +1604,10 @@ def globe_block(cities: list[dict], dropped: list[dict], card: str) -> str:
     described dragging and zooming, which the reader discovers by dragging and
     zooming.
     """
-    items = "".join(
-        f'<li><a href="{{BASE}}city/{esc(c["slug"])}/" data-city="{esc(c["slug"])}">'
-        f'{esc(c["name"])}</a> <span class="muted">{esc(c["country"])} &middot; '
-        f'skill {c["bss"]:.2f}</span></li>' for c in cities)
+    # The no-script fallback is ONE link to the directory page, not the list
+    # itself: inlined, the list cost ~115 bytes per city on every page's first
+    # load (15 KB at 134 cities, ~115 KB at 1,000). The directory is a real
+    # page, so crawlers and no-JS readers still reach every city.
     n_dropped = sum(len(g["cities"]) for g in dropped)
     return f"""
 <div class="globewrap">
@@ -1503,7 +1627,7 @@ def globe_block(cities: list[dict], dropped: list[dict], card: str) -> str:
     probed have a rain gauge close enough, current enough and consistent enough
     to verify against. The other {n_dropped} are listed below the globe.</p>
     <div id="globe-fallback">
-      <ul class="muted citylist">{items}</ul>
+      <p><a href="{{BASE}}cities/">Browse all {len(cities)} cities by country</a></p>
     </div>
   </div>
 </div>
@@ -1511,6 +1635,40 @@ def globe_block(cities: list[dict], dropped: list[dict], card: str) -> str:
 <div class="fc" id="fc" hidden role="region" aria-live="polite" aria-busy="false"
      aria-label="Live forecast for the selected city"></div>
 <p class="depth" id="depth"></p>"""
+
+
+def cities_directory(cities: list[dict], assets: dict) -> str:
+    """Every verified city on one plain page, grouped by country.
+
+    The page the globe falls back to without script, and the crawl path to
+    every city report. It costs the main page nothing, so it can grow to any
+    number of cities.
+    """
+    by_country: dict[str, list[dict]] = {}
+    for c in cities:
+        by_country.setdefault(c["country"], []).append(c)
+    groups = "".join(
+        f'<h2 id="c-{esc(cc.lower())}">{esc(cc)} <span class="muted">'
+        f'({len(cs)})</span></h2><ul class="citylist">' + "".join(
+            f'<li><a href="{{BASE}}city/{esc(c["slug"])}/" data-city="{esc(c["slug"])}">'
+            f'{esc(c["name"])}</a> <span class="muted">skill {c["bss"]:.2f}</span></li>'
+            for c in sorted(cs, key=lambda c: c["name"])) + "</ul>"
+        for cc, cs in sorted(by_country.items()))
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All {len(cities)} verified cities &middot; How good is the weather forecast?</title>
+<meta name="description" content="Every city whose rain forecast is checked against a rain gauge, grouped by country.">
+<link rel="stylesheet" href="{assets['css']}">
+<link rel="icon" href="{assets['icon']}">
+</head><body><main id="main" class="directory">
+<p><a href="{{BASE}}">&larr; Back to the report</a></p>
+<h1>All {len(cities)} verified cities, in {len(by_country)} countries</h1>
+<p class="muted">Each city has a rain gauge close enough, current enough and
+consistent enough to check its forecast against. Skill is the Brier skill score
+against climatology: above 0 beats "just guess the usual".</p>
+{groups}
+</main></body></html>"""
 
 
 def dropped_block(dropped: list[dict]) -> str:
@@ -1547,11 +1705,15 @@ def dropped_block(dropped: list[dict]) -> str:
 def palette() -> str:
     return """
 <div class="palette" id="palette" hidden role="dialog" aria-modal="true"
-     aria-label="Search cities">
+     aria-label="Search cities and sections">
   <div class="box">
-    <input type="text" placeholder="Search cities&hellip;" autocomplete="off"
+    <input type="text" placeholder="Search cities or sections&hellip;"
+           autocomplete="off"
            role="combobox" aria-expanded="true" aria-controls="palette-list">
     <ul id="palette-list" role="listbox"></ul>
+    <p class="palette-hint">Enter selects &middot; Shift+Enter pins a second
+    city for comparison &middot; open with <kbd>/</kbd> or
+    <kbd>Ctrl</kbd>+<kbd>K</kbd></p>
   </div>
 </div>"""
 
@@ -1577,19 +1739,46 @@ capitals, so the sections are not relabelled to match your selection
 def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
              assets: dict, cfg_json: str, default_slug: str) -> str:
     stations = ", ".join(v[5] for v in STATIONS.values())
-    body = responsive_tables("".join([
-        sec_scorecard(c), sec_seasonfig(c), sec_hourly(c), sec_recal(c),
-        sec_robust(c), sec_bench(c), sec_events(c), sec_limits(c),
-    ]))
+
+    # The page in reading order, tiered by how many readers need each part
+    # eagerly. Tier 1 (always open): the selected city's verdict, the
+    # cross-city evidence, and the league. Tier 2 (one fold): the Bucharest
+    # deep dive - real depth, but explicitly single-city. Tier 3 (one fold
+    # each): the methods sections, for the reader who asks "how was this
+    # made?". Reference material folds last. Nothing is removed: the folds
+    # keep every word in the document for no-JS readers and for search.
     cross = responsive_tables(
         sec_capitals(c) + sec_world(c)
-        + report_providers.sec_providers()
         + report_providers.sec_league(c)
-        + sec_served(c)
-        + sec_provenance(c)
         + report_providers.sec_app_callout(c))
-    ref = responsive_tables(report_providers.sec_consulting(c)
-                            + sec_improve() + sec_gloss())
+    deep = fold(
+        "The Bucharest deep dive",
+        "Hourly honesty, frost and heat odds, benchmarks and limits \u2014 "
+        "analyses that need records only Bucharest has.",
+        responsive_tables(deep_dive_header(sel['name']) + "".join([
+            sec_scorecard(c), sec_seasonfig(c), sec_hourly(c), sec_recal(c),
+            sec_robust(c), sec_bench(c), sec_events(c), sec_limits(c)])))
+    methods = (
+        fold("Who actually makes these forecasts?",
+             "The models behind the app \u2014 and why the label on the app "
+             "is not the name of the forecaster.",
+             responsive_tables(report_providers.sec_providers()))
+        + fold("The number you see vs the raw ensemble",
+               "What Open-Meteo's probability is made from, and whether the "
+               "processing helped.",
+               responsive_tables(sec_served(c)))
+        + fold("Where the numbers come from",
+               "Provenance: the archive, the stations, the licences, and "
+               "what was verified rather than assumed.",
+               responsive_tables(sec_provenance(c))))
+    ref = (responsive_tables(report_providers.sec_consulting(c))
+           + fold("How this analysis could be improved",
+                  "Known weaknesses, in the order they matter.",
+                  responsive_tables(sec_improve()), lazy="improve")
+           + fold("Glossary",
+                  "Every term on this page, in plain language.",
+                  responsive_tables(sec_gloss())))
+    content = heading_anchors(cross + deep + methods + ref)
     city_html = {k: responsive_tables(v) for k, v in sel["html"].items()}
 
     head_links = "" if STANDALONE else (
@@ -1603,8 +1792,10 @@ def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
         f'<script src="{assets["app"]}" defer></script>')
 
     canonical = assets["canonical"]
-    desc = (f"Are stated rain probabilities honest? {len(cities)} European "
-            f"capitals checked against real station measurements.")
+    desc = (f"Is the {sel['name']} weather forecast honest? Stated rain "
+            f"probabilities for {len(cities)} cities worldwide, checked "
+            f"against real station measurements. "
+            f"Skill score {sel['bss']:.2f}.")
 
     return f"""<!doctype html>
 <html lang="en" data-theme="observatory">
@@ -1628,24 +1819,22 @@ def document(c: dict, cities: list[dict], dropped: list[dict], sel: dict,
 <h1 id="h1">How good is the <span id="h1-city">{esc(sel['name'])}</span> weather forecast?</h1>
 <p class="sub">When a forecast says "40% chance of rain", does it rain on 40% of
 those days? Checked against real station measurements across
-{len(cities)} European capitals.</p>
+{len(cities)} cities worldwide.</p>
 </div></header>
 <div class="wrap" id="main">
+{sec_primer()}
 {'' if STANDALONE else globe_block(cities, dropped, city_html['card'])}
 <div class="citypanel">
 <div id="city-answer">{city_html['answer']}</div>
 <div id="city-curve">{city_html['curve']}</div>
 <div id="city-season">{city_html['season']}</div>
 </div>
-{cross}
-{deep_dive_header(sel['name'])}
-{body}
-{ref}
+{content}
 <footer>Generated {dt.date.today().isoformat()} &middot;
 Forecasts: <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>
 (CC&nbsp;BY&nbsp;4.0) &middot;
 Truth: {esc(stations)} (GHCN-Daily, Menne et al. 2012) &middot;
-{len(c['pop'])} Bucharest days, {len(cities)} capitals &middot;
+{len(c['pop'])} Bucharest days, {len(cities)} cities &middot;
 Reproducible via <code>./run_all.sh</code> &middot;
 Full attribution in <code>NOTICE.md</code>
 </footer>
@@ -1682,6 +1871,19 @@ def main() -> None:
         raise SystemExit("capitals artefacts missing - run src/capitals.py first")
     payloads = city_report.all_payloads(k)
     dropped = city_report.exclusions(k)
+
+    # Each city's geometry on the three cross-city charts travels inside that
+    # city's own payload. This is what lets the charts ship ribbons plus a
+    # sample of eager lines and still highlight *any* selected city: the
+    # browser injects coordinates Python computed, and derives nothing.
+    w = c.get("world")
+    if w and w.get("pop") is not None:
+        ov = city_charts.overlays(w["pop"], w["met"], w.get("lead"),
+                                  w.get("wb"), provisional=k.get("prov"))
+        for p in payloads:
+            if p["slug"] in ov:
+                p["chart"] = ov[p["slug"]]
+
     by_slug = {p["slug"]: p for p in payloads}
     default = city_report.DEFAULT_CITY
     default_slug = next(p["slug"] for p in payloads if p["name"] == default)
@@ -1692,12 +1894,16 @@ def main() -> None:
     # far inside one pixel, so shipping seventeen significant figures of float
     # noise for every city is pure first-load weight. The
     # per-city city count is gone too: it is the length of this very list.
+    def r1(v):
+        return None if v is None else round(v, 1)
+
     lite = [{"slug": p["slug"], "name": p["name"], "country": p["country"],
              "lat": round(p["lat"], 3), "lon": round(p["lon"], 3),
              "bss": round(p["bss"], 4), "n": p["n"],
              "base_rate": round(p["base_rate"], 4),
-             "rank_lo": round(p["rank_lo"], 1),
-             "rank_hi": round(p["rank_hi"], 1)} for p in payloads]
+             # Provisional cities have no rank: they are not in the league.
+             "rank_lo": r1(p["rank_lo"]),
+             "rank_hi": r1(p["rank_hi"])} for p in payloads]
 
     # The same records, column-oriented, for the browser. JSON objects repeat
     # every key name in every record, so at 109 cities the ten names above are
@@ -1764,15 +1970,21 @@ def main() -> None:
 
     og = site.add_file("figures", FIGURES / "capitals_reliability.png")
 
+    # The full city table, out of the eager page. At 109 cities the
+    # column-oriented rows were ~7 KB of every page's first load; at 1,000
+    # they would be ~60 KB, all spent before the reader sees a word. The page
+    # now carries only the selected city inline; the index arrives with this
+    # one cached fetch, which the globe (also lazy) waits on anyway.
+    city_index_url = site.add_json("data", "cities-index.json", {
+        "cols": city_cols, "rows": city_rows, "hashes": city_hashes})
+
     for p in payloads:
         is_default = p["slug"] == default_slug
         rel = "" if is_default else f"city/{p['slug']}/"
         cfg = {
             "base": site.base,
             "defaultSlug": default_slug,
-            "cityCols": city_cols,
-            "cityRows": city_rows,
-            "cityHashes": city_hashes,
+            "cityIndexUrl": city_index_url,
             "landUrl": assets["land"],
             "landDetailUrl": assets["landDetail"],
             "reliefUrl": assets["relief"],
@@ -1795,6 +2007,11 @@ def main() -> None:
         out.write_text(html_doc, encoding="utf-8")
         if is_default:
             first_kb = _first_load_kb(html_doc, site, assets)
+
+    directory = site.dist / "cities" / "index.html"
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    directory.write_text(cities_directory(lite, assets).replace("{BASE}", site.base),
+                         encoding="utf-8")
 
     # Pages serves .nojekyll-less sites fine, but any path segment starting with
     # an underscore would be silently dropped without it.

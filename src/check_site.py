@@ -84,20 +84,20 @@ def serve(directory: Path) -> tuple[str, socketserver.TCPServer]:
 
 
 # ---------------------------------------------------------------------------
-def _unpack(cfg: dict) -> None:
-    """Rebuild the city records and payload URLs the config ships packed.
+def _unpack(cfg: dict, dist: Path) -> None:
+    """Rebuild the city records and payload URLs the way the browser does.
 
-    `report.py` sends the city table column-oriented and the payload URLs as
-    bare digests, to keep ~10 KB of repeated key names and path prefixes off
-    every cold load; `app.js` expands them on arrival. Doing the same here means
-    the checks below go on reading the shapes they always read, and - more to
-    the point - they are then verifying the same unpacking the browser does,
-    from the same bytes.
+    `report.py` keeps the full city table out of the page: the config carries
+    only a URL to `data/cities-index.json`, which `app.js` fetches once. Doing
+    the same expansion here means the checks below go on reading the shapes
+    they always read, and - more to the point - they are then verifying the
+    same unpacking the browser does, from the same bytes.
     """
-    cfg["cities"] = [dict(zip(cfg["cityCols"], row)) for row in cfg["cityRows"]]
+    ix = json.loads((dist / cfg["cityIndexUrl"].lstrip("/")).read_text())
+    cfg["cities"] = [dict(zip(ix["cols"], row)) for row in ix["rows"]]
     cfg["cityUrls"] = {
         slug: f"{cfg['base']}data/cities/{slug}.{digest}.json"
-        for slug, digest in cfg["cityHashes"].items()}
+        for slug, digest in ix["hashes"].items()}
 
 
 def check_structure(dist: Path, r: Result) -> dict:
@@ -109,7 +109,7 @@ def check_structure(dist: Path, r: Result) -> dict:
     cfg = json.loads(re.search(
         r'<script id="site-config" type="application/json">(.*?)</script>',
         html, re.S).group(1))
-    _unpack(cfg)
+    _unpack(cfg, dist)
 
     slugs = [c["slug"] for c in cfg["cities"]]
     default = cfg["defaultSlug"]
@@ -424,6 +424,13 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         r.add(name in page.title(), "document title follows the selection")
         r.add(page.url.rstrip("/").endswith(f"city/{target}"),
               "URL updates to the city's real page", page.url)
+        # The Bucharest-only sections live inside a fold now; open it the way
+        # a reader would before reading the fence. This doubles as the check
+        # that the fold's content is really in the document, not lazy-built.
+        page.eval_on_selector(
+            "#deep",
+            "n => { for (let e = n; e; e = e.parentElement)"
+            "         if (e.tagName === 'DETAILS') e.open = true; }")
         r.add(name in page.locator("#deep-sel").inner_text(),
               "deep-dive fence names the current selection")
 
@@ -474,6 +481,54 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
             "n => document.querySelector('#h1-city').textContent === n", arg=name)
         r.add(True, "search result loads the city")
 
+        # --- palette: sections, and the comparison pin -----------------------
+        # The palette must reach sections too - the rail cannot scale to a
+        # thousand cities - and following one into a folded section must open
+        # the fold, or the reader lands on a closed summary line.
+        page.click("#citybtn")
+        page.fill("#palette input", "glossary")
+        r.add(page.locator("#palette li[data-anchor='glossary']").count() >= 1,
+              "palette finds sections as well as cities")
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(600)
+        r.add(page.evaluate("() => document.getElementById('glossary')"
+                            ".closest('details').open"),
+              "jumping into a folded section opens the fold")
+
+        # One fold ships its body as a separate asset. It must be empty until
+        # the reader opens it (that is what it buys) and must fill in once
+        # they do (that is what it must not cost them).
+        lazyfold = page.locator("details[data-fold-src]")
+        if lazyfold.count():
+            r.add(lazyfold.first.locator(".fold-b").count() == 0,
+                  "a deferred fold ships no body until it is opened")
+            lazyfold.first.locator("summary").click()
+            page.wait_for_selector("details[data-fold-src] .fold-b",
+                                   timeout=5000)
+            r.add(len(lazyfold.first.locator(".fold-b").inner_text()) > 200,
+                  "opening a deferred fold fetches its content")
+            lazyfold.first.locator("summary").click()
+
+        # Shift+Enter pins a second city; it must be named in the chart key and
+        # drawn on the charts from its own payload coordinates, and clicking
+        # the key must remove it.
+        page.click("#citybtn")
+        page.fill("#palette input", old)
+        page.keyboard.press("Shift+Enter")
+        page.wait_for_function(
+            "() => !document.querySelector('.cmp-key').hidden", timeout=5000)
+        r.add(old in page.locator(".cmp-key").first.inner_text(),
+              "Shift+Enter pins a comparison city, named in the chart key")
+        page.locator(".lazychart").first.scroll_into_view_if_needed()
+        page.wait_for_selector(".citychart .cc-cmp", timeout=10000)
+        r.add(page.locator(".citychart .cc-cmp").count() >= 1,
+              "the pinned city is drawn on the cross-city charts")
+        page.locator(".cmp-key").first.click()
+        page.wait_for_function(
+            "() => document.querySelector('.cmp-key').hidden", timeout=5000)
+        r.add(page.locator(".citychart .cc-cmp").count() == 0,
+              "clicking the chart key removes the comparison")
+
         # --- themes ---------------------------------------------------------
         for theme in ("daylight", "blueprint", "observatory"):
             page.click(f"[data-theme-set='{theme}']")
@@ -486,6 +541,16 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
             r.add(contrast(bg, fg) >= 7.0,
                   f"theme '{theme}' body contrast >= 7:1 (AAA)",
                   f"{contrast(bg, fg):.1f}:1  {bg} on {fg}")
+            # The chart voices must be defined per theme, and the selected
+            # city must never share a colour with the median - the exact
+            # ambiguity the screenshots caught in the dark theme.
+            sel, med = page.evaluate(
+                """() => { const s = getComputedStyle(document.documentElement);
+                     return [s.getPropertyValue('--ch-sel').trim(),
+                             s.getPropertyValue('--ch-median').trim()]; }""")
+            r.add(bool(sel) and bool(med) and sel != med,
+                  f"theme '{theme}' keeps selection and median distinct",
+                  f"sel={sel or '(unset)'} median={med or '(unset)'}")
 
         # Theme must survive a reload, or the control feels broken.
         page.reload(wait_until="domcontentloaded")
@@ -721,6 +786,45 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
               f"{arrived} of {boxes}")
         r.add(cpage.locator(".lazychart svg .cc.on").count() == arrived,
               "an arriving chart picks out the selected city")
+
+        # The redesigned charts: ribbons for the population (no spaghetti),
+        # the selected city named at the end of its own geometry, a computed
+        # readout under each figure, and dots that act as navigation.
+        r.add(cpage.locator(".citychart .cc-lines").count() == 0,
+              "no per-city spaghetti lines ship with the line charts")
+        default_name = next(c["name"] for c in cfg["cities"]
+                            if c["slug"] == cfg["defaultSlug"])
+        labels = cpage.locator(".citychart .cc-endlabel")
+        # SVG <text> is not an HTMLElement, so `inner_text` refuses it; read
+        # the node's text content instead.
+        first_label = labels.first.text_content() if labels.count() else ""
+        r.add(labels.count() >= 2 and first_label == default_name,
+              "the selected city is named on the charts themselves",
+              f"{labels.count()} labels, first '{first_label}'")
+        notes = cpage.locator(".chart-note:not([hidden])")
+        r.add(notes.count() >= 2 and
+              default_name in notes.first.inner_text(),
+              "each chart reads out the selected city's own numbers",
+              f"{notes.count()} notes")
+        fp_dots = cpage.locator("svg[data-chart='fingerprint'] .cc-dot")
+        r.add(fp_dots.count() >= 50,
+              "fingerprint chart carries one dot per city",
+              f"{fp_dots.count()} dots")
+        # Clicking a city's dot selects that city site-wide.
+        other = cpage.locator(
+            f"svg[data-chart='fingerprint'] "
+            f".cc-dot:not([data-city='{cfg['defaultSlug']}'])").first
+        other_slug = other.get_attribute("data-city")
+        other.dispatch_event("click")
+        try:
+            cpage.wait_for_function(
+                "s => document.querySelector('#citybtn .name') && "
+                "document.querySelector('.cc-injected.on, .cc.on')"
+                " && history.state && history.state.slug === s",
+                arg=other_slug, timeout=8000)
+            r.add(True, "clicking a chart dot selects that city")
+        except Exception:
+            r.add(False, "clicking a chart dot selects that city", other_slug)
         cpage.close()
 
         r.add(not errors, "no console or page errors", "; ".join(errors[:3]))
@@ -745,8 +849,12 @@ def check_nojs(base_url: str, cfg: dict, r: Result) -> None:
         r.add(name in text, "city report readable without JavaScript")
         r.add("calibration curve" in text.lower(),
               "calibration section present without JavaScript")
-        r.add(page.locator("#globe-fallback li").count() == len(cfg["cities"]),
-              "globe falls back to a full list of capitals")
+        r.add(page.locator("#globe-fallback a[href$='/cities/']").count() == 1,
+              "globe falls back to a link to the city directory")
+        page.goto(f"{base_url}/cities/", wait_until="domcontentloaded")
+        r.add(page.locator("#main li a[data-city]").count() == len(cfg["cities"]),
+              "city directory lists every city, without JavaScript")
+        page.goto(f"{base_url}/city/{slug}/", wait_until="domcontentloaded")
         r.add(page.locator("#city-curve svg").count() >= 1,
               "calibration chart is server-rendered SVG, not drawn by script")
         # The cross-city charts are the one thing on the page that genuinely

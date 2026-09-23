@@ -139,7 +139,26 @@ def load_all() -> dict | None:
         "wb": opt(f"{prefix}_wet_bias.parquet"),
         "coverage": cov,
         "prefix": prefix,
+        # Cities admitted at the lower evidence gate (`truth_sources`). They
+        # get a page, labelled, and are placed against the confirmed cities -
+        # never ranked among them, never inside a cross-city figure.
+        "prov": {"pop": opt(f"{prefix}_provisional_pop.parquet"),
+                 "met": opt(f"{prefix}_provisional_metrics.parquet"),
+                 "wb": opt(f"{prefix}_provisional_wet_bias.parquet"),
+                 "lead": opt(f"{prefix}_provisional_lead_mae.parquet")},
     }
+
+
+def provisional_names(k: dict) -> set[str]:
+    m = (k.get("prov") or {}).get("met")
+    return set(m.city) if m is not None else set()
+
+
+def _pop_for(name: str, k: dict) -> pd.DataFrame:
+    pv = (k.get("prov") or {}).get("pop")
+    if pv is not None and name in provisional_names(k):
+        return pv
+    return k["pop"]
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +170,8 @@ def compute_city(name: str, k: dict) -> dict:
     Identical binning and identical functions to the headline Bucharest run, so
     a number here and a number in the printed analysis cannot diverge.
     """
-    g = k["pop"][k["pop"].city == name].sort_values("local_date")
+    pop = _pop_for(name, k)
+    g = pop[pop.city == name].sort_values("local_date")
     prob = g.forecast_prob.values.astype(float)
     event = g.observed_event.values.astype(float)
 
@@ -188,12 +208,24 @@ def compute_city(name: str, k: dict) -> dict:
 def city_meta(name: str, k: dict) -> dict:
     """Location, station and ranking context for one city."""
     met = k["met"].reset_index(drop=True)
-    row = met[met.city == name].iloc[0]
-    rank = int(met.index[met.city == name][0]) + 1
     cov = (k["coverage"].get("included") or {}).get(name, {})
+    provisional = name in provisional_names(k)
+    if provisional:
+        row = k["prov"]["met"].set_index("city").loc[name]
+        row = row.copy(); row["city"] = name
+        # Where the score would fall among confirmed cities - a position,
+        # stated as a percentile, not a rank in a league it is not part of.
+        rank = None
+        pct = float((met.bss < row.bss).mean())
+    else:
+        row = met[met.city == name].iloc[0]
+        rank = int(met.index[met.city == name][0]) + 1
+        pct = None
     return {
         "name": name,
         "slug": slugify(name),
+        "provisional": provisional,
+        "skill_pct": pct,
         "country": cov.get("country", ""),
         "lat": cov.get("lat"),
         "lon": cov.get("lon"),
@@ -202,8 +234,8 @@ def city_meta(name: str, k: dict) -> dict:
         "prcp_km": float(row.prcp_km) if pd.notna(row.prcp_km) else None,
         "offset_days": int(row.offset_days),
         "rank": rank,
-        "rank_lo": float(row.rank_lo),
-        "rank_hi": float(row.rank_hi),
+        "rank_lo": float(row.rank_lo) if pd.notna(row.rank_lo) else None,
+        "rank_hi": float(row.rank_hi) if pd.notna(row.rank_hi) else None,
         "n_cities": len(met),
         "bss": float(row.bss),
         "bss_lo": float(row.bss_lo),
@@ -284,15 +316,25 @@ def sec_city_card(city: dict, meta: dict) -> str:
     short, _, cls = _tier(m["brier_skill_score"])
     _, honesty = _honesty(int(tbl.significant.sum()))
     country = f' <span class="muted">{esc(meta["country"])}</span>' if meta["country"] else ""
+    if meta.get("provisional"):
+        rank_cell = (f'<div><dt>Position</dt><dd>above {meta["skill_pct"]:.0%}'
+                     f' <span class="muted">of {meta["n_cities"]}</span></dd></div>')
+        badge = (' <span class="tag prov" title="Fewer days of evidence than '
+                 'the study requires; shown, but kept out of every cross-city '
+                 'claim">provisional</span>')
+    else:
+        rank_cell = (f'<div><dt>Rank</dt><dd>{meta["rank_lo"]:.0f}&ndash;'
+                     f'{meta["rank_hi"]:.0f}\n      <span class="muted">of '
+                     f'{meta["n_cities"]}</span></dd></div>')
+        badge = ""
     return f"""
 <div class="gcard">
-  <p class="gcard-head"><b>{esc(meta['name'])}</b>{country}</p>
+  <p class="gcard-head"><b>{esc(meta['name'])}</b>{country}{badge}</p>
   <p class="gcard-tier"><span class="tag {cls}">{short}</span>
     <span class="muted">{honesty}</span></p>
   <dl class="gcard-stats">
     <div><dt>Skill score</dt><dd>{m['brier_skill_score']:.2f}</dd></div>
-    <div><dt>Rank</dt><dd>{meta['rank_lo']:.0f}&ndash;{meta['rank_hi']:.0f}
-      <span class="muted">of {meta['n_cities']}</span></dd></div>
+    {rank_cell}
     <div><dt>Record</dt><dd>{meta['n']} <span class="muted">days</span></dd></div>
   </dl>
   <p class="gcard-more"><a href="#answer">The full verdict for
@@ -311,6 +353,23 @@ def sec_city_answer(city: dict, meta: dict) -> str:
     hi, lo = tbl.iloc[-1], tbl.iloc[0]
     line, cls = _verdict(tbl, m)
     name = esc(meta["name"])
+    if meta.get("provisional"):
+        standing = (
+            f"Skill score {m['brier_skill_score']:.2f}, higher than "
+            f"{meta['skill_pct']:.0%} of the {meta['n_cities']} confirmed "
+            f"cities. It is not ranked among them.</p>\n"
+            f'<p class="provnote"><span class="tag prov">provisional</span> '
+            f"This city is verified by a NOAA ISD station whose public record "
+            f"stops in August 2025, so it has {meta['n']} days of evidence "
+            f"where the study requires 500. Its numbers are real but their "
+            f"uncertainty is wider, and it is left out of every cross-city "
+            f"figure, median and claim on this site.")
+    else:
+        standing = (
+            f"Skill score {m['brier_skill_score']:.2f}, ranked {meta['rank']} of\n"
+            f"{meta['n_cities']} &mdash; but see the rank <i>range</i>\n"
+            f"({meta['rank_lo']:.0f}&ndash;{meta['rank_hi']:.0f}) before reading "
+            f"anything into\nthat position.")
 
     return f"""
 <h2 id="answer">The short answer for {name}</h2>
@@ -322,10 +381,7 @@ def sec_city_answer(city: dict, meta: dict) -> str:
 <p class="muted">Based on {len(g)} days, {g.local_date.min()} to
 {g.local_date.max()}. "Rain" means at least {RAIN_THRESHOLD_MM} mm measured at
 {esc(meta['station']) or 'the station'}{f", {meta['prcp_km']:.1f} km from the forecast grid point" if meta['prcp_km'] is not None else ''}.
-Skill score {m['brier_skill_score']:.2f}, ranked {meta['rank']} of
-{meta['n_cities']} &mdash; but see the rank <i>range</i>
-({meta['rank_lo']:.0f}&ndash;{meta['rank_hi']:.0f}) before reading anything into
-that position.</p>
+{standing}</p>
 </div>
 
 <h3>What the percentages actually mean here</h3>
@@ -427,7 +483,7 @@ def city_payload(name: str, k: dict, deep: bool) -> dict:
 
 
 def all_payloads(k: dict) -> list[dict]:
-    names = sorted(k["met"].city.unique())
+    names = sorted(set(k["met"].city) | provisional_names(k))
     return [city_payload(n, k, deep=(n == DEFAULT_CITY)) for n in names]
 
 

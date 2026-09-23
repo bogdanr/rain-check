@@ -991,8 +991,11 @@
 
       var tip = d.name + ' (' + d.country + ')\nSkill score ' + d.bss.toFixed(2) +
           '\n' + d.n + ' days, rain on ' + Math.round(d.base_rate * 100) + '%' +
-          '\nRank ' + d.rank_lo.toFixed(0) + '-' + d.rank_hi.toFixed(0) +
-          ' of ' + self.cities.length;
+          (d.rank_lo == null
+            ? '\nProvisional: shorter record, not ranked'
+            : '\nRank ' + d.rank_lo.toFixed(0) + '-' + d.rank_hi.toFixed(0) +
+              ' of ' + self.cities.filter(function (c) {
+                return c.rank_lo != null; }).length);
       g.setAttribute('data-tip', tip);
       g.setAttribute('aria-label', tip.replace(/\n/g, '. '));
       // A stable, selector-safe handle. City names are not: 's-Hertogenbosch

@@ -14,20 +14,41 @@
 
   var cfg = JSON.parse(document.getElementById('site-config').textContent);
 
-  // The config arrives packed: the city table column-oriented, and the payload
-  // URLs as bare digests. At 109 cities, repeating ten key names and a shared
-  // path prefix in JSON cost about 10 KB of every cold load for no information.
-  // Unpack once, here, so nothing below this point knows it was ever packed.
-  cfg.cities = (cfg.cityRows || []).map(function (row) {
-    var c = {};
-    cfg.cityCols.forEach(function (k, i) { c[k] = row[i]; });
-    return c;
-  });
+  // The city table used to travel inside every page's config. At a thousand
+  // cities that is tens of KB of first load spent before the reader sees a
+  // word, so the page now carries only the city it was rendered for and the
+  // full index arrives as one cached fetch. `ready` is the promise everything
+  // that needs the full list (globe, palette, payload URLs) waits on; until it
+  // resolves the page is complete for the city it already shows.
+  cfg.cities = cfg.inline ? [{
+    slug: cfg.inline.slug, name: cfg.inline.name, country: cfg.inline.country,
+    lat: cfg.inline.lat, lon: cfg.inline.lon, bss: cfg.inline.bss,
+    n: cfg.inline.n, base_rate: cfg.inline.base_rate,
+    rank_lo: cfg.inline.rank_lo, rank_hi: cfg.inline.rank_hi
+  }] : [];
   cfg.cityUrls = {};
-  Object.keys(cfg.cityHashes || {}).forEach(function (slug) {
-    cfg.cityUrls[slug] = cfg.base + 'data/cities/' + slug + '.' +
-                         cfg.cityHashes[slug] + '.json';
-  });
+
+  var ready = cfg.cityIndexUrl
+    ? fetch(cfg.cityIndexUrl).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).then(function (ix) {
+        cfg.cities = ix.rows.map(function (row) {
+          var c = {};
+          ix.cols.forEach(function (k, i) { c[k] = row[i]; });
+          return c;
+        });
+        Object.keys(ix.hashes).forEach(function (slug) {
+          cfg.cityUrls[slug] = cfg.base + 'data/cities/' + slug + '.' +
+                               ix.hashes[slug] + '.json';
+        });
+        return cfg;
+      }).catch(function () {
+        // Without the index the page still works as the static page it is:
+        // switching degrades to plain navigation via the fallback in go().
+        return cfg;
+      })
+    : Promise.resolve(cfg);
 
   var root = document.documentElement;
   var cache = {};                      // slug -> payload
@@ -110,9 +131,11 @@
   /* -------------------------------------------------------------- cities */
   function payload(slug) {
     if (cache[slug]) return Promise.resolve(cache[slug]);
-    var url = cfg.cityUrls[slug];
-    if (!url) return Promise.reject(new Error('unknown city ' + slug));
-    return fetch(url).then(function (r) {
+    return ready.then(function () {
+      var url = cfg.cityUrls[slug];
+      if (!url) throw new Error('unknown city ' + slug);
+      return fetch(url);
+    }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (p) { cache[slug] = p; return p; });
@@ -162,30 +185,147 @@
 
     if (globe) globe.focus(p.slug, true);
     highlightCharts(p.slug, p.name);
+    applyCompare();
     if (push) history.pushState({ slug: p.slug }, '', cityUrl(p.slug));
     loadForecast(p);
   }
 
   /* Pick the selected city out of the cross-city charts.
    *
-   * These charts draw all 97 cities, and used to be PNGs with Bucharest fixed
-   * in red - so selecting Lisbon left the reader looking at a chart that
-   * highlighted somebody else. Python still computes every coordinate; the only
-   * thing that happens here is a class toggle and a move to the end of the
-   * paint order, because SVG has no z-index and the highlighted line would
-   * otherwise stay buried under the mass it is meant to stand out from. */
+   * The charts ship no per-city geometry at all - the population is quantile
+   * ribbons. The selected city's coordinates travel inside its payload
+   * (`p.chart`, computed by `city_charts.overlays`), and this injects them
+   * into the chart's `cc-top` group with the city's name drawn at the end of
+   * the line - the browser inserts points Python computed; it derives
+   * nothing. The scatters do carry a dot per city, so there a class toggle
+   * and a move to the end of the paint order suffice. */
+  function overlayFor(svg, chart) {
+    if (!chart) return null;
+    var kind = svg.getAttribute('data-chart');
+    if (kind === 'reliability' && chart.rel) {
+      return { cls: 'cc-line', body: '<polyline points="' + chart.rel +
+               '" fill="none"/>', end: lastPoint(chart.rel) };
+    }
+    if (kind === 'baserate' && chart.base) {
+      return { cls: 'cc-dot', body: '<circle cx="' + chart.base[0] +
+               '" cy="' + chart.base[1] + '" r="5"/>', end: chart.base };
+    }
+    if (kind === 'fingerprint' && chart.fp) {
+      return { cls: 'cc-dot', body: '<circle cx="' + chart.fp[0] +
+               '" cy="' + chart.fp[1] + '" r="5"/>', end: chart.fp };
+    }
+    if (kind === 'lead' && chart.lead) {
+      return { cls: 'cc-line', body: '<polyline points="' + chart.lead +
+               '" fill="none"/>', end: lastPoint(chart.lead) };
+    }
+    return null;
+  }
+
+  // The last coordinate pair of a Python-computed points string - where the
+  // injected curve ends, and therefore where its name label sits.
+  function lastPoint(pts) {
+    var last = pts.split(' ').pop().split(',');
+    return [parseFloat(last[0]), parseFloat(last[1])];
+  }
+
+  // The name drawn at the end of the injected geometry, so the reader never
+  // has to guess which line is theirs. Kept inside the viewBox: labels near
+  // the right edge flip to end-anchored instead of running off the canvas.
+  function endLabel(svg, end, name) {
+    var vb = (svg.getAttribute('viewBox') || '0 0 860 470').split(' ');
+    var w = parseFloat(vb[2]);
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    var flip = end[0] > w - 90;
+    t.setAttribute('class', 'cc-endlabel');
+    t.setAttribute('x', end[0] + (flip ? -8 : 8));
+    t.setAttribute('y', end[1] - 8);
+    if (flip) t.setAttribute('text-anchor', 'end');
+    t.textContent = name;
+    return t;
+  }
+
+  function inject(svg, slug, name, chart, extraCls) {
+    var top = svg.querySelector('.cc-top');
+    var o = overlayFor(svg, chart);
+    if (!top || !o) return;
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'cc ' + o.cls + ' ' + extraCls);
+    g.setAttribute('data-city', slug);
+    if (name) g.setAttribute('data-tip', name);
+    g.innerHTML = o.body;
+    if (name && o.end) g.appendChild(endLabel(svg, o.end, name));
+    top.appendChild(g);
+  }
+
   function highlightCharts(slug, name) {
+    var chart = cache[slug] && cache[slug].chart;
     $$('.citychart').forEach(function (svg) {
       var prev = svg.querySelector('.cc.on');
-      if (prev) prev.classList.remove('on');
-      var g = svg.querySelector('.cc[data-city="' + slug + '"]');
-      if (!g) return;
-      g.classList.add('on');
-      var top = svg.querySelector('.cc-top');
-      if (top) top.appendChild(g);
+      if (prev) {
+        prev.classList.remove('on');
+        var lbl = prev.querySelector('.cc-endlabel');
+        if (lbl) lbl.parentNode.removeChild(lbl);
+      }
+      var old = svg.querySelector('.cc-injected');
+      if (old) old.parentNode.removeChild(old);
+      var g = svg.querySelector('.cc[data-city="' + slug + '"]:not(.cc-cmp)');
+      if (g) {
+        g.classList.add('on');
+        var top = svg.querySelector('.cc-top');
+        if (top) top.appendChild(g);
+        var c = g.querySelector('circle');
+        if (name && c) {
+          g.appendChild(endLabel(svg, [parseFloat(c.getAttribute('cx')),
+                                       parseFloat(c.getAttribute('cy'))], name));
+        }
+      } else {
+        inject(svg, slug, name, chart, 'cc-injected on');
+      }
     });
-    $$('.chartkey b').forEach(function (b) {
+    $$('.chartkey span:not(.cmp-key) b').forEach(function (b) {
       b.textContent = name || 'your selection';
+    });
+    // The one-line readout under each figure: the selected city's own numbers
+    // on that chart, as a sentence Python computed into the payload.
+    $$('.chart-note').forEach(function (n) {
+      var txt = chart && chart.note && chart.note[n.dataset.note];
+      n.hidden = !txt;
+      n.textContent = txt ? name + ': ' + txt : '';
+    });
+  }
+
+  /* -- comparison pin --------------------------------------------------------
+   * The one question a single selection cannot answer is "and how does it
+   * compare to home?". A second city can be pinned (Shift+Enter or
+   * shift-click in the search palette); it is drawn dashed on every
+   * cross-city chart from its own payload coordinates and named in the chart
+   * key, and clicking the key unpins it. It is one pin, not a basket:
+   * comparing two cities is a question, comparing seven is a poster. */
+  var compare = null;
+
+  function setCompare(slug) {
+    compare = (!slug || slug === compare) ? null : slug;
+    if (compare && !cache[compare]) {
+      payload(compare).then(applyCompare).catch(function () { compare = null; });
+    } else {
+      applyCompare();
+    }
+  }
+
+  function applyCompare() {
+    var name = compare ? cityName(compare) : '';
+    $$('.citychart').forEach(function (svg) {
+      var old = svg.querySelector('.cc-cmp');
+      if (old) old.parentNode.removeChild(old);
+      if (!compare) return;
+      inject(svg, compare, name + ' (comparison)',
+             cache[compare] && cache[compare].chart, 'cc-cmp');
+    });
+    $$('.cmp-key').forEach(function (k) {
+      k.hidden = !compare;
+      var n = k.querySelector('.cmp-name');
+      if (n) n.textContent = name;
+      k.title = compare ? 'Click to remove the comparison' : '';
     });
   }
 
@@ -218,9 +358,11 @@
       }).then(function (svg) {
         box.innerHTML = svg;
         box.dataset.state = 'ready';
-        // The selection happened before this chart existed, so it has to be
-        // applied now rather than waiting for the next city switch.
+        // The selection (and any pinned comparison) happened before this
+        // chart existed, so both are applied now rather than waiting for the
+        // next city switch.
         highlightCharts(current, cityName(current));
+        applyCompare();
       }).catch(function () {
         // Leave the reserved box and its <noscript> alternative alone, and let
         // the next approach try again rather than failing permanently.
@@ -237,6 +379,35 @@
       });
     }, { rootMargin: '800px 0px' });
     boxes.forEach(function (b) { io.observe(b); });
+  }
+
+  /* Folds whose body ships separately.
+   *
+   * One Reference-tier fold - the list of known weaknesses - is several KB of
+   * prose that almost nobody opens, so Python ships it as its own asset and it
+   * arrives the first time the reader asks for it. Everything inside it is
+   * static text with no anchor any link names, which is the condition that
+   * makes deferring it safe.
+   *
+   * `toggle` fires on the <details> itself and does not bubble in the usual
+   * sense, so the listener is registered per element rather than delegated. */
+  function initLazyFolds() {
+    $$('details[data-fold-src]').forEach(function (d) {
+      d.addEventListener('toggle', function () {
+        if (!d.open || d.dataset.state) return;
+        d.dataset.state = 'loading';
+        fetch(d.dataset.foldSrc).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        }).then(function (html) {
+          d.insertAdjacentHTML('beforeend', html);
+          d.dataset.state = 'ready';
+        }).catch(function () {
+          // Let the next open try again rather than failing permanently.
+          d.dataset.state = '';
+        });
+      });
+    });
   }
 
   function cityUrl(slug) {
@@ -261,7 +432,7 @@
     var path = location.pathname;
     if (path.indexOf(base) === 0) path = path.slice(base.length);
     var m = /^city\/([^/]+)\/?$/.exec(path);
-    return m && cfg.cityUrls[m[1]] ? m[1] : cfg.defaultSlug;
+    return m ? m[1] : cfg.defaultSlug;
   }
 
   function go(slug, push) {
@@ -719,6 +890,15 @@
     if (!pal) return;
     var input = $('input', pal), list = $('ul', pal), idx = 0, items = [];
 
+    // The palette searches sections as well as cities: at a thousand cities
+    // the rail cannot hold every destination, but the palette already has a
+    // keyboard, a filter and a ranking. The section list is read from the
+    // rail itself so the two can never disagree.
+    var sections = $$('#rail a').map(function (a) {
+      return { id: a.getAttribute('href').slice(1),
+               title: a.textContent.trim() };
+    });
+
     function open() {
       pal.hidden = false;
       input.value = '';
@@ -729,18 +909,38 @@
 
     function filter(q) {
       q = q.toLowerCase().trim();
-      items = cfg.cities.filter(function (c) {
+      var cities = cfg.cities.filter(function (c) {
         return !q || c.name.toLowerCase().indexOf(q) >= 0 ||
           c.country.toLowerCase().indexOf(q) >= 0;
-      });
+      }).map(function (c) { return { kind: 'city', c: c }; });
+      var secs = !q ? [] : sections.filter(function (s) {
+        return s.title.toLowerCase().indexOf(q) >= 0;
+      }).map(function (s) { return { kind: 'section', s: s }; });
+      items = secs.concat(cities);
       idx = 0;
-      list.innerHTML = items.map(function (c, i) {
+      list.innerHTML = items.map(function (it, i) {
+        if (it.kind === 'section') {
+          return '<li role="option" data-anchor="' + it.s.id +
+            '" aria-selected="' + (i === 0) + '">' +
+            '<span class="swatch sec">#</span>' + esc(it.s.title) +
+            '<span class="meta">section</span></li>';
+        }
+        var c = it.c;
         return '<li role="option" data-slug="' + c.slug + '" aria-selected="' +
           (i === 0) + '"><span class="swatch" style="background:var(--' +
           (c.bss < 0.2 ? 'bad' : c.bss < 0.35 ? 'warn' : 'good') + ')"></span>' +
           esc(c.name) + '<span class="meta">' + esc(c.country) +
           ' \u00B7 skill ' + c.bss.toFixed(2) + '</span></li>';
       }).join('');
+    }
+
+    function pick(i, shift) {
+      var it = items[i];
+      if (!it) return;
+      close();
+      if (it.kind === 'section') jumpTo(it.s.id);
+      else if (shift) setCompare(it.c.slug);
+      else go(it.c.slug);
     }
 
     function move(d) {
@@ -758,17 +958,97 @@
       else if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
       else if (e.key === 'Enter' && items[idx]) {
-        e.preventDefault(); close(); go(items[idx].slug);
+        e.preventDefault(); pick(idx, e.shiftKey);
       }
     });
     list.addEventListener('click', function (e) {
       var li = e.target.closest('li');
-      if (li) { close(); go(li.dataset.slug); }
+      if (li) pick($$('li', list).indexOf(li), e.shiftKey || e.altKey);
     });
     pal.addEventListener('click', function (e) { if (e.target === pal) close(); });
 
     var btn = $('#citybtn');
     if (btn) btn.addEventListener('click', open);
+    // The palette is also the report's command bar: `/` or Ctrl/Cmd-K opens
+    // it from anywhere, the two idioms readers arrive with.
+    document.addEventListener('keydown', function (e) {
+      if (!pal.hidden) return;
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(
+        (document.activeElement || {}).tagName || '');
+      if ((e.key === '/' && !typing) ||
+          (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        open();
+      }
+    });
+  }
+
+  /* ----------------------------------------------------------- navigation */
+  /* A deep link into a folded section must open the fold before the browser
+   * scrolls, or the reader lands on a closed summary line with no idea the
+   * target is inside it. */
+  function unfold(node) {
+    for (var n = node && node.parentElement; n; n = n.parentElement) {
+      if (n.tagName === 'DETAILS') n.open = true;
+    }
+  }
+
+  function jumpTo(id) {
+    var n = document.getElementById(id);
+    if (!n) return;
+    unfold(n);
+    n.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    history.replaceState(history.state, '', '#' + id);
+  }
+
+  function initAnchors() {
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var n = document.getElementById(a.getAttribute('href').slice(1));
+      if (n) unfold(n);
+    });
+    if (location.hash.length > 1) {
+      var n = document.getElementById(location.hash.slice(1));
+      if (n) {
+        unfold(n);
+        // The browser's own hash scroll happened against the folded layout;
+        // redo it now the target is visible.
+        requestAnimationFrame(function () { n.scrollIntoView(); });
+      }
+    }
+  }
+
+  /* Sortable tables. Presentation only: rows are reordered, never recomputed.
+   * Applied to the long cross-city tables, where "sort by skill" and "find
+   * the worst average error" are the natural questions; short tables keep
+   * their authored, argued-for order. */
+  function initSortableTables() {
+    $$('table').forEach(function (t) {
+      var body = t.tBodies[0];
+      if (!body || body.rows.length < 8 || !t.tHead) return;
+      $$('th', t.tHead).forEach(function (th, col) {
+        th.classList.add('sortable');
+        th.setAttribute('title', 'Click to sort');
+        th.addEventListener('click', function () {
+          var dir = th.dataset.dir === 'asc' ? -1 : 1;
+          $$('th', t.tHead).forEach(function (h) { delete h.dataset.dir; });
+          th.dataset.dir = dir === 1 ? 'asc' : 'desc';
+          var rows = Array.prototype.slice.call(body.rows);
+          rows.sort(function (a, b) {
+            var x = a.cells[col] ? a.cells[col].textContent.trim() : '';
+            var y = b.cells[col] ? b.cells[col].textContent.trim() : '';
+            var nx = parseFloat(x.replace(/[%\u2212]/g, function (m) {
+              return m === '\u2212' ? '-' : ''; }));
+            var ny = parseFloat(y.replace(/[%\u2212]/g, function (m) {
+              return m === '\u2212' ? '-' : ''; }));
+            if (!isNaN(nx) && !isNaN(ny)) return (nx - ny) * dir;
+            return x.localeCompare(y) * dir;
+          });
+          rows.forEach(function (r) { body.appendChild(r); });
+        });
+      });
+    });
   }
 
   /* ---------------------------------------------------------------- rail */
@@ -797,9 +1077,12 @@
   function initGlobe() {
     var node = $('#globe');
     if (!node || !window.d3 || !window.Globe) return;
-    fetch(cfg.landUrl)
-      .then(function (r) { return r.json(); })
-      .then(function (land) {
+    Promise.all([
+      fetch(cfg.landUrl).then(function (r) { return r.json(); }),
+      ready
+    ])
+      .then(function (vals) {
+        var land = vals[0];
         globe = new Globe(node, {
           cities: cfg.cities,
           land: land,
@@ -837,11 +1120,30 @@
     initRail();
     initGlobe();
     initLazyCharts();
+    initLazyFolds();
+    initAnchors();
+    initSortableTables();
 
     // The first city is server-rendered, so renderCity() has not run for it and
     // the charts would open with nothing picked out.
     var start = (cfg.inline && cfg.inline.name) || cityName(current);
     highlightCharts(current, start);
+
+    // A click on the comparison key removes the pin.
+    document.addEventListener('click', function (e) {
+      var k = e.target.closest && e.target.closest('.cmp-key');
+      if (k) setCompare(null);
+    });
+
+    // The charts are a navigation surface too: clicking any city's dot or
+    // curve selects that city site-wide. Shift-click pins it for comparison,
+    // mirroring the palette's idiom.
+    document.addEventListener('click', function (e) {
+      var g = e.target.closest && e.target.closest('.citychart .cc[data-city]');
+      if (!g || g.classList.contains('cc-cmp')) return;
+      if (e.shiftKey || e.altKey) setCompare(g.dataset.city);
+      else go(g.dataset.city);
+    });
 
     // Hover-prefetch: by the time a click lands the payload is usually already
     // in cache, so switching feels instant without loading fifteen cities up
