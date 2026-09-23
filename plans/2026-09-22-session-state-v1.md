@@ -61,6 +61,17 @@ Two findings qualify every calibration statement and must travel with it:
 - **Task 10** — re-specified: lift the *country* count, not the city count,
   and only as far as Tasks 11–12 allow. ISD integration for Asia is scoped
   engineering (E30) rather than an open question.
+  *Update 2026-09-23:* the "Africa 1 / South America 0" figure (E27) is
+  GHCN-Daily only. With GHCNh at the full gate, world capitals, and
+  "covered" meaning "passes the gate", the registry is 222 cities in 88
+  countries and stage 10 scores 166 (was 134). Why each country is still
+  missing: `data/processed/country_coverage.parquet`. Details in
+  `plans/2026-09-23-world-capitals-and-coverage-expansion-v1.md`.
+  *Later the same day:* Japan added via JMA (E39); the GHCNh dry-day
+  zero rule built but kept off, since V3 failed (E38); the stage-10 lag scan
+  replaced and benchmarked (E40). Stage 10 now scores 213 cities in 83
+  countries. India and Indonesia remain out (E38). Do not use pre-2024
+  overlaps to validate the zero rule: that choice was made on purpose.
 - **Task 7** — validated ML ids in `PROVIDER_MODELS` for the deterministic
   track (G13, D6).
 - **Task 15** — evaluate `asos-parquet` as the low-latency truth source (G12).

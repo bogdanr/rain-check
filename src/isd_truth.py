@@ -102,6 +102,12 @@ BAD_CONDITION = {"1", "3", "4", "5", "6", "7", "8"}
 MIN_TEMP_READINGS = 8
 
 
+def _json_default(v):
+    if isinstance(v, np.generic):
+        return v.item()
+    raise TypeError(type(v))
+
+
 def die(msg: str) -> None:
     print(f"\nFAILED: {msg}\n")
     sys.exit(1)
@@ -183,36 +189,47 @@ def daily_totals(rec: pd.DataFrame, timezone: str, end_min: int) -> pd.DataFrame
     ones, so preferring them leaves fewer holes where an hourly report went
     missing. The day stands if the taken records leave at most MAX_GAP_HOURS
     of the window uncovered.
+
+    Records may carry an `inferred` flag (GHCNh's zero rule, see
+    `ghcnh_truth.infer_zeros`). A reported record beats an inferred one of the
+    same length, and a day is marked `inferred` if any record it was built
+    from was, so every result can be recomputed without those days.
     """
-    cols = ["obs_date", "prcp", "gap_h"]
+    cols = ["obs_date", "prcp", "gap_h", "inferred"]
     if rec.empty:
         return pd.DataFrame(columns=cols)
     lo, hi = _local(rec, timezone)
     shift = pd.Timedelta(minutes=end_min)
     w0 = (lo - shift).dt.floor("D") + shift          # window start per record
     inside = hi <= w0 + pd.Timedelta(days=1)
+    inf = (rec["inferred"].to_numpy(bool) if "inferred" in rec
+           else np.zeros(len(rec), bool))
     r = pd.DataFrame({"w0": w0, "lo": lo, "hi": hi, "hours": rec.hours.values,
-                      "mm": rec.mm.values})[inside.values]
+                      "mm": rec.mm.values, "inf": inf})[inside.values]
     if r.empty:
         return pd.DataFrame(columns=cols)
-    r = r.sort_values(["w0", "hours", "hi"], ascending=[True, False, True])
+    r = r.sort_values(["w0", "hours", "inf", "hi"],
+                      ascending=[True, False, True, True])
 
     rows = []
     for w, g in r.groupby("w0", sort=True):
         taken: list[tuple] = []
         total = 0.0
         covered = 0.0
-        for a, b, h, mm in zip(g.lo, g.hi, g.hours, g.mm):
+        any_inf = False
+        for a, b, h, mm, fi in zip(g.lo, g.hi, g.hours, g.mm, g.inf):
             if any(a < tb and b > ta for ta, tb in taken):
                 continue
             taken.append((a, b))
             total += mm
             covered += h
+            any_inf |= bool(fi)
         gap = 24.0 - covered
         if gap <= MAX_GAP_HOURS:
             # Labelled by the date holding most of the window, so a 20:00-to-
             # 20:00 day is the day it mostly is, and 00:00-to-00:00 is itself.
-            rows.append(((w + pd.Timedelta(hours=12)).normalize(), total, gap))
+            rows.append(((w + pd.Timedelta(hours=12)).normalize(), total, gap,
+                         any_inf))
     return pd.DataFrame(rows, columns=cols)
 
 
@@ -272,16 +289,17 @@ def candidates(stations: pd.DataFrame) -> pd.DataFrame:
     from probe_capitals import MAX_ELEV_DIFF_M, MAX_STATION_KM
 
     cities = probe_cities.load_geonames()
-    cities = cities[cities.population >= probe_cities.MIN_POPULATION]
+    cities = cities[(cities.population >= probe_cities.MIN_POPULATION)
+                    | cities.capital]
     pool = probe_cities.candidate_pool()
     # Only the GHCN and GHCNh rows decide: the pool also carries this stage's
     # own output from a previous run, and counting it would make every ISD
     # country look covered on the second run and remove itself. GHCNh rows do
     # count - a country GHCNh covers at the full gate needs no provisional
     # city (truth_sources: one source per country, in priority order).
-    pool = pool[pool.truth != "ISD"]
-    ghcn_countries = set(pool[pool.population >= probe_cities.MIN_POPULATION]
-                         .country)
+    # Only rows that meet their gate count (2026-09-23 plan, Task 2): a
+    # listed-but-short GHCN gauge must not keep a country from ISD.
+    ghcn_countries = probe_cities.covered_countries(pool[pool.truth != "ISD"])
     todo = cities[~cities.country.isin(ghcn_countries)].reset_index(drop=True)
 
     st = stations.reset_index(drop=True)
@@ -301,12 +319,18 @@ def candidates(stations: pd.DataFrame) -> pd.DataFrame:
                          else np.nan})
             break
     out = pd.DataFrame(rows)
+    probed = todo.country.value_counts().to_dict()
     if out.empty:
+        out.attrs["probed"] = probed
         return out
-    out = (out.sort_values("population", ascending=False)
+    # Capital first, so it is never the city dropped by the per-country cap
+    # or the one that loses a shared airport to a larger neighbour.
+    out = (out.sort_values(["capital", "population"], ascending=False)
               .drop_duplicates("station")
               .groupby("country", group_keys=False).head(PROBE_PER_COUNTRY))
-    return out.reset_index(drop=True)
+    out = out.reset_index(drop=True)
+    out.attrs["probed"] = probed
+    return out
 
 
 def _read(station: str, year: int) -> pd.DataFrame | None:
@@ -406,6 +430,43 @@ def pool_rows() -> pd.DataFrame:
     if not CANDIDATES.exists():
         return pd.DataFrame()
     return pd.DataFrame(json.loads(CANDIDATES.read_text())["cities"])
+
+
+def country_log() -> dict:
+    """Per country: how far ISD got (written by `main`; empty if this stage
+    predates the log)."""
+    if not CANDIDATES.exists():
+        return {}
+    return json.loads(CANDIDATES.read_text()).get("countries", {})
+
+
+def stage_log(probed: dict, cands, scr, meta, keep, gate: int) -> dict:
+    out = {}
+    m = (scr.merge(meta, on="station", how="left")
+         if len(meta) and len(scr) else scr)
+    for cc in sorted(probed):
+        c = cands[cands.country == cc] if len(cands) else cands
+        s = scr[scr.country == cc] if len(scr) else scr
+        b = m[m.country == cc] if len(m) else m
+        k = keep[keep.country == cc] if len(keep) else keep
+        e = {"cities_probed": int(probed[cc]),
+             "stations_in_range": int(c.station.nunique()) if len(c) else 0,
+             "best_screen": (round(float(s.screen_coverage.max()), 3)
+                             if len(s) else 0.0),
+             "best_pairs": (int(b.pair_days.fillna(0).max())
+                            if len(b) and "pair_days" in b else 0),
+             "included": int(len(k))}
+        if len(k):
+            e["step"] = f"{len(k)} cities pass"
+        elif not e["stations_in_range"]:
+            e["step"] = "no active station within 25 km and 300 m"
+        elif e["best_screen"] < SCREEN_MIN_COVERAGE:
+            e["step"] = (f"no station reconstructs {SCREEN_MIN_COVERAGE:.0%} "
+                         f"of {SCREEN_YEAR} (best {e['best_screen']:.0%})")
+        else:
+            e["step"] = f"best record {e['best_pairs']} rain days < {gate}"
+        out[cc] = e
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -560,6 +621,7 @@ def main() -> None:
           f"{pd.Timestamp(horizon).date()})")
 
     cands = candidates(act)
+    probed = cands.attrs.get("probed", {})
     print(f"candidates: {len(cands)} stations in {cands.country.nunique()} "
           f"countries GHCN cannot reach")
     scr = screen(cands)
@@ -588,10 +650,15 @@ def main() -> None:
     print(f"ISD data ends {last.date()}; the forecast archive starts "
           f"{lo.date()}, so at most {(min(last, hi) - lo).days + 1} days can "
           f"pair (the provisional gate is {gate})")
-    good = meta[(meta.pair_days >= gate) & (meta.tmax_pair_days >= gate)]
+    # Rain decides (2026-09-23 plan, Task 6); a short temperature record only
+    # costs the city its temperature track.
+    good = meta[meta.pair_days >= gate]
     keep = passed.merge(good, on="station")
+    keep["has_tmax"] = keep.tmax_pair_days >= gate
     print(f"pairable: {len(keep)} stations in {keep.country.nunique()} "
-          f"countries with {gate}+ pairable days of both")
+          f"countries with {gate}+ pairable rain days; "
+          f"{int((~keep.has_tmax).sum())} rain-only")
+    log = stage_log(probed, cands, scr, meta, keep, gate)
     best = meta.sort_values("pair_days", ascending=False).head(5)
     print("  closest: " + ", ".join(
         f"{passed.set_index('station').city.get(s, s)} {n}"
@@ -606,9 +673,13 @@ def main() -> None:
              "dem": float(r.dem), "timezone": r.timezone,
              "prcp_station": ISD_PREFIX + r.station, "prcp_km": float(r.km),
              "prcp_elev_m": float(r.elev_m), "prcp_days": int(r.prcp_days),
-             "tmax_station": ISD_PREFIX + r.station, "tmax_km": float(r.km),
-             "tmax_elev_m": float(r.elev_m), "tmax_days": int(r.tmax_days),
+             "capital": bool(r.capital),
+             "tmax_station": ISD_PREFIX + r.station if r.has_tmax else None,
+             "tmax_km": float(r.km) if r.has_tmax else None,
+             "tmax_elev_m": float(r.elev_m) if r.has_tmax else None,
+             "tmax_days": int(r.tmax_days) if r.has_tmax else None,
              "end_min": int(r.end_min), "pair_days": int(r.pair_days),
+             "tmax_pair_days": int(r.tmax_pair_days),
              "provisional": True,
              "screen_coverage": round(float(r.screen_coverage), 3)}
             for r in keep.itertuples(index=False)]
@@ -620,7 +691,8 @@ def main() -> None:
         "screen_min_coverage": SCREEN_MIN_COVERAGE,
         "max_gap_hours": MAX_GAP_HOURS,
         "cities": sorted(rows, key=lambda r: (r["country"], -r["population"])),
-    }, indent=2, sort_keys=True))
+        "countries": log,
+    }, indent=2, sort_keys=True, default=_json_default))
     print(f"\nwrote {CANDIDATES.name} ({len(rows)} cities) and {DAILY.name}")
     print("  by country: " + ", ".join(
         f"{k}:{v}" for k, v in keep.country.value_counts().items()))

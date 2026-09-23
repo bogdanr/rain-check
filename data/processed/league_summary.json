@@ -5,13 +5,6 @@
         "aliases": [
           "metno_seamless"
         ],
-        "city": "Amsterdam",
-        "kept": "ecmwf_ifs025"
-      },
-      {
-        "aliases": [
-          "metno_seamless"
-        ],
         "city": "Andorra la Vella",
         "kept": "ecmwf_ifs025"
       },
@@ -27,6 +20,13 @@
           "metno_seamless"
         ],
         "city": "Bucharest",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
+        "city": "Budapest",
         "kept": "ecmwf_ifs025"
       },
       {
@@ -118,22 +118,15 @@
     "n_rows_collapsed": 16
   },
   "held_fixed": {
-    "max_abs_bss_diff": 0.05096877348910134,
+    "max_abs_bss_diff": 0.07770628773972021,
     "n_cities_checked": 16,
     "n_published_equals_pinned": 10,
-    "spearman_published_vs_pinned": 0.9941176470588234,
+    "spearman_published_vs_pinned": 0.976470588235294,
     "verdict": "individual values shift under pinning but the city ordering survives, so the published ranking measures geography, not routing"
   },
   "n_cities_in_league": 16,
   "n_models_in_league": 5,
   "per_city_matches": [
-    {
-      "abs_diff": 0.01902026353758879,
-      "city": "Amsterdam",
-      "model": "ecmwf_ifs025",
-      "pinned_bss": 0.21330144006921448,
-      "published_bss": 0.1942811765316257
-    },
     {
       "abs_diff": 0.0017973357414647895,
       "city": "Andorra la Vella",
@@ -156,11 +149,18 @@
       "published_bss": 0.40910373011674905
     },
     {
-      "abs_diff": 0.042851805618148275,
+      "abs_diff": 0.004352882138237368,
+      "city": "Budapest",
+      "model": "ecmwf_ifs025",
+      "pinned_bss": 0.14507671759471308,
+      "published_bss": 0.1407238354564757
+    },
+    {
+      "abs_diff": 0.07770628773972021,
       "city": "Dublin",
       "model": "ecmwf_ifs025",
-      "pinned_bss": 0.2064296472528866,
-      "published_bss": 0.16357784163473832
+      "pinned_bss": 0.27804804905948144,
+      "published_bss": 0.20034176131976122
     },
     {
       "abs_diff": 0.021536270765389887,
@@ -170,11 +170,11 @@
       "published_bss": 0.22069963441172202
     },
     {
-      "abs_diff": 0.05096877348910134,
+      "abs_diff": 0.04952414035283992,
       "city": "Luxembourg",
       "model": "ecmwf_ifs025",
-      "pinned_bss": 0.3141988107822411,
-      "published_bss": 0.26323003729313976
+      "pinned_bss": 0.4914774739457686,
+      "published_bss": 0.44195333359292865
     },
     {
       "abs_diff": 0.011250770693792989,

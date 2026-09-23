@@ -35,6 +35,7 @@ from calibration import (
     effective_sample_size,
     reliability_table,
 )
+from country_names import country_name
 from config import (
     CAPITAL_COVERAGE,
     CITY_COVERAGE,
@@ -315,7 +316,10 @@ def sec_city_card(city: dict, meta: dict) -> str:
     tbl, m = city["tbl"], city["m"]
     short, _, cls = _tier(m["brier_skill_score"])
     _, honesty = _honesty(int(tbl.significant.sum()))
-    country = f' <span class="muted">{esc(meta["country"])}</span>' if meta["country"] else ""
+    # The full name, not the ISO code: "CD" or "CI" means nothing to most
+    # readers, and the card has the room. The compact city button keeps codes.
+    country = (f' <span class="muted">{esc(country_name(meta["country"]))}</span>'
+               if meta["country"] else "")
     if meta.get("provisional"):
         rank_cell = (f'<div><dt>Position</dt><dd>above {meta["skill_pct"]:.0%}'
                      f' <span class="muted">of {meta["n_cities"]}</span></dd></div>')
@@ -504,12 +508,22 @@ def exclusions(k: dict) -> list[dict]:
          "fraction of its days. Below the minimum usable pairs there is not "
          "enough overlap with the forecast archive to score a calibration "
          "curve against."),
-        ("lag", "The rain-day convention cannot be pinned down",
+        ("lag", "The gauge's calendar day could not be confirmed",
          "Station precipitation is a 24-hour total ending at an hour the "
          "observer chooses, which need not line up with the calendar day the "
-         "forecast refers to. Where the lag scan has no clean peak the "
-         "convention is unknown, and guessing it would not add noise - it "
-         "would produce a confidently wrong answer."),
+         "forecast refers to. Each gauge is lined up against reanalysis rain "
+         "at shifts of up to two days; where no shift wins in 90% of "
+         "resamples of the record the convention is unknown, and guessing it "
+         "would not add noise - it would produce a confidently wrong answer."),
+        ("weak", "The gauge barely tracks the regional weather",
+         "Gauge and reanalysis rain rank the days too differently (rank "
+         "correlation below 0.3) to date the record, which also casts doubt "
+         "on the gauge itself."),
+        ("contradict", "The record contradicts its own timestamps",
+         "These gauges report the time of each observation, which fixes the "
+         "calendar day. Their rain nevertheless lines up confidently with a "
+         "different day, so either the timestamps or the record are wrong. "
+         "They are left out rather than shifted."),
         ("nodata", "No usable record at all",
          "The station, the reanalysis or the forecast archive returned "
          "nothing overlapping the evaluation window."),
@@ -518,7 +532,11 @@ def exclusions(k: dict) -> list[dict]:
     def bucket(why: str) -> str:
         if "usable pairs" in why:
             return "sparse"
-        if "single lag" in why:
+        if "contradicts its own dating" in why:
+            return "contradict"
+        if "share too little weather" in why:
+            return "weak"
+        if "resamples" in why or "single lag" in why:
             return "lag"
         return "nodata"
 

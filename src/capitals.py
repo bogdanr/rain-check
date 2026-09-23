@@ -7,10 +7,11 @@ question: is Bucharest unusual, and if the capitals differ, what explains it?
 The forecast side is free - Open-Meteo serves any coordinate - so the work is
 almost entirely in the observations, and in not fooling ourselves:
 
-  Task 31  Each city gets its own station-vs-ERA5 lag scan. The Bucharest join
-           hid a one-day station-side offset; that convention is national, not
-           universal. A city whose scan has no clean peak is dropped rather
-           than guessed at.
+  Task 31  Each city gets its own station-vs-ERA5 lag scan (rank correlation,
+           confirmed by block bootstrap). The Bucharest join hid a one-day
+           station-side offset; that convention is national, not universal.
+           A city whose shift is not confirmed is dropped rather than guessed
+           at.
   Task 32  Identical binning, decomposition and block bootstrap everywhere.
   Task 33  Rank on reliability and BSS, never raw Brier: the uncertainty term
            of the Brier score moves with the base rate, so a dry city scores
@@ -65,10 +66,31 @@ from fetch import fetch_json, is_error, reason
 from observations import GHCN_URL
 import truth_sources
 
-# Lag scan settings (Task 31).
+# Lag scan settings (Task 31, revised 2026-09-23).
+#
+# The first scan took the shift with the highest Pearson correlation of
+# station mm against ERA5 mm, and required r >= 0.45 and a 0.04 lead over the
+# runner-up. Scored on the 91 cities whose day is fixed by timestamps (GHCNh
+# and JMA: the right answer is 0 for every one), it picked a wrong shift at
+# 23 of them. Millimetres are heavy-tailed, so a handful of storms that a
+# point gauge and a ~30 km reanalysis cell place differently decide the
+# answer - worst in the convective tropics, where it also rejected most
+# cities as "flat". The replacement ranks instead of measuring (Spearman),
+# and replaces the fixed margin with a stated confidence: the chosen shift
+# must win in SCAN_CONFIDENCE of block-bootstrap resamples.
+#
+# SCAN_CONFIDENCE was set on those known-day cities alone, never on GHCN
+# outcomes or forecasts: among accepted cities the wrong-shift rate is 3.8%
+# at 0.70-0.80, 2.8% at 0.90 and 3.0% at 0.95. 0.90 is the minimum; beyond
+# it a stricter bar drops cities without removing errors, and the two left
+# (Christchurch, Khulna, both at 100%) are records whose rain and timestamps
+# genuinely disagree - which the known-day rule excludes.
+# `scan_benchmark` recomputes this on every world run.
 SCAN_SHIFTS = range(-2, 3)
-MIN_PEAK_R = 0.45        # a scan flatter than this is not evidence of anything
-MIN_PEAK_MARGIN = 0.04   # best shift must beat the runner-up by this much
+MIN_SCAN_RHO = 0.30      # below this the gauge and reanalysis barely share weather
+SCAN_CONFIDENCE = 0.90   # share of resamples the chosen shift must win
+SCAN_BOOT = 200          # resamples; block length is BOOTSTRAP_BLOCK_DAYS
+MIN_SCAN_DAYS = 90       # days common to every shift
 
 N_BOOT_CITY = 600        # bootstrap replicates per city for metric CIs
 
@@ -412,35 +434,123 @@ def plot_track_a(la: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 # Task 31: per-city precipitation day convention
 # ---------------------------------------------------------------------------
-def scan_offset(station: pd.DataFrame, era5: pd.DataFrame) -> dict:
-    """Which shift of the GHCN date lines the station up with the real day?
+def _scan_matrix(station: pd.DataFrame, era5: pd.DataFrame) -> pd.DataFrame:
+    """ERA5 rain beside the station's rain at every shift, on the days all
+    shifts share - so no shift wins by being scored on different days."""
+    e = era5[["local_date", "precipitation_sum"]].dropna()
+    e = e.assign(local_date=pd.to_datetime(e.local_date)).set_index("local_date")
+    s = station.dropna(subset=["prcp"]).drop_duplicates("ghcn_date")
+    s = s.set_index(pd.to_datetime(s.ghcn_date)).prcp
+    cols = {"era5": e.precipitation_sum}
+    for k in SCAN_SHIFTS:
+        sh = s.copy()
+        sh.index = sh.index + pd.Timedelta(days=k)
+        cols[k] = sh
+    return pd.DataFrame(cols).dropna().sort_index()
+
+
+def _rank_corrs(m: pd.DataFrame) -> dict:
+    r = m.rank().corr()["era5"]
+    return {k: float(r[k]) for k in SCAN_SHIFTS}
+
+
+def scan_offset(station: pd.DataFrame, era5: pd.DataFrame,
+                expected: int | None = None) -> dict:
+    """Which shift of the station date lines the station up with the real day?
 
     Station and reanalysis only - no forecast data enters this, so the offset it
-    finds is a property of the observing practice, not of forecast skill. A city
-    whose scan is flat, or whose best shift barely beats the runner-up, is
-    excluded: a wrong offset does not produce a noisy calibration curve, it
-    produces a confidently wrong one.
-    """
-    e = era5[["local_date", "precipitation_sum"]].dropna()
-    corrs = {}
-    for shift in SCAN_SHIFTS:
-        s = station.copy()
-        s["local_date"] = (s.ghcn_date + pd.Timedelta(days=shift)).dt.date
-        m = s.merge(e, on="local_date", how="inner")
-        corrs[shift] = float(m.prcp.corr(m.precipitation_sum)) if len(m) > 30 else np.nan
+    finds is a property of the observing practice, not of forecast skill.
 
-    vals = {k: v for k, v in corrs.items() if not np.isnan(v)}
-    if not vals:
-        return {"offset": None, "r": np.nan, "margin": np.nan, "corrs": corrs,
-                "ok": False, "why": "no overlapping days"}
-    best = max(vals, key=vals.get)
-    runner = sorted(vals.values())[-2] if len(vals) > 1 else -1.0
-    margin = vals[best] - runner
-    ok = vals[best] >= MIN_PEAK_R and margin >= MIN_PEAK_MARGIN
-    why = ("" if ok else
-           f"peak r={vals[best]:.2f} margin={margin:.2f} - no clean single lag")
-    return {"offset": best, "r": vals[best], "margin": margin, "corrs": corrs,
-            "ok": ok, "why": why}
+    Rank correlation at each shift, then a seeded block bootstrap over days:
+    the shift is accepted only if it has the highest rank correlation in at
+    least SCAN_CONFIDENCE of resamples, and that correlation is at least
+    MIN_SCAN_RHO. A wrong offset does not produce a noisy calibration curve,
+    it produces a confidently wrong one, so an unconfirmed city is excluded.
+
+    `expected` is the shift a source's timestamps already imply (see
+    `truth_sources.known_day_offset`). There the timestamps are the default
+    and the scan is a test against them: the city keeps `expected` unless
+    another shift wins with SCAN_CONFIDENCE, in which case it is excluded,
+    never shifted, because that disagreement means the timestamps or the
+    record are wrong. The rank floor is then read at `expected`.
+    """
+    base = {"offset": None, "r": np.nan, "margin": np.nan, "share": np.nan,
+            "corrs": {}, "ok": False}
+    m = _scan_matrix(station, era5)
+    if len(m) < MIN_SCAN_DAYS:
+        return {**base, "why": "no overlapping days"}
+    corrs = _rank_corrs(m)
+    if not all(np.isfinite(v) for v in corrs.values()):
+        # A constant series (a gauge filing only zeros, say) has no ranks to
+        # correlate; that is an unusable record, not evidence about its day.
+        return {**base, "corrs": corrs, "why": "no overlapping days"}
+    best = max(corrs, key=corrs.get)
+    margin = corrs[best] - sorted(corrs.values())[-2]
+
+    rng = np.random.default_rng(RANDOM_SEED)
+    wins = dict.fromkeys(SCAN_SHIFTS, 0)
+    for _ in range(SCAN_BOOT):
+        c = _rank_corrs(m.iloc[_block_indices(len(m), rng)])
+        wins[max(c, key=c.get)] += 1
+    share = wins[best] / SCAN_BOOT
+
+    out = {**base, "offset": best, "r": corrs[best], "margin": margin,
+           "share": share, "corrs": corrs}
+    if expected is not None:
+        known = {**out, "offset": expected, "r": corrs[expected]}
+        if best != expected and share >= SCAN_CONFIDENCE:
+            return {**known, "why": (
+                f"timestamps put the day at {expected:+d} but the rain lines "
+                f"up at {best:+d} ({share:.0%} of resamples) - record "
+                f"contradicts its own dating")}
+        if corrs[expected] < MIN_SCAN_RHO:
+            return {**known, "why": (
+                f"rank r={corrs[expected]:.2f} - gauge and reanalysis share "
+                f"too little weather to date the record")}
+        return {**known, "ok": True, "why": ""}
+    if corrs[best] < MIN_SCAN_RHO:
+        why = (f"rank r={corrs[best]:.2f} - gauge and reanalysis share too "
+               f"little weather to date the record")
+    elif share < SCAN_CONFIDENCE:
+        why = (f"shift {best:+d} wins only {share:.0%} of resamples - "
+               f"no single day convention is confirmed")
+    else:
+        return {**out, "ok": True, "why": ""}
+    return {**out, "why": why}
+
+
+def scan_benchmark(cities: dict[str, City]) -> pd.DataFrame:
+    """Score the scan where the answer is known.
+
+    Every city measured by a known-day source is dated by timestamps, so an
+    unbiased scan should return that shift. Run without `expected`, so the
+    scan is not told the answer. Written beside the diagnostics so the error
+    rate quoted in the methods is recomputed, not remembered.
+    """
+    rows = []
+    for name, city in sorted(cities.items()):
+        truth = truth_sources.known_day_offset(city.prcp_station)
+        if truth is None:
+            continue
+        era5, station = fetch_era5(city), load_ghcn(city.prcp_station)
+        if era5.empty or station.empty:
+            continue
+        s = scan_offset(station, era5)
+        if s["offset"] is None:
+            continue
+        rows.append({"city": name,
+                     "source": truth_sources.source_of(city.prcp_station),
+                     "known": truth, "found": s["offset"], "rho": s["r"],
+                     "share": s["share"], "accepted": s["ok"]})
+    b = pd.DataFrame(rows)
+    if len(b):
+        b.to_parquet(artefact("scan_benchmark"), index=False)
+        acc = b[b.accepted]
+        print(f"  scan benchmark: {len(b)} known-day cities; top shift wrong "
+              f"at {int((b.found != b.known).sum())}; of the {len(acc)} "
+              f"accepted, {int((acc.found != acc.known).sum())} wrong "
+              f"(excluded by the known-day rule)")
+    return b
 
 
 # ---------------------------------------------------------------------------
@@ -459,7 +569,8 @@ def build(cities: dict[str, City],
             print(f"  {name:12s} SKIP - missing input")
             continue
 
-        scan = scan_offset(station, era5)
+        scan = scan_offset(station, era5,
+                           truth_sources.known_day_offset(city.prcp_station))
         # Bucharest's offset was established by hand and the headline result
         # rests on it; the scan must agree, and is checked rather than trusted.
         if city.prcp_day_offset_days is not None:
@@ -473,7 +584,8 @@ def build(cities: dict[str, City],
         if not ok:
             diag.append({"city": name, "included": False, "n": 0,
                          "offset": scan["offset"], "scan_r": scan["r"],
-                         "scan_margin": scan["margin"], "why": why})
+                         "scan_margin": scan["margin"],
+                         "scan_share": scan["share"], "why": why})
             print(f"  {name:12s} EXCLUDED - {why}")
             continue
 
@@ -508,6 +620,7 @@ def build(cities: dict[str, City],
         diag.append({"city": name, "included": True, "n": len(d),
                      "offset": offset, "scan_r": scan["r"],
                      "scan_margin": scan["margin"],
+                     "scan_share": scan["share"],
                      "prcp_km": city.prcp_km, "continentality_c": cont,
                      "truth": truth_sources.source_of(city.prcp_station),
                      "provisional": truth_sources.is_provisional(
@@ -995,6 +1108,10 @@ def main() -> None:
         pinned_ranking(models, persist_daily=True)
         return
 
+    if mode == "scan-benchmark":
+        scan_benchmark(registry())
+        return
+
     # `leads` joins `metrics` on the cached path: the Track A leg is the only
     # part that still needs the network, and rebuilding the whole PoP side just
     # to reach it wastes half an hour of lag scans on data already on disk.
@@ -1012,6 +1129,7 @@ def main() -> None:
         daily, diag = build(cities)
         daily.to_parquet(daily_path, index=False)
         diag.to_parquet(artefact("diagnostics"), index=False)
+        scan_benchmark(cities)
 
     if daily.empty:
         raise SystemExit(f"no {label} survived the coverage and offset rules")

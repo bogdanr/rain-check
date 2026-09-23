@@ -102,8 +102,12 @@ echo "== 10/27 beyond the capitals: probe every city with a usable gauge =="
 # whose public files stop in August 2025, at a 400-pair *provisional* gate.
 # Provisional cities get labelled pages but are held out of every pooled claim
 # (src/truth_sources.py). Both cache their downloads; warm runs are offline.
+# JMA's own observatory records replace GHCN-Daily in Japan, whose Japanese
+# feed stopped in 2025; the stage cross-checks against GHCN's copy of the
+# same gauges and withdraws its cities if they disagree.
 S ghcnh_truth.py
 S isd_truth.py
+S jma_truth.py
 S probe_cities.py
 run_fresh S ghcn_bulk.py -- data/raw/ghcn_bulk.parquet
 # The Track A leg of this run is API-heavy and can trip Open-Meteo's hourly

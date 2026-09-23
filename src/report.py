@@ -576,6 +576,30 @@ def sec_capitals(c) -> str:
                         for _, r in dropped.iterrows())
         drop_html = f"<ul>{items}</ul>"
 
+    # The rain-day sentence reads the offsets the scan actually chose; it
+    # used to name Amsterdam, Dublin and Luxembourg by hand, which the
+    # revised scan (capitals.scan_offset) no longer confirms.
+    shift_html = ""
+    dg = k["diag"]
+    if dg is not None and "offset" in dg:
+        inc = dg[dg.included]
+        back = sorted(inc[inc.offset < 0].city)
+        fwd = sorted(inc[inc.offset > 0].city)
+        name = lambda xs: ", ".join(esc(x) for x in xs[:-1]) + (
+            f" and {esc(xs[-1])}" if len(xs) > 1 else esc(xs[0]))
+        where = []
+        if back:
+            where.append(f"back a day in {name(back)}")
+        if fwd:
+            where.append(f"forward a day in {name(fwd)}")
+        if where:
+            shift_html = f"""
+<p class="muted">The rain-day convention had to be re-derived for every city
+separately, and it genuinely differs: the station date needs shifting
+{', '.join(where)}, and not at all elsewhere. Each shift is found by rank
+correlation against reanalysis rain and kept only if it wins in at least 90%
+of block-bootstrap resamples; assuming Bucharest's convention travelled would
+have produced confident, wrong curves.</p>"""
     wb_html = ""
     if k["wb"] is not None and len(k["wb"]):
         wb = k["wb"]
@@ -748,11 +772,7 @@ data was downloaded because their nearest qualifying gauge sits on a mountain
 valley city against those would measure the lapse rate, not the forecast. The
 rest failed once their records were inspected:</p>
 {drop_html}
-<p class="muted">The rain-day convention had to be re-derived for every city
-separately, and it genuinely differs: the station date needs shifting back a day
-in Bucharest and Reykjavik, forward a day in Amsterdam, Dublin and Luxembourg,
-and not at all elsewhere. Assuming Bucharest's convention travelled would have
-produced confident, wrong curves for a third of the map.</p>
+{shift_html}
 """
 
 
@@ -1697,7 +1717,7 @@ def dropped_block(dropped: list[dict]) -> str:
             f'<p class="drop-names">{names}</p></div>')
     return f"""
 <details class="dropped">
-  <summary>{n} further places were probed and could not be verified</summary>
+  <summary>{n} further places were probed but could not be scored</summary>
   {''.join(parts)}
 </details>"""
 

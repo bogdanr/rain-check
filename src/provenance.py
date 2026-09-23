@@ -133,6 +133,17 @@ SOURCES: dict[str, Source] = {s.key: s for s in [
         "redistributed - recorded as unresolved rather than as cleared.",
     ),
     Source(
+        "jma_obs", "Japan Meteorological Agency past weather data (etrn)",
+        "Public Data License 1.0 (CC-BY-4.0 compatible)", False,
+        "https://www.jma.go.jp/jma/kishou/info/coment.html",
+        "出典：気象庁ホームページ (Source: JMA website), "
+        "https://www.data.jma.go.jp/stats/etrn/",
+        "Truth for Japanese cities (src/jma_truth.py), read 2026-09-23. The "
+        "terms page states the Public Data License 1.0, which the Government "
+        "of Japan declares compatible with CC BY 4.0; derived data must say "
+        "it was processed and must not be presented as JMA's own.",
+    ),
+    Source(
         "chirps", "CHIRPS and CHIRP daily rasters", "CC0-1.0", False,
         "https://www.chc.ucsb.edu/data/chirps",
         "CHIRPS, Climate Hazards Center, UC Santa Barbara",
@@ -210,13 +221,18 @@ def model_sources() -> dict[str, str]:
 
 
 def tracked_files() -> list[Path]:
-    """Files under version control in the published directories."""
+    """Files under version control in the published directories, as they
+    stand on disk: the site's payloads are content-hashed, so a rebuild
+    deletes tracked names and writes new untracked ones until the next
+    commit. Both sides are what will be published, so new files are audited
+    and deleted ones skipped."""
     out: list[Path] = []
     for d in PUBLISHED:
-        r = subprocess.run(["git", "ls-files", d], cwd=ROOT,
+        r = subprocess.run(["git", "ls-files", "--cached", "--others",
+                            "--exclude-standard", d], cwd=ROOT,
                            capture_output=True, text=True)
         out += [ROOT / f for f in r.stdout.split()]
-    return out
+    return [p for p in out if p.is_file()]
 
 
 def file_markers(path: Path) -> set[str]:
