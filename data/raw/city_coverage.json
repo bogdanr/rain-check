@@ -12,10 +12,30 @@
       "prcp_elev_m": 7.0,
       "prcp_km": 8.0,
       "prcp_station": "NLE00102083",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 20.7,
-      "tmax_station": "NLE00152482"
+      "tmax_station": "NLE00152482",
+      "truth": "GHCN"
+    },
+    "Abidjan": {
+      "country": "CI",
+      "grid_elev_m": 54.0,
+      "is_capital": false,
+      "lat": 5.35444,
+      "lon": -4.00167,
+      "population": 6321017,
+      "prcp_days": 690,
+      "prcp_elev_m": 6.4,
+      "prcp_km": 13.3,
+      "prcp_station": "GHCNH:IVI0000DIAP",
+      "provisional": false,
+      "timezone": "Africa/Abidjan",
+      "tmax_days": 968,
+      "tmax_km": 13.3,
+      "tmax_station": "GHCNH:IVI0000DIAP",
+      "truth": "GHCNh"
     },
     "Adana": {
       "country": "TR",
@@ -28,10 +48,12 @@
       "prcp_elev_m": 76.2,
       "prcp_km": 9.7,
       "prcp_station": "TUW00033308",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 403,
       "tmax_km": 9.7,
-      "tmax_station": "TUW00033308"
+      "tmax_station": "TUW00033308",
+      "truth": "GHCN"
     },
     "Adapazari": {
       "country": "TR",
@@ -44,10 +66,12 @@
       "prcp_elev_m": 30.0,
       "prcp_km": 1.2,
       "prcp_station": "TUM00017069",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 739,
       "tmax_km": 1.2,
-      "tmax_station": "TUM00017069"
+      "tmax_station": "TUM00017069",
+      "truth": "GHCN"
     },
     "Adelaide": {
       "country": "AU",
@@ -60,10 +84,12 @@
       "prcp_elev_m": 40.0,
       "prcp_km": 1.1,
       "prcp_station": "ASN00023000",
+      "provisional": false,
       "timezone": "Australia/Adelaide",
       "tmax_days": 767,
       "tmax_km": 1.1,
-      "tmax_station": "ASN00023000"
+      "tmax_station": "ASN00023000",
+      "truth": "GHCN"
     },
     "Adiyaman": {
       "country": "TR",
@@ -76,10 +102,30 @@
       "prcp_elev_m": 672.0,
       "prcp_km": 1.7,
       "prcp_station": "TUM00017265",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 689,
       "tmax_km": 1.7,
-      "tmax_station": "TUM00017265"
+      "tmax_station": "TUM00017265",
+      "truth": "GHCN"
+    },
+    "Algiers": {
+      "country": "DZ",
+      "grid_elev_m": 115.0,
+      "is_capital": false,
+      "lat": 36.73225,
+      "lon": 3.08746,
+      "population": 2364230,
+      "prcp_days": 879,
+      "prcp_elev_m": 25.0,
+      "prcp_km": 12.3,
+      "prcp_station": "GHCNH:AGI0000DAAG",
+      "provisional": false,
+      "timezone": "Africa/Algiers",
+      "tmax_days": 989,
+      "tmax_km": 12.3,
+      "tmax_station": "GHCNH:AGI0000DAAG",
+      "truth": "GHCNh"
     },
     "Amsterdam": {
       "country": "NL",
@@ -92,10 +138,30 @@
       "prcp_elev_m": -1.0,
       "prcp_km": 5.3,
       "prcp_station": "NLE00101920",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 9.3,
-      "tmax_station": "NLE00152485"
+      "tmax_station": "NLE00152485",
+      "truth": "GHCN"
+    },
+    "Andorra la Vella": {
+      "country": "AD",
+      "grid_elev_m": 1045.0,
+      "is_capital": true,
+      "lat": 42.50779,
+      "lon": 1.52109,
+      "population": 20430,
+      "prcp_days": 583,
+      "prcp_elev_m": 849.0,
+      "prcp_km": 16.8,
+      "prcp_station": "SPE00156306",
+      "provisional": false,
+      "timezone": "Europe/Andorra",
+      "tmax_days": 583,
+      "tmax_km": 16.8,
+      "tmax_station": "SPE00156306",
+      "truth": "GHCN"
     },
     "Ankara": {
       "country": "TR",
@@ -108,10 +174,30 @@
       "prcp_elev_m": 891.0,
       "prcp_km": 4.1,
       "prcp_station": "TUM00017130",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 740,
       "tmax_km": 4.1,
-      "tmax_station": "TUM00017130"
+      "tmax_station": "TUM00017130",
+      "truth": "GHCN"
+    },
+    "Annaba": {
+      "country": "DZ",
+      "grid_elev_m": 5.0,
+      "is_capital": false,
+      "lat": 36.9,
+      "lon": 7.76667,
+      "population": 342703,
+      "prcp_days": 884,
+      "prcp_elev_m": 4.0,
+      "prcp_km": 9.1,
+      "prcp_station": "GHCNH:AGU060360-1",
+      "provisional": false,
+      "timezone": "Africa/Algiers",
+      "tmax_days": 987,
+      "tmax_km": 9.1,
+      "tmax_station": "GHCNH:AGU060360-1",
+      "truth": "GHCNh"
     },
     "Arad": {
       "country": "RO",
@@ -124,10 +210,12 @@
       "prcp_elev_m": 117.0,
       "prcp_km": 6.1,
       "prcp_station": "ROE00100829",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 737,
       "tmax_km": 6.1,
-      "tmax_station": "ROE00100829"
+      "tmax_station": "ROE00100829",
+      "truth": "GHCN"
     },
     "Auckland": {
       "country": "NZ",
@@ -140,10 +228,12 @@
       "prcp_elev_m": 7.0,
       "prcp_km": 17.1,
       "prcp_station": "NZM00093110",
+      "provisional": false,
       "timezone": "Pacific/Auckland",
       "tmax_days": 711,
       "tmax_km": 17.1,
-      "tmax_station": "NZM00093110"
+      "tmax_station": "NZM00093110",
+      "truth": "GHCN"
     },
     "Bacau": {
       "country": "RO",
@@ -156,10 +246,12 @@
       "prcp_elev_m": 184.0,
       "prcp_km": 3.8,
       "prcp_station": "ROE00108887",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 734,
       "tmax_km": 3.8,
-      "tmax_station": "ROE00108887"
+      "tmax_station": "ROE00108887",
+      "truth": "GHCN"
     },
     "Balti": {
       "country": "MD",
@@ -172,10 +264,30 @@
       "prcp_elev_m": 102.0,
       "prcp_km": 2.7,
       "prcp_station": "MD000033745",
+      "provisional": false,
       "timezone": "Europe/Chisinau",
       "tmax_days": 668,
       "tmax_km": 2.7,
-      "tmax_station": "MD000033745"
+      "tmax_station": "MD000033745",
+      "truth": "GHCN"
+    },
+    "Bangui": {
+      "country": "CF",
+      "grid_elev_m": 347.0,
+      "is_capital": false,
+      "lat": 4.36122,
+      "lon": 18.55496,
+      "population": 812407,
+      "prcp_days": 777,
+      "prcp_elev_m": 368.2,
+      "prcp_km": 5.8,
+      "prcp_station": "GHCNH:CTI0000FEFF",
+      "provisional": false,
+      "timezone": "Africa/Bangui",
+      "tmax_days": 925,
+      "tmax_km": 5.8,
+      "tmax_station": "GHCNH:CTI0000FEFF",
+      "truth": "GHCNh"
     },
     "Baranovichi": {
       "country": "BY",
@@ -188,10 +300,12 @@
       "prcp_elev_m": 193.0,
       "prcp_km": 1.8,
       "prcp_station": "BOM00026941",
+      "provisional": false,
       "timezone": "Europe/Minsk",
       "tmax_days": 561,
       "tmax_km": 1.8,
-      "tmax_station": "BOM00026941"
+      "tmax_station": "BOM00026941",
+      "truth": "GHCN"
     },
     "Barcelona": {
       "country": "ES",
@@ -204,10 +318,30 @@
       "prcp_elev_m": 33.0,
       "prcp_km": 0.9,
       "prcp_station": "SPE00155991",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 583,
       "tmax_km": 0.9,
-      "tmax_station": "SPE00155991"
+      "tmax_station": "SPE00155991",
+      "truth": "GHCN"
+    },
+    "Barranquilla": {
+      "country": "CO",
+      "grid_elev_m": 21.0,
+      "is_capital": false,
+      "lat": 10.96854,
+      "lon": -74.78132,
+      "population": 1206319,
+      "prcp_days": 671,
+      "prcp_elev_m": 29.9,
+      "prcp_km": 8.8,
+      "prcp_station": "GHCNH:COI0000SKBQ",
+      "provisional": false,
+      "timezone": "America/Bogota",
+      "tmax_days": 988,
+      "tmax_km": 8.8,
+      "tmax_station": "GHCNH:COI0000SKBQ",
+      "truth": "GHCNh"
     },
     "Barysaw": {
       "country": "BY",
@@ -220,10 +354,12 @@
       "prcp_elev_m": 189.0,
       "prcp_km": 4.3,
       "prcp_station": "BOM00026759",
+      "provisional": false,
       "timezone": "Europe/Minsk",
       "tmax_days": 572,
       "tmax_km": 4.3,
-      "tmax_station": "BOM00026759"
+      "tmax_station": "BOM00026759",
+      "truth": "GHCN"
     },
     "Basel": {
       "country": "CH",
@@ -236,10 +372,30 @@
       "prcp_elev_m": 316.0,
       "prcp_km": 2.9,
       "prcp_station": "SZ000001940",
+      "provisional": false,
       "timezone": "Europe/Zurich",
       "tmax_days": 766,
       "tmax_km": 2.9,
-      "tmax_station": "SZ000001940"
+      "tmax_station": "SZ000001940",
+      "truth": "GHCN"
+    },
+    "Bedok New Town": {
+      "country": "SG",
+      "grid_elev_m": 19.0,
+      "is_capital": false,
+      "lat": 1.32639,
+      "lon": 103.94167,
+      "population": 276990,
+      "prcp_days": 957,
+      "prcp_elev_m": 6.7,
+      "prcp_km": 6.4,
+      "prcp_station": "GHCNH:SNI0000WSSS",
+      "provisional": false,
+      "timezone": "Asia/Singapore",
+      "tmax_days": 988,
+      "tmax_km": 6.4,
+      "tmax_station": "GHCNH:SNI0000WSSS",
+      "truth": "GHCNh"
     },
     "Belfast": {
       "country": "GB",
@@ -252,10 +408,12 @@
       "prcp_elev_m": 56.0,
       "prcp_km": 6.3,
       "prcp_station": "UKE00105877",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 746,
       "tmax_km": 6.3,
-      "tmax_station": "UKE00105877"
+      "tmax_station": "UKE00105877",
+      "truth": "GHCN"
     },
     "Bergen": {
       "country": "NO",
@@ -268,10 +426,12 @@
       "prcp_elev_m": 12.0,
       "prcp_km": 1.2,
       "prcp_station": "NO000050540",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 1.2,
-      "tmax_station": "NO000050540"
+      "tmax_station": "NO000050540",
+      "truth": "GHCN"
     },
     "Berlin": {
       "country": "DE",
@@ -284,10 +444,12 @@
       "prcp_elev_m": 48.0,
       "prcp_km": 6.2,
       "prcp_station": "GME00111445",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 6.2,
-      "tmax_station": "GME00111445"
+      "tmax_station": "GME00111445",
+      "truth": "GHCN"
     },
     "Bialystok": {
       "country": "PL",
@@ -300,10 +462,12 @@
       "prcp_elev_m": 151.0,
       "prcp_km": 3.7,
       "prcp_station": "PLM00012295",
+      "provisional": false,
       "timezone": "Europe/Warsaw",
       "tmax_days": 744,
       "tmax_km": 3.7,
-      "tmax_station": "PLM00012295"
+      "tmax_station": "PLM00012295",
+      "truth": "GHCN"
     },
     "Bilbao": {
       "country": "ES",
@@ -316,10 +480,12 @@
       "prcp_elev_m": 42.0,
       "prcp_km": 4.2,
       "prcp_station": "SPE00120611",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 767,
       "tmax_km": 4.2,
-      "tmax_station": "SPE00120611"
+      "tmax_station": "SPE00120611",
+      "truth": "GHCN"
     },
     "Bishkek": {
       "country": "KG",
@@ -332,10 +498,48 @@
       "prcp_elev_m": 756.0,
       "prcp_km": 4.5,
       "prcp_station": "KG000038353",
+      "provisional": false,
       "timezone": "Asia/Bishkek",
       "tmax_days": 718,
       "tmax_km": 4.5,
-      "tmax_station": "KG000038353"
+      "tmax_station": "KG000038353",
+      "truth": "GHCN"
+    },
+    "Bissau": {
+      "country": "GW",
+      "grid_elev_m": 12.0,
+      "is_capital": false,
+      "lat": 11.86357,
+      "lon": -15.59767,
+      "population": 439704,
+      "prcp_days": 504,
+      "prcp_elev_m": 39.3,
+      "prcp_km": 7.0,
+      "prcp_station": "GHCNH:PUI0000GGOV",
+      "provisional": false,
+      "timezone": "Africa/Bissau",
+      "tmax_days": 888,
+      "tmax_km": 7.0,
+      "tmax_station": "GHCNH:PUI0000GGOV",
+      "truth": "GHCNh"
+    },
+    "Bobo-Dioulasso": {
+      "country": "BF",
+      "grid_elev_m": 413.0,
+      "is_capital": false,
+      "lat": 11.18064,
+      "lon": -4.29489,
+      "population": 904920,
+      "prcp_days": 666,
+      "prcp_elev_m": 460.5,
+      "prcp_km": 4.6,
+      "prcp_station": "GHCNH:UVI0000DFOO",
+      "provisional": false,
+      "timezone": "Africa/Ouagadougou",
+      "tmax_days": 969,
+      "tmax_km": 4.6,
+      "tmax_station": "GHCNH:UVI0000DFOO",
+      "truth": "GHCNh"
     },
     "Bobruysk": {
       "country": "BY",
@@ -348,10 +552,30 @@
       "prcp_elev_m": 156.0,
       "prcp_km": 7.9,
       "prcp_station": "BOM00026961",
+      "provisional": false,
       "timezone": "Europe/Minsk",
       "tmax_days": 567,
       "tmax_km": 7.9,
-      "tmax_station": "BOM00026961"
+      "tmax_station": "BOM00026961",
+      "truth": "GHCN"
+    },
+    "Bogota": {
+      "country": "CO",
+      "grid_elev_m": 2582.0,
+      "is_capital": false,
+      "lat": 4.60971,
+      "lon": -74.08175,
+      "population": 7674366,
+      "prcp_days": 770,
+      "prcp_elev_m": 2548.4,
+      "prcp_km": 12.5,
+      "prcp_station": "GHCNH:COI0000SKBO",
+      "provisional": false,
+      "timezone": "America/Bogota",
+      "tmax_days": 988,
+      "tmax_km": 12.5,
+      "tmax_station": "GHCNH:COI0000SKBO",
+      "truth": "GHCNh"
     },
     "Bokhtar": {
       "country": "TJ",
@@ -364,10 +588,12 @@
       "prcp_elev_m": 429.0,
       "prcp_km": 2.2,
       "prcp_station": "TI000038933",
+      "provisional": false,
       "timezone": "Asia/Dushanbe",
       "tmax_days": 724,
       "tmax_km": 2.2,
-      "tmax_station": "TI000038933"
+      "tmax_station": "TI000038933",
+      "truth": "GHCN"
     },
     "Breda": {
       "country": "NL",
@@ -380,10 +606,12 @@
       "prcp_elev_m": 5.0,
       "prcp_km": 4.4,
       "prcp_station": "NLE00109098",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 11.3,
-      "tmax_station": "NLE00152491"
+      "tmax_station": "NLE00152491",
+      "truth": "GHCN"
     },
     "Brisbane": {
       "country": "AU",
@@ -396,10 +624,12 @@
       "prcp_elev_m": 8.1,
       "prcp_km": 1.8,
       "prcp_station": "ASN00040913",
+      "provisional": false,
       "timezone": "Australia/Brisbane",
       "tmax_days": 766,
       "tmax_km": 1.8,
-      "tmax_station": "ASN00040913"
+      "tmax_station": "ASN00040913",
+      "truth": "GHCN"
     },
     "Bucharest": {
       "country": "RO",
@@ -412,10 +642,12 @@
       "prcp_elev_m": 82.0,
       "prcp_km": 1.8,
       "prcp_station": "ROE00100899",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 749,
       "tmax_km": 9.5,
-      "tmax_station": "ROE00108889"
+      "tmax_station": "ROE00108889",
+      "truth": "GHCN"
     },
     "Budapest": {
       "country": "HU",
@@ -428,10 +660,12 @@
       "prcp_elev_m": 153.0,
       "prcp_km": 2.0,
       "prcp_station": "HUE00100247",
+      "provisional": false,
       "timezone": "Europe/Budapest",
       "tmax_days": 767,
       "tmax_km": 2.0,
-      "tmax_station": "HUE00100247"
+      "tmax_station": "HUE00100247",
+      "truth": "GHCN"
     },
     "Buraydah": {
       "country": "SA",
@@ -444,10 +678,12 @@
       "prcp_elev_m": 648.0,
       "prcp_km": 20.9,
       "prcp_station": "SAM00040405",
+      "provisional": false,
       "timezone": "Asia/Riyadh",
       "tmax_days": 579,
       "tmax_km": 20.9,
-      "tmax_station": "SAM00040405"
+      "tmax_station": "SAM00040405",
+      "truth": "GHCN"
     },
     "Calgary": {
       "country": "CA",
@@ -460,10 +696,30 @@
       "prcp_elev_m": 1046.1,
       "prcp_km": 1.5,
       "prcp_station": "CA1AB000012",
+      "provisional": false,
       "timezone": "America/Edmonton",
       "tmax_days": 521,
       "tmax_km": 8.8,
-      "tmax_station": "CA003031094"
+      "tmax_station": "CA003031094",
+      "truth": "GHCN"
+    },
+    "Cali": {
+      "country": "CO",
+      "grid_elev_m": 960.0,
+      "is_capital": false,
+      "lat": 3.43054,
+      "lon": -76.5199,
+      "population": 2392877,
+      "prcp_days": 743,
+      "prcp_elev_m": 963.8,
+      "prcp_km": 19.8,
+      "prcp_station": "GHCNH:COI0000SKCL",
+      "provisional": false,
+      "timezone": "America/Bogota",
+      "tmax_days": 988,
+      "tmax_km": 19.8,
+      "tmax_station": "GHCNH:COI0000SKCL",
+      "truth": "GHCNh"
     },
     "Catania": {
       "country": "IT",
@@ -476,10 +732,30 @@
       "prcp_elev_m": 31.1,
       "prcp_km": 17.0,
       "prcp_station": "ITW00033126",
+      "provisional": false,
       "timezone": "Europe/Rome",
       "tmax_days": 707,
       "tmax_km": 17.0,
-      "tmax_station": "ITW00033126"
+      "tmax_station": "ITW00033126",
+      "truth": "GHCN"
+    },
+    "Chattogram": {
+      "country": "BD",
+      "grid_elev_m": 21.0,
+      "is_capital": false,
+      "lat": 22.3384,
+      "lon": 91.83168,
+      "population": 3920222,
+      "prcp_days": 946,
+      "prcp_elev_m": 6.0,
+      "prcp_km": 7.7,
+      "prcp_station": "GHCNH:BGU041978-1",
+      "provisional": false,
+      "timezone": "Asia/Dhaka",
+      "tmax_days": 966,
+      "tmax_km": 7.7,
+      "tmax_station": "GHCNH:BGU041978-1",
+      "truth": "GHCNh"
     },
     "Chernihiv": {
       "country": "UA",
@@ -492,10 +768,12 @@
       "prcp_elev_m": 137.0,
       "prcp_km": 11.7,
       "prcp_station": "UPM00033135",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 481,
       "tmax_km": 11.7,
-      "tmax_station": "UPM00033135"
+      "tmax_station": "UPM00033135",
+      "truth": "GHCN"
     },
     "Chiba": {
       "country": "JP",
@@ -508,10 +786,12 @@
       "prcp_elev_m": 19.0,
       "prcp_km": 1.5,
       "prcp_station": "JA000047682",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 689,
       "tmax_km": 1.5,
-      "tmax_station": "JA000047682"
+      "tmax_station": "JA000047682",
+      "truth": "GHCN"
     },
     "Chicago": {
       "country": "US",
@@ -524,10 +804,12 @@
       "prcp_elev_m": 182.6,
       "prcp_km": 8.9,
       "prcp_station": "US1ILCK0384",
+      "provisional": false,
       "timezone": "America/Chicago",
       "tmax_days": 758,
       "tmax_km": 3.4,
-      "tmax_station": "USC00111550"
+      "tmax_station": "USC00111550",
+      "truth": "GHCN"
     },
     "Chisinau": {
       "country": "MD",
@@ -540,10 +822,12 @@
       "prcp_elev_m": 173.0,
       "prcp_km": 1.5,
       "prcp_station": "MD000033815",
+      "provisional": false,
       "timezone": "Europe/Chisinau",
       "tmax_days": 708,
       "tmax_km": 1.5,
-      "tmax_station": "MD000033815"
+      "tmax_station": "MD000033815",
+      "truth": "GHCN"
     },
     "Ciudad Acuna": {
       "country": "MX",
@@ -556,10 +840,12 @@
       "prcp_elev_m": 288.0,
       "prcp_km": 4.1,
       "prcp_station": "US1TXVV0023",
+      "provisional": false,
       "timezone": "America/Matamoros",
       "tmax_days": 767,
       "tmax_km": 6.6,
-      "tmax_station": "USW00022010"
+      "tmax_station": "USW00022010",
+      "truth": "GHCN"
     },
     "Ciudad Juarez": {
       "country": "MX",
@@ -572,10 +858,12 @@
       "prcp_elev_m": 1129.0,
       "prcp_km": 9.8,
       "prcp_station": "US1TXEP0131",
+      "provisional": false,
       "timezone": "America/Ciudad_Juarez",
       "tmax_days": 767,
       "tmax_km": 12.9,
-      "tmax_station": "USW00023044"
+      "tmax_station": "USW00023044",
+      "truth": "GHCN"
     },
     "Cluj-Napoca": {
       "country": "RO",
@@ -588,10 +876,12 @@
       "prcp_elev_m": 410.0,
       "prcp_km": 3.1,
       "prcp_station": "ROE00100902",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 746,
       "tmax_km": 3.1,
-      "tmax_station": "ROE00100902"
+      "tmax_station": "ROE00100902",
+      "truth": "GHCN"
     },
     "Constanta": {
       "country": "RO",
@@ -604,10 +894,48 @@
       "prcp_elev_m": 13.0,
       "prcp_km": 4.4,
       "prcp_station": "ROE00108892",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 763,
       "tmax_km": 4.4,
-      "tmax_station": "ROE00108892"
+      "tmax_station": "ROE00108892",
+      "truth": "GHCN"
+    },
+    "Constantine": {
+      "country": "DZ",
+      "grid_elev_m": 607.0,
+      "is_capital": false,
+      "lat": 36.365,
+      "lon": 6.61472,
+      "population": 448028,
+      "prcp_days": 887,
+      "prcp_elev_m": 690.4,
+      "prcp_km": 9.9,
+      "prcp_station": "GHCNH:AGI0000DABC",
+      "provisional": false,
+      "timezone": "Africa/Algiers",
+      "tmax_days": 987,
+      "tmax_km": 9.9,
+      "tmax_station": "GHCNH:AGI0000DABC",
+      "truth": "GHCNh"
+    },
+    "Cotonou": {
+      "country": "BJ",
+      "grid_elev_m": 8.0,
+      "is_capital": false,
+      "lat": 6.36536,
+      "lon": 2.41833,
+      "population": 679012,
+      "prcp_days": 804,
+      "prcp_elev_m": 5.8,
+      "prcp_km": 3.9,
+      "prcp_station": "GHCNH:BNI0000DBBB",
+      "provisional": false,
+      "timezone": "Africa/Porto-Novo",
+      "tmax_days": 956,
+      "tmax_km": 3.9,
+      "tmax_station": "GHCNH:BNI0000DBBB",
+      "truth": "GHCNh"
     },
     "Coventry": {
       "country": "GB",
@@ -620,10 +948,12 @@
       "prcp_elev_m": 47.0,
       "prcp_km": 23.0,
       "prcp_station": "UKE00105909",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 753,
       "tmax_km": 21.6,
-      "tmax_station": "UK000000000"
+      "tmax_station": "UK000000000",
+      "truth": "GHCN"
     },
     "Craiova": {
       "country": "RO",
@@ -636,10 +966,12 @@
       "prcp_elev_m": 192.0,
       "prcp_km": 11.1,
       "prcp_station": "ROE00108893",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 759,
       "tmax_km": 11.1,
-      "tmax_station": "ROE00108893"
+      "tmax_station": "ROE00108893",
+      "truth": "GHCN"
     },
     "Dallas": {
       "country": "US",
@@ -652,10 +984,12 @@
       "prcp_elev_m": 150.0,
       "prcp_km": 3.6,
       "prcp_station": "US1TXDA0053",
+      "provisional": false,
       "timezone": "America/Chicago",
       "tmax_days": 767,
       "tmax_km": 6.7,
-      "tmax_station": "USW00013960"
+      "tmax_station": "USW00013960",
+      "truth": "GHCN"
     },
     "Dandong": {
       "country": "CN",
@@ -668,10 +1002,12 @@
       "prcp_elev_m": 7.0,
       "prcp_km": 3.4,
       "prcp_station": "KNM00047035",
+      "provisional": false,
       "timezone": "Asia/Shanghai",
       "tmax_days": 488,
       "tmax_km": 3.4,
-      "tmax_station": "KNM00047035"
+      "tmax_station": "KNM00047035",
+      "truth": "GHCN"
     },
     "Dasoguz": {
       "country": "TM",
@@ -684,10 +1020,48 @@
       "prcp_elev_m": 88.0,
       "prcp_km": 14.4,
       "prcp_station": "TX000038392",
+      "provisional": false,
       "timezone": "Asia/Ashgabat",
       "tmax_days": 733,
       "tmax_km": 14.4,
-      "tmax_station": "TX000038392"
+      "tmax_station": "TX000038392",
+      "truth": "GHCN"
+    },
+    "Dhaka": {
+      "country": "BD",
+      "grid_elev_m": 27.0,
+      "is_capital": false,
+      "lat": 23.7104,
+      "lon": 90.40744,
+      "population": 10356500,
+      "prcp_days": 927,
+      "prcp_elev_m": 7.3,
+      "prcp_km": 8.0,
+      "prcp_station": "GHCNH:BGI0000VGTJ",
+      "provisional": false,
+      "timezone": "Asia/Dhaka",
+      "tmax_days": 836,
+      "tmax_km": 8.0,
+      "tmax_station": "GHCNH:BGI0000VGTJ",
+      "truth": "GHCNh"
+    },
+    "Douala": {
+      "country": "CM",
+      "grid_elev_m": 17.0,
+      "is_capital": false,
+      "lat": 4.04827,
+      "lon": 9.70428,
+      "population": 1338082,
+      "prcp_days": 810,
+      "prcp_elev_m": 10.1,
+      "prcp_km": 5.0,
+      "prcp_station": "GHCNH:CMI0000FKKD",
+      "provisional": false,
+      "timezone": "Africa/Douala",
+      "tmax_days": 956,
+      "tmax_km": 5.0,
+      "tmax_station": "GHCNH:CMI0000FKKD",
+      "truth": "GHCNh"
     },
     "Drammen": {
       "country": "NO",
@@ -700,10 +1074,30 @@
       "prcp_elev_m": 163.0,
       "prcp_km": 18.0,
       "prcp_station": "NOE00109885",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 18.0,
-      "tmax_station": "NOE00109885"
+      "tmax_station": "NOE00109885",
+      "truth": "GHCN"
+    },
+    "Dubai": {
+      "country": "AE",
+      "grid_elev_m": 27.0,
+      "is_capital": false,
+      "lat": 25.07725,
+      "lon": 55.30927,
+      "population": 3790000,
+      "prcp_days": 781,
+      "prcp_elev_m": 10.4,
+      "prcp_km": 20.5,
+      "prcp_station": "GHCNH:AEI0000OMDB",
+      "provisional": false,
+      "timezone": "Asia/Dubai",
+      "tmax_days": 933,
+      "tmax_km": 20.5,
+      "tmax_station": "GHCNH:AEI0000OMDB",
+      "truth": "GHCNh"
     },
     "Dublin": {
       "country": "IE",
@@ -716,10 +1110,12 @@
       "prcp_elev_m": 49.0,
       "prcp_km": 5.8,
       "prcp_station": "EI000003969",
+      "provisional": false,
       "timezone": "Europe/Dublin",
       "tmax_days": 759,
       "tmax_km": 5.8,
-      "tmax_station": "EI000003969"
+      "tmax_station": "EI000003969",
+      "truth": "GHCN"
     },
     "Duesseldorf": {
       "country": "DE",
@@ -732,10 +1128,12 @@
       "prcp_elev_m": 37.0,
       "prcp_km": 8.2,
       "prcp_station": "GME00102268",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 8.2,
-      "tmax_station": "GME00102268"
+      "tmax_station": "GME00102268",
+      "truth": "GHCN"
     },
     "Edinburgh": {
       "country": "GB",
@@ -748,10 +1146,12 @@
       "prcp_elev_m": 26.0,
       "prcp_km": 1.8,
       "prcp_station": "UKE00105888",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 752,
       "tmax_km": 1.8,
-      "tmax_station": "UKE00105888"
+      "tmax_station": "UKE00105888",
+      "truth": "GHCN"
     },
     "Edmonton": {
       "country": "CA",
@@ -764,10 +1164,12 @@
       "prcp_elev_m": 666.0,
       "prcp_km": 7.5,
       "prcp_station": "CA1AB000241",
+      "provisional": false,
       "timezone": "America/Edmonton",
       "tmax_days": 633,
       "tmax_km": 3.7,
-      "tmax_station": "CA003012209"
+      "tmax_station": "CA003012209",
+      "truth": "GHCN"
     },
     "Eindhoven": {
       "country": "NL",
@@ -780,10 +1182,12 @@
       "prcp_elev_m": 18.0,
       "prcp_km": 2.7,
       "prcp_station": "NLE00155445",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 7.1,
-      "tmax_station": "NLE00152499"
+      "tmax_station": "NLE00152499",
+      "truth": "GHCN"
     },
     "Elblag": {
       "country": "PL",
@@ -796,10 +1200,12 @@
       "prcp_elev_m": 43.0,
       "prcp_km": 2.3,
       "prcp_station": "PLM00012160",
+      "provisional": false,
       "timezone": "Europe/Warsaw",
       "tmax_days": 731,
       "tmax_km": 2.3,
-      "tmax_station": "PLM00012160"
+      "tmax_station": "PLM00012160",
+      "truth": "GHCN"
     },
     "Essen": {
       "country": "DE",
@@ -812,10 +1218,30 @@
       "prcp_elev_m": 150.0,
       "prcp_km": 6.4,
       "prcp_station": "GME00121978",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 6.4,
-      "tmax_station": "GME00121978"
+      "tmax_station": "GME00121978",
+      "truth": "GHCN"
+    },
+    "Fes": {
+      "country": "MA",
+      "grid_elev_m": 405.0,
+      "is_capital": false,
+      "lat": 34.03313,
+      "lon": -5.00028,
+      "population": 1191905,
+      "prcp_days": 799,
+      "prcp_elev_m": 579.0,
+      "prcp_km": 11.6,
+      "prcp_station": "GHCNH:MOU060141-1",
+      "provisional": false,
+      "timezone": "Africa/Casablanca",
+      "tmax_days": 988,
+      "tmax_km": 11.6,
+      "tmax_station": "GHCNH:MOU060141-1",
+      "truth": "GHCNh"
     },
     "Frankfurt am Main": {
       "country": "DE",
@@ -828,10 +1254,12 @@
       "prcp_elev_m": 124.0,
       "prcp_km": 1.7,
       "prcp_station": "GME00122362",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 1.7,
-      "tmax_station": "GME00122362"
+      "tmax_station": "GME00122362",
+      "truth": "GHCN"
     },
     "Fukuoka": {
       "country": "JP",
@@ -844,10 +1272,12 @@
       "prcp_elev_m": 15.0,
       "prcp_km": 3.6,
       "prcp_station": "JA000047807",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 504,
       "tmax_km": 3.6,
-      "tmax_station": "JA000047807"
+      "tmax_station": "JA000047807",
+      "truth": "GHCN"
     },
     "Galati": {
       "country": "RO",
@@ -860,10 +1290,30 @@
       "prcp_elev_m": 71.0,
       "prcp_km": 7.4,
       "prcp_station": "ROE00108895",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 765,
       "tmax_km": 7.4,
-      "tmax_station": "ROE00108895"
+      "tmax_station": "ROE00108895",
+      "truth": "GHCN"
+    },
+    "Ganja": {
+      "country": "AZ",
+      "grid_elev_m": 416.0,
+      "is_capital": false,
+      "lat": 40.68157,
+      "lon": 46.36134,
+      "population": 330663,
+      "prcp_days": 711,
+      "prcp_elev_m": 311.0,
+      "prcp_km": 6.1,
+      "prcp_station": "GHCNH:AJM00037735",
+      "provisional": false,
+      "timezone": "Asia/Baku",
+      "tmax_days": 920,
+      "tmax_km": 6.1,
+      "tmax_station": "GHCNH:AJM00037735",
+      "truth": "GHCNh"
     },
     "Geneva": {
       "country": "CH",
@@ -876,10 +1326,12 @@
       "prcp_elev_m": 420.0,
       "prcp_km": 5.4,
       "prcp_station": "SZ000008440",
+      "provisional": false,
       "timezone": "Europe/Zurich",
       "tmax_days": 766,
       "tmax_km": 5.4,
-      "tmax_station": "SZ000008440"
+      "tmax_station": "SZ000008440",
+      "truth": "GHCN"
     },
     "Gent": {
       "country": "BE",
@@ -892,10 +1344,12 @@
       "prcp_elev_m": 2.0,
       "prcp_km": 21.2,
       "prcp_station": "NLE00100507",
+      "provisional": false,
       "timezone": "Europe/Brussels",
       "tmax_days": 767,
       "tmax_km": 21.8,
-      "tmax_station": "NLE00152502"
+      "tmax_station": "NLE00152502",
+      "truth": "GHCN"
     },
     "Gold Coast": {
       "country": "AU",
@@ -908,10 +1362,12 @@
       "prcp_elev_m": 3.0,
       "prcp_km": 4.9,
       "prcp_station": "ASN00040881",
+      "provisional": false,
       "timezone": "Australia/Brisbane",
       "tmax_days": 765,
       "tmax_km": 6.8,
-      "tmax_station": "ASN00040764"
+      "tmax_station": "ASN00040764",
+      "truth": "GHCN"
     },
     "Gothenburg": {
       "country": "SE",
@@ -924,10 +1380,12 @@
       "prcp_elev_m": 5.0,
       "prcp_km": 1.9,
       "prcp_station": "SWE00138198",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 1.9,
-      "tmax_station": "SWE00138198"
+      "tmax_station": "SWE00138198",
+      "truth": "GHCN"
     },
     "Groningen": {
       "country": "NL",
@@ -940,10 +1398,30 @@
       "prcp_elev_m": 1.0,
       "prcp_km": 4.6,
       "prcp_station": "NLE00100499",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 10.7,
-      "tmax_station": "NLE00152470"
+      "tmax_station": "NLE00152470",
+      "truth": "GHCN"
+    },
+    "Haiphong": {
+      "country": "VN",
+      "grid_elev_m": 8.0,
+      "is_capital": false,
+      "lat": 20.86481,
+      "lon": 106.68345,
+      "population": 2625200,
+      "prcp_days": 776,
+      "prcp_elev_m": 116.0,
+      "prcp_km": 8.9,
+      "prcp_station": "GHCNH:VMM00048826",
+      "provisional": false,
+      "timezone": "Asia/Bangkok",
+      "tmax_days": 728,
+      "tmax_km": 8.9,
+      "tmax_station": "GHCNH:VMM00048826",
+      "truth": "GHCNh"
     },
     "Hamburg": {
       "country": "DE",
@@ -956,10 +1434,12 @@
       "prcp_elev_m": 11.0,
       "prcp_km": 9.3,
       "prcp_station": "GM000010147",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 9.3,
-      "tmax_station": "GM000010147"
+      "tmax_station": "GM000010147",
+      "truth": "GHCN"
     },
     "Hamilton": {
       "country": "CA",
@@ -972,10 +1452,30 @@
       "prcp_elev_m": 326.1,
       "prcp_km": 4.8,
       "prcp_station": "CA1ON001059",
+      "provisional": false,
       "timezone": "America/Toronto",
       "tmax_days": 521,
       "tmax_km": 6.8,
-      "tmax_station": "CA006151061"
+      "tmax_station": "CA006151061",
+      "truth": "GHCN"
+    },
+    "Hanoi": {
+      "country": "VN",
+      "grid_elev_m": 10.0,
+      "is_capital": false,
+      "lat": 21.0245,
+      "lon": 105.84117,
+      "population": 8053663,
+      "prcp_days": 777,
+      "prcp_elev_m": 7.9,
+      "prcp_km": 10.1,
+      "prcp_station": "GHCNH:VMM00048825",
+      "provisional": false,
+      "timezone": "Asia/Bangkok",
+      "tmax_days": 725,
+      "tmax_km": 10.1,
+      "tmax_station": "GHCNH:VMM00048825",
+      "truth": "GHCNh"
     },
     "Helsinki": {
       "country": "FI",
@@ -988,10 +1488,12 @@
       "prcp_elev_m": 4.0,
       "prcp_km": 0.9,
       "prcp_station": "FI000000304",
+      "provisional": false,
       "timezone": "Europe/Helsinki",
       "tmax_days": 767,
       "tmax_km": 0.9,
-      "tmax_station": "FI000000304"
+      "tmax_station": "FI000000304",
+      "truth": "GHCN"
     },
     "Heroica Matamoros": {
       "country": "MX",
@@ -1004,10 +1506,12 @@
       "prcp_elev_m": 7.9,
       "prcp_km": 5.3,
       "prcp_station": "US1TXCMR051",
+      "provisional": false,
       "timezone": "America/Matamoros",
       "tmax_days": 764,
       "tmax_km": 9.4,
-      "tmax_station": "USC00419649"
+      "tmax_station": "USC00419649",
+      "truth": "GHCN"
     },
     "Hiroshima": {
       "country": "JP",
@@ -1020,10 +1524,48 @@
       "prcp_elev_m": 53.0,
       "prcp_km": 1.6,
       "prcp_station": "JA000047765",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 506,
       "tmax_km": 1.6,
-      "tmax_station": "JA000047765"
+      "tmax_station": "JA000047765",
+      "truth": "GHCN"
+    },
+    "Ho Chi Minh City": {
+      "country": "VN",
+      "grid_elev_m": 6.0,
+      "is_capital": false,
+      "lat": 10.82302,
+      "lon": 106.62965,
+      "population": 14002598,
+      "prcp_days": 779,
+      "prcp_elev_m": 3.6,
+      "prcp_km": 21.5,
+      "prcp_station": "GHCNH:VMM00048894",
+      "provisional": false,
+      "timezone": "Asia/Ho_Chi_Minh",
+      "tmax_days": 732,
+      "tmax_km": 21.5,
+      "tmax_station": "GHCNH:VMM00048894",
+      "truth": "GHCNh"
+    },
+    "Hong Kong": {
+      "country": "HK",
+      "grid_elev_m": 16.0,
+      "is_capital": false,
+      "lat": 22.27832,
+      "lon": 114.17469,
+      "population": 7396076,
+      "prcp_days": 957,
+      "prcp_elev_m": 8.0,
+      "prcp_km": 13.8,
+      "prcp_station": "GHCNH:CHM00045039",
+      "provisional": false,
+      "timezone": "Asia/Hong_Kong",
+      "tmax_days": 944,
+      "tmax_km": 13.8,
+      "tmax_station": "GHCNH:CHM00045039",
+      "truth": "GHCNh"
     },
     "Houston": {
       "country": "US",
@@ -1036,10 +1578,12 @@
       "prcp_elev_m": 15.5,
       "prcp_km": 4.2,
       "prcp_station": "US1TXHRR232",
+      "provisional": false,
       "timezone": "America/Chicago",
       "tmax_days": 766,
       "tmax_km": 15.2,
-      "tmax_station": "USW00012918"
+      "tmax_station": "USW00012918",
+      "truth": "GHCN"
     },
     "Iasi": {
       "country": "RO",
@@ -1052,10 +1596,12 @@
       "prcp_elev_m": 102.0,
       "prcp_km": 2.5,
       "prcp_station": "ROE00108896",
+      "provisional": false,
       "timezone": "Europe/Bucharest",
       "tmax_days": 766,
       "tmax_km": 2.5,
-      "tmax_station": "ROE00108896"
+      "tmax_station": "ROE00108896",
+      "truth": "GHCN"
     },
     "Innsbruck": {
       "country": "AT",
@@ -1068,10 +1614,30 @@
       "prcp_elev_m": 577.0,
       "prcp_km": 0.6,
       "prcp_station": "AU000011801",
+      "provisional": false,
       "timezone": "Europe/Vienna",
       "tmax_days": 719,
       "tmax_km": 0.6,
-      "tmax_station": "AU000011801"
+      "tmax_station": "AU000011801",
+      "truth": "GHCN"
+    },
+    "Isfahan": {
+      "country": "IR",
+      "grid_elev_m": 1579.0,
+      "is_capital": false,
+      "lat": 32.65246,
+      "lon": 51.67462,
+      "population": 1547164,
+      "prcp_days": 730,
+      "prcp_elev_m": 1545.9,
+      "prcp_km": 20.6,
+      "prcp_station": "GHCNH:IRI0000OIFM",
+      "provisional": false,
+      "timezone": "Asia/Tehran",
+      "tmax_days": 920,
+      "tmax_km": 20.6,
+      "tmax_station": "GHCNH:IRI0000OIFM",
+      "truth": "GHCNh"
     },
     "Istaravshan": {
       "country": "TJ",
@@ -1084,10 +1650,12 @@
       "prcp_elev_m": 1005.0,
       "prcp_km": 2.3,
       "prcp_station": "TI000038713",
+      "provisional": false,
       "timezone": "Asia/Dushanbe",
       "tmax_days": 729,
       "tmax_km": 2.3,
-      "tmax_station": "TI000038713"
+      "tmax_station": "TI000038713",
+      "truth": "GHCN"
     },
     "Izmir": {
       "country": "TR",
@@ -1100,10 +1668,12 @@
       "prcp_elev_m": 29.0,
       "prcp_km": 3.4,
       "prcp_station": "TUM00017220",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 743,
       "tmax_km": 3.4,
-      "tmax_station": "TUM00017220"
+      "tmax_station": "TUM00017220",
+      "truth": "GHCN"
     },
     "Jhelum": {
       "country": "PK",
@@ -1116,10 +1686,12 @@
       "prcp_elev_m": 234.0,
       "prcp_km": 1.3,
       "prcp_station": "PKM00041598",
+      "provisional": false,
       "timezone": "Asia/Karachi",
       "tmax_days": 728,
       "tmax_km": 1.3,
-      "tmax_station": "PKM00041598"
+      "tmax_station": "PKM00041598",
+      "truth": "GHCN"
     },
     "Jyvaeskylae": {
       "country": "FI",
@@ -1132,10 +1704,30 @@
       "prcp_elev_m": 139.0,
       "prcp_km": 17.9,
       "prcp_station": "FI000002401",
+      "provisional": false,
       "timezone": "Europe/Helsinki",
       "tmax_days": 675,
       "tmax_km": 17.9,
-      "tmax_station": "FI000002401"
+      "tmax_station": "FI000002401",
+      "truth": "GHCN"
+    },
+    "Kathmandu": {
+      "country": "NP",
+      "grid_elev_m": 1293.0,
+      "is_capital": false,
+      "lat": 27.70169,
+      "lon": 85.3206,
+      "population": 1442271,
+      "prcp_days": 557,
+      "prcp_elev_m": 1338.1,
+      "prcp_km": 3.8,
+      "prcp_station": "GHCNH:NPI0000VNKT",
+      "provisional": false,
+      "timezone": "Asia/Kathmandu",
+      "tmax_days": 985,
+      "tmax_km": 3.8,
+      "tmax_station": "GHCNH:NPI0000VNKT",
+      "truth": "GHCNh"
     },
     "Kaunas": {
       "country": "LT",
@@ -1148,10 +1740,12 @@
       "prcp_elev_m": 77.0,
       "prcp_km": 5.3,
       "prcp_station": "LH000026629",
+      "provisional": false,
       "timezone": "Europe/Vilnius",
       "tmax_days": 509,
       "tmax_km": 5.3,
-      "tmax_station": "LH000026629"
+      "tmax_station": "LH000026629",
+      "truth": "GHCN"
     },
     "Khanpur": {
       "country": "PK",
@@ -1164,10 +1758,12 @@
       "prcp_elev_m": 88.0,
       "prcp_km": 2.6,
       "prcp_station": "PKM00041718",
+      "provisional": false,
       "timezone": "Asia/Karachi",
       "tmax_days": 740,
       "tmax_km": 2.6,
-      "tmax_station": "PKM00041718"
+      "tmax_station": "PKM00041718",
+      "truth": "GHCN"
     },
     "Khmelnytskyi": {
       "country": "UA",
@@ -1180,10 +1776,12 @@
       "prcp_elev_m": 350.0,
       "prcp_km": 1.6,
       "prcp_station": "UPM00033429",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 690,
       "tmax_km": 1.6,
-      "tmax_station": "UPM00033429"
+      "tmax_station": "UPM00033429",
+      "truth": "GHCN"
     },
     "Khujand": {
       "country": "TJ",
@@ -1196,10 +1794,30 @@
       "prcp_elev_m": 427.0,
       "prcp_km": 11.9,
       "prcp_station": "TI000038599",
+      "provisional": false,
       "timezone": "Asia/Dushanbe",
       "tmax_days": 725,
       "tmax_km": 11.9,
-      "tmax_station": "TI000038599"
+      "tmax_station": "TI000038599",
+      "truth": "GHCN"
+    },
+    "Khulna": {
+      "country": "BD",
+      "grid_elev_m": 10.0,
+      "is_capital": false,
+      "lat": 22.80979,
+      "lon": 89.56439,
+      "population": 1500689,
+      "prcp_days": 918,
+      "prcp_elev_m": 4.0,
+      "prcp_km": 4.3,
+      "prcp_station": "GHCNH:BGM00041947",
+      "provisional": false,
+      "timezone": "Asia/Dhaka",
+      "tmax_days": 682,
+      "tmax_km": 4.3,
+      "tmax_station": "GHCNH:BGM00041947",
+      "truth": "GHCNh"
     },
     "Khuzdar": {
       "country": "PK",
@@ -1212,10 +1830,30 @@
       "prcp_elev_m": 1232.0,
       "prcp_km": 3.2,
       "prcp_station": "PKM00041744",
+      "provisional": false,
       "timezone": "Asia/Karachi",
       "tmax_days": 722,
       "tmax_km": 3.2,
-      "tmax_station": "PKM00041744"
+      "tmax_station": "PKM00041744",
+      "truth": "GHCN"
+    },
+    "Kinshasa": {
+      "country": "CD",
+      "grid_elev_m": 283.0,
+      "is_capital": false,
+      "lat": -4.32758,
+      "lon": 15.31357,
+      "population": 16000000,
+      "prcp_days": 674,
+      "prcp_elev_m": 319.4,
+      "prcp_km": 10.8,
+      "prcp_station": "GHCNH:CFI0000FCBB",
+      "provisional": false,
+      "timezone": "Africa/Kinshasa",
+      "tmax_days": 938,
+      "tmax_km": 10.8,
+      "tmax_station": "GHCNH:CFI0000FCBB",
+      "truth": "GHCNh"
     },
     "Klaipeda": {
       "country": "LT",
@@ -1228,10 +1866,12 @@
       "prcp_elev_m": 6.0,
       "prcp_km": 5.4,
       "prcp_station": "LH000026509",
+      "provisional": false,
       "timezone": "Europe/Vilnius",
       "tmax_days": 697,
       "tmax_km": 5.4,
-      "tmax_station": "LH000026509"
+      "tmax_station": "LH000026509",
+      "truth": "GHCN"
     },
     "Kobe": {
       "country": "JP",
@@ -1244,10 +1884,12 @@
       "prcp_elev_m": 30.0,
       "prcp_km": 3.3,
       "prcp_station": "JA000047770",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 692,
       "tmax_km": 3.3,
-      "tmax_station": "JA000047770"
+      "tmax_station": "JA000047770",
+      "truth": "GHCN"
     },
     "Koeln": {
       "country": "DE",
@@ -1260,10 +1902,12 @@
       "prcp_elev_m": 92.0,
       "prcp_km": 16.4,
       "prcp_station": "GME00121042",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 16.4,
-      "tmax_station": "GME00121042"
+      "tmax_station": "GME00121042",
+      "truth": "GHCN"
     },
     "Kristiansand": {
       "country": "NO",
@@ -1276,10 +1920,12 @@
       "prcp_elev_m": 12.0,
       "prcp_km": 3.4,
       "prcp_station": "NOE00134946",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 7.3,
-      "tmax_station": "NOE00110447"
+      "tmax_station": "NOE00110447",
+      "truth": "GHCN"
     },
     "Kropyvnytskyi": {
       "country": "UA",
@@ -1292,10 +1938,30 @@
       "prcp_elev_m": 171.0,
       "prcp_km": 5.0,
       "prcp_station": "UPM00033711",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 702,
       "tmax_km": 5.0,
-      "tmax_station": "UPM00033711"
+      "tmax_station": "UPM00033711",
+      "truth": "GHCN"
+    },
+    "Kuala Lumpur": {
+      "country": "MY",
+      "grid_elev_m": 47.0,
+      "is_capital": false,
+      "lat": 3.1412,
+      "lon": 101.68653,
+      "population": 1453975,
+      "prcp_days": 963,
+      "prcp_elev_m": 27.4,
+      "prcp_km": 15.3,
+      "prcp_station": "GHCNH:MYI0000WMSA",
+      "provisional": false,
+      "timezone": "Asia/Kuala_Lumpur",
+      "tmax_days": 988,
+      "tmax_km": 15.3,
+      "tmax_station": "GHCNH:MYI0000WMSA",
+      "truth": "GHCNh"
     },
     "Kuopio": {
       "country": "FI",
@@ -1308,10 +1974,12 @@
       "prcp_elev_m": 87.0,
       "prcp_km": 2.0,
       "prcp_station": "FIE00144782",
+      "provisional": false,
       "timezone": "Europe/Helsinki",
       "tmax_days": 767,
       "tmax_km": 2.0,
-      "tmax_station": "FIE00144782"
+      "tmax_station": "FIE00144782",
+      "truth": "GHCN"
     },
     "Kyoto": {
       "country": "JP",
@@ -1324,10 +1992,30 @@
       "prcp_elev_m": 46.0,
       "prcp_km": 2.0,
       "prcp_station": "JA000047759",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 694,
       "tmax_km": 2.0,
-      "tmax_station": "JA000047759"
+      "tmax_station": "JA000047759",
+      "truth": "GHCN"
+    },
+    "La Ceiba": {
+      "country": "HN",
+      "grid_elev_m": 10.0,
+      "is_capital": false,
+      "lat": 15.75971,
+      "lon": -86.78221,
+      "population": 222055,
+      "prcp_days": 717,
+      "prcp_elev_m": 14.9,
+      "prcp_km": 7.8,
+      "prcp_station": "GHCNH:HOI0000MHLC",
+      "provisional": false,
+      "timezone": "America/Tegucigalpa",
+      "tmax_days": 960,
+      "tmax_km": 7.8,
+      "tmax_station": "GHCNH:HOI0000MHLC",
+      "truth": "GHCNh"
     },
     "Lahore": {
       "country": "PK",
@@ -1340,10 +2028,12 @@
       "prcp_elev_m": 215.0,
       "prcp_km": 1.9,
       "prcp_station": "PK000041640",
+      "provisional": false,
       "timezone": "Asia/Karachi",
       "tmax_days": 734,
       "tmax_km": 1.9,
-      "tmax_station": "PK000041640"
+      "tmax_station": "PK000041640",
+      "truth": "GHCN"
     },
     "Leeds": {
       "country": "GB",
@@ -1356,10 +2046,12 @@
       "prcp_elev_m": 134.0,
       "prcp_km": 15.0,
       "prcp_station": "UKE00105903",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 751,
       "tmax_km": 15.0,
-      "tmax_station": "UKE00105903"
+      "tmax_station": "UKE00105903",
+      "truth": "GHCN"
     },
     "Leicester": {
       "country": "GB",
@@ -1372,10 +2064,30 @@
       "prcp_elev_m": 43.0,
       "prcp_km": 23.2,
       "prcp_station": "UKE00156876",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 713,
       "tmax_km": 23.2,
-      "tmax_station": "UKE00156876"
+      "tmax_station": "UKE00156876",
+      "truth": "GHCN"
+    },
+    "Libreville": {
+      "country": "GA",
+      "grid_elev_m": 5.0,
+      "is_capital": false,
+      "lat": 0.39241,
+      "lon": 9.45356,
+      "population": 846090,
+      "prcp_days": 791,
+      "prcp_elev_m": 11.9,
+      "prcp_km": 8.7,
+      "prcp_station": "GHCNH:GBI0000FOOL",
+      "provisional": false,
+      "timezone": "Africa/Libreville",
+      "tmax_days": 970,
+      "tmax_km": 8.7,
+      "tmax_station": "GHCNH:GBI0000FOOL",
+      "truth": "GHCNh"
     },
     "Lida": {
       "country": "BY",
@@ -1388,10 +2100,12 @@
       "prcp_elev_m": 157.0,
       "prcp_km": 3.9,
       "prcp_station": "BOM00026832",
+      "provisional": false,
       "timezone": "Europe/Minsk",
       "tmax_days": 544,
       "tmax_km": 3.9,
-      "tmax_station": "BOM00026832"
+      "tmax_station": "BOM00026832",
+      "truth": "GHCN"
     },
     "Linkoeping": {
       "country": "SE",
@@ -1404,10 +2118,48 @@
       "prcp_elev_m": 93.0,
       "prcp_km": 5.3,
       "prcp_station": "SW000008525",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 5.3,
-      "tmax_station": "SW000008525"
+      "tmax_station": "SW000008525",
+      "truth": "GHCN"
+    },
+    "Lisbon": {
+      "country": "PT",
+      "grid_elev_m": 54.0,
+      "is_capital": true,
+      "lat": 38.72509,
+      "lon": -9.1498,
+      "population": 517802,
+      "prcp_days": 684,
+      "prcp_elev_m": 14.0,
+      "prcp_km": 10.2,
+      "prcp_station": "GHCNH:POI0000LPMT",
+      "provisional": false,
+      "timezone": "Europe/Lisbon",
+      "tmax_days": 984,
+      "tmax_km": 10.2,
+      "tmax_station": "GHCNH:POI0000LPMT",
+      "truth": "GHCNh"
+    },
+    "Lome": {
+      "country": "TG",
+      "grid_elev_m": 8.0,
+      "is_capital": false,
+      "lat": 6.12874,
+      "lon": 1.22154,
+      "population": 2188376,
+      "prcp_days": 770,
+      "prcp_elev_m": 21.9,
+      "prcp_km": 5.5,
+      "prcp_station": "GHCNH:TOI0000DXXX",
+      "provisional": false,
+      "timezone": "Africa/Lome",
+      "tmax_days": 975,
+      "tmax_km": 5.5,
+      "tmax_station": "GHCNH:TOI0000DXXX",
+      "truth": "GHCNh"
     },
     "Los Angeles": {
       "country": "US",
@@ -1420,10 +2172,30 @@
       "prcp_elev_m": 123.4,
       "prcp_km": 4.2,
       "prcp_station": "US1CALA0064",
+      "provisional": false,
       "timezone": "America/Los_Angeles",
       "tmax_days": 767,
       "tmax_km": 5.4,
-      "tmax_station": "USW00093134"
+      "tmax_station": "USW00093134",
+      "truth": "GHCN"
+    },
+    "Luxembourg": {
+      "country": "LU",
+      "grid_elev_m": 307.0,
+      "is_capital": true,
+      "lat": 49.60982,
+      "lon": 6.13268,
+      "population": 76684,
+      "prcp_days": 736,
+      "prcp_elev_m": 376.0,
+      "prcp_km": 5.4,
+      "prcp_station": "LU000006590",
+      "provisional": false,
+      "timezone": "Europe/Luxembourg",
+      "tmax_days": 736,
+      "tmax_km": 5.4,
+      "tmax_station": "LU000006590",
+      "truth": "GHCN"
     },
     "Lyon": {
       "country": "FR",
@@ -1436,10 +2208,30 @@
       "prcp_elev_m": 235.0,
       "prcp_km": 18.0,
       "prcp_station": "FR069029001",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 757,
       "tmax_km": 18.0,
-      "tmax_station": "FR069029001"
+      "tmax_station": "FR069029001",
+      "truth": "GHCN"
+    },
+    "Macau": {
+      "country": "MO",
+      "grid_elev_m": 23.0,
+      "is_capital": false,
+      "lat": 22.20056,
+      "lon": 113.54611,
+      "population": 649335,
+      "prcp_days": 805,
+      "prcp_elev_m": 6.1,
+      "prcp_km": 7.4,
+      "prcp_station": "GHCNH:MCI0000VMMC",
+      "provisional": false,
+      "timezone": "Asia/Macau",
+      "tmax_days": 987,
+      "tmax_km": 7.4,
+      "tmax_station": "GHCNH:MCI0000VMMC",
+      "truth": "GHCNh"
     },
     "Madrid": {
       "country": "ES",
@@ -1452,10 +2244,12 @@
       "prcp_elev_m": 667.0,
       "prcp_km": 2.1,
       "prcp_station": "SP000003195",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 674,
       "tmax_km": 2.1,
-      "tmax_station": "SP000003195"
+      "tmax_station": "SP000003195",
+      "truth": "GHCN"
     },
     "Malaga": {
       "country": "ES",
@@ -1468,10 +2262,12 @@
       "prcp_elev_m": 7.0,
       "prcp_km": 8.5,
       "prcp_station": "SP000006155",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 760,
       "tmax_km": 8.5,
-      "tmax_station": "SP000006155"
+      "tmax_station": "SP000006155",
+      "truth": "GHCN"
     },
     "Malmoe": {
       "country": "SE",
@@ -1484,10 +2280,12 @@
       "prcp_elev_m": 20.0,
       "prcp_km": 5.9,
       "prcp_station": "SWE00137534",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 754,
       "tmax_km": 5.9,
-      "tmax_station": "SWE00137534"
+      "tmax_station": "SWE00137534",
+      "truth": "GHCN"
     },
     "Manas": {
       "country": "KG",
@@ -1500,10 +2298,30 @@
       "prcp_elev_m": 765.0,
       "prcp_km": 4.8,
       "prcp_station": "KG000038613",
+      "provisional": false,
       "timezone": "Asia/Bishkek",
       "tmax_days": 731,
       "tmax_km": 4.8,
-      "tmax_station": "KG000038613"
+      "tmax_station": "KG000038613",
+      "truth": "GHCN"
+    },
+    "Maradi": {
+      "country": "NE",
+      "grid_elev_m": 357.0,
+      "is_capital": false,
+      "lat": 13.5,
+      "lon": 7.10174,
+      "population": 361702,
+      "prcp_days": 570,
+      "prcp_elev_m": 388.0,
+      "prcp_km": 4.1,
+      "prcp_station": "GHCNH:NGU001080-1",
+      "provisional": false,
+      "timezone": "Africa/Niamey",
+      "tmax_days": 918,
+      "tmax_km": 4.1,
+      "tmax_station": "GHCNH:NGU001080-1",
+      "truth": "GHCNh"
     },
     "Marseille": {
       "country": "FR",
@@ -1516,10 +2334,30 @@
       "prcp_elev_m": 9.0,
       "prcp_km": 20.5,
       "prcp_station": "FR000007650",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 765,
       "tmax_km": 20.5,
-      "tmax_station": "FR000007650"
+      "tmax_station": "FR000007650",
+      "truth": "GHCN"
+    },
+    "Mashhad": {
+      "country": "IR",
+      "grid_elev_m": 986.0,
+      "is_capital": false,
+      "lat": 36.29807,
+      "lon": 59.60567,
+      "population": 2307177,
+      "prcp_days": 728,
+      "prcp_elev_m": 999.0,
+      "prcp_km": 3.8,
+      "prcp_station": "GHCNH:IRU040745-1",
+      "provisional": false,
+      "timezone": "Asia/Tehran",
+      "tmax_days": 929,
+      "tmax_km": 3.8,
+      "tmax_station": "GHCNH:IRU040745-1",
+      "truth": "GHCNh"
     },
     "Melbourne": {
       "country": "AU",
@@ -1532,10 +2370,12 @@
       "prcp_elev_m": 31.0,
       "prcp_km": 2.2,
       "prcp_station": "ASN00086232",
+      "provisional": false,
       "timezone": "Australia/Melbourne",
       "tmax_days": 766,
       "tmax_km": 10.8,
-      "tmax_station": "ASN00086038"
+      "tmax_station": "ASN00086038",
+      "truth": "GHCN"
     },
     "Mersin": {
       "country": "TR",
@@ -1548,10 +2388,12 @@
       "prcp_elev_m": 3.0,
       "prcp_km": 1.4,
       "prcp_station": "TUM00017340",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 695,
       "tmax_km": 1.4,
-      "tmax_station": "TUM00017340"
+      "tmax_station": "TUM00017340",
+      "truth": "GHCN"
     },
     "Mexicali": {
       "country": "MX",
@@ -1564,10 +2406,12 @@
       "prcp_elev_m": -9.1,
       "prcp_km": 18.6,
       "prcp_station": "USC00042713",
+      "provisional": false,
       "timezone": "America/Tijuana",
       "tmax_days": 687,
       "tmax_km": 18.6,
-      "tmax_station": "USC00042713"
+      "tmax_station": "USC00042713",
+      "truth": "GHCN"
     },
     "Montpellier": {
       "country": "FR",
@@ -1580,10 +2424,12 @@
       "prcp_elev_m": 2.0,
       "prcp_km": 8.0,
       "prcp_station": "FRE00106207",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 767,
       "tmax_km": 8.0,
-      "tmax_station": "FRE00106207"
+      "tmax_station": "FRE00106207",
+      "truth": "GHCN"
     },
     "Montreal": {
       "country": "CA",
@@ -1596,10 +2442,12 @@
       "prcp_elev_m": 61.9,
       "prcp_km": 0.9,
       "prcp_station": "CA1QC000048",
+      "provisional": false,
       "timezone": "America/Toronto",
       "tmax_days": 509,
       "tmax_km": 1.0,
-      "tmax_station": "CA007024745"
+      "tmax_station": "CA007024745",
+      "truth": "GHCN"
     },
     "Munich": {
       "country": "DE",
@@ -1612,10 +2460,12 @@
       "prcp_elev_m": 515.0,
       "prcp_km": 6.3,
       "prcp_station": "GM000004199",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 6.3,
-      "tmax_station": "GM000004199"
+      "tmax_station": "GM000004199",
+      "truth": "GHCN"
     },
     "Murcia": {
       "country": "ES",
@@ -1628,10 +2478,30 @@
       "prcp_elev_m": 61.0,
       "prcp_km": 3.9,
       "prcp_station": "SPE00120323",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 767,
       "tmax_km": 3.9,
-      "tmax_station": "SPE00120323"
+      "tmax_station": "SPE00120323",
+      "truth": "GHCN"
+    },
+    "N'Djamena": {
+      "country": "TD",
+      "grid_elev_m": 296.0,
+      "is_capital": false,
+      "lat": 12.10672,
+      "lon": 15.0444,
+      "population": 1359526,
+      "prcp_days": 605,
+      "prcp_elev_m": 295.0,
+      "prcp_km": 3.2,
+      "prcp_station": "GHCNH:CDI0000FTTJ",
+      "provisional": false,
+      "timezone": "Africa/Ndjamena",
+      "tmax_days": 979,
+      "tmax_km": 3.2,
+      "tmax_station": "GHCNH:CDI0000FTTJ",
+      "truth": "GHCNh"
     },
     "Nador": {
       "country": "MA",
@@ -1644,10 +2514,12 @@
       "prcp_elev_m": 47.0,
       "prcp_km": 12.3,
       "prcp_station": "SP000060338",
+      "provisional": false,
       "timezone": "Africa/Casablanca",
       "tmax_days": 764,
       "tmax_km": 12.3,
-      "tmax_station": "SP000060338"
+      "tmax_station": "SP000060338",
+      "truth": "GHCN"
     },
     "Nagoya": {
       "country": "JP",
@@ -1660,10 +2532,12 @@
       "prcp_elev_m": 56.0,
       "prcp_km": 5.7,
       "prcp_station": "JA000047636",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 506,
       "tmax_km": 5.7,
-      "tmax_station": "JA000047636"
+      "tmax_station": "JA000047636",
+      "truth": "GHCN"
     },
     "Nantes": {
       "country": "FR",
@@ -1676,10 +2550,12 @@
       "prcp_elev_m": 26.0,
       "prcp_km": 8.5,
       "prcp_station": "FRM00007222",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 764,
       "tmax_km": 8.5,
-      "tmax_station": "FRM00007222"
+      "tmax_station": "FRM00007222",
+      "truth": "GHCN"
     },
     "Naples": {
       "country": "IT",
@@ -1692,10 +2568,12 @@
       "prcp_elev_m": 93.3,
       "prcp_km": 5.9,
       "prcp_station": "ITW00034113",
+      "provisional": false,
       "timezone": "Europe/Rome",
       "tmax_days": 511,
       "tmax_km": 5.9,
-      "tmax_station": "ITW00034113"
+      "tmax_station": "ITW00034113",
+      "truth": "GHCN"
     },
     "Navoiy": {
       "country": "UZ",
@@ -1708,10 +2586,12 @@
       "prcp_elev_m": 341.0,
       "prcp_km": 6.0,
       "prcp_station": "UZM00038567",
+      "provisional": false,
       "timezone": "Asia/Samarkand",
       "tmax_days": 712,
       "tmax_km": 6.0,
-      "tmax_station": "UZM00038567"
+      "tmax_station": "UZM00038567",
+      "truth": "GHCN"
     },
     "New York City": {
       "country": "US",
@@ -1724,10 +2604,12 @@
       "prcp_elev_m": 30.2,
       "prcp_km": 4.3,
       "prcp_station": "US1NJHD0023",
+      "provisional": false,
       "timezone": "America/New_York",
       "tmax_days": 767,
       "tmax_km": 7.8,
-      "tmax_station": "USW00094728"
+      "tmax_station": "USW00094728",
+      "truth": "GHCN"
     },
     "Newcastle": {
       "country": "AU",
@@ -1740,10 +2622,12 @@
       "prcp_elev_m": 33.0,
       "prcp_km": 2.1,
       "prcp_station": "ASN00061055",
+      "provisional": false,
       "timezone": "Australia/Sydney",
       "tmax_days": 751,
       "tmax_km": 2.1,
-      "tmax_station": "ASN00061055"
+      "tmax_station": "ASN00061055",
+      "truth": "GHCN"
     },
     "Newcastle upon Tyne": {
       "country": "GB",
@@ -1756,10 +2640,30 @@
       "prcp_elev_m": 102.0,
       "prcp_km": 22.8,
       "prcp_station": "UKE00156852",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 732,
       "tmax_km": 22.8,
-      "tmax_station": "UKE00156852"
+      "tmax_station": "UKE00156852",
+      "truth": "GHCN"
+    },
+    "Niamey": {
+      "country": "NE",
+      "grid_elev_m": 202.0,
+      "is_capital": false,
+      "lat": 13.51366,
+      "lon": 2.1098,
+      "population": 1323691,
+      "prcp_days": 731,
+      "prcp_elev_m": 223.1,
+      "prcp_km": 8.7,
+      "prcp_station": "GHCNH:NGI0000DRRN",
+      "provisional": false,
+      "timezone": "Africa/Niamey",
+      "tmax_days": 979,
+      "tmax_km": 8.7,
+      "tmax_station": "GHCNH:NGI0000DRRN",
+      "truth": "GHCNh"
     },
     "Nice": {
       "country": "FR",
@@ -1772,10 +2676,12 @@
       "prcp_elev_m": 2.0,
       "prcp_km": 7.6,
       "prcp_station": "FRE00104120",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 767,
       "tmax_km": 7.6,
-      "tmax_station": "FRE00104120"
+      "tmax_station": "FRE00104120",
+      "truth": "GHCN"
     },
     "Nijmegen": {
       "country": "NL",
@@ -1788,10 +2694,12 @@
       "prcp_elev_m": 10.0,
       "prcp_km": 3.0,
       "prcp_station": "NLE00101989",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 18.9,
-      "tmax_station": "GME00124606"
+      "tmax_station": "GME00124606",
+      "truth": "GHCN"
     },
     "Nogales": {
       "country": "MX",
@@ -1804,10 +2712,12 @@
       "prcp_elev_m": 1193.0,
       "prcp_km": 15.4,
       "prcp_station": "USW00003196",
+      "provisional": false,
       "timezone": "America/Hermosillo",
       "tmax_days": 763,
       "tmax_km": 15.4,
-      "tmax_station": "USW00003196"
+      "tmax_station": "USW00003196",
+      "truth": "GHCN"
     },
     "Nottingham": {
       "country": "GB",
@@ -1820,10 +2730,12 @@
       "prcp_elev_m": 117.0,
       "prcp_km": 8.8,
       "prcp_station": "UKE00105906",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 673,
       "tmax_km": 8.8,
-      "tmax_station": "UKE00105906"
+      "tmax_station": "UKE00105906",
+      "truth": "GHCN"
     },
     "Nuevo Laredo": {
       "country": "MX",
@@ -1836,10 +2748,12 @@
       "prcp_elev_m": 150.6,
       "prcp_km": 8.0,
       "prcp_station": "USW00012907",
+      "provisional": false,
       "timezone": "America/Matamoros",
       "tmax_days": 766,
       "tmax_km": 8.0,
-      "tmax_station": "USW00012907"
+      "tmax_station": "USW00012907",
+      "truth": "GHCN"
     },
     "OErebro": {
       "country": "SE",
@@ -1852,10 +2766,30 @@
       "prcp_elev_m": 31.0,
       "prcp_km": 3.4,
       "prcp_station": "SWE00138836",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 10.2,
-      "tmax_station": "SWE00138816"
+      "tmax_station": "SWE00138816",
+      "truth": "GHCN"
+    },
+    "Oran": {
+      "country": "DZ",
+      "grid_elev_m": 108.0,
+      "is_capital": false,
+      "lat": 35.69906,
+      "lon": -0.63588,
+      "population": 803329,
+      "prcp_days": 844,
+      "prcp_elev_m": 89.9,
+      "prcp_km": 8.5,
+      "prcp_station": "GHCNH:AGI0000DAOO",
+      "provisional": false,
+      "timezone": "Africa/Algiers",
+      "tmax_days": 987,
+      "tmax_km": 8.5,
+      "tmax_station": "GHCNH:AGI0000DAOO",
+      "truth": "GHCNh"
     },
     "Oslo": {
       "country": "NO",
@@ -1868,10 +2802,12 @@
       "prcp_elev_m": 94.0,
       "prcp_km": 3.5,
       "prcp_station": "NOE00134274",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 3.6,
-      "tmax_station": "NOM00001492"
+      "tmax_station": "NOM00001492",
+      "truth": "GHCN"
     },
     "Ottawa": {
       "country": "CA",
@@ -1884,10 +2820,30 @@
       "prcp_elev_m": 93.9,
       "prcp_km": 22.4,
       "prcp_station": "CA1ON000791",
+      "provisional": false,
       "timezone": "America/Toronto",
       "tmax_days": 633,
       "tmax_km": 3.4,
-      "tmax_station": "CA006105978"
+      "tmax_station": "CA006105978",
+      "truth": "GHCN"
+    },
+    "Ouagadougou": {
+      "country": "BF",
+      "grid_elev_m": 296.0,
+      "is_capital": false,
+      "lat": 12.36566,
+      "lon": -1.53388,
+      "population": 2415266,
+      "prcp_days": 780,
+      "prcp_elev_m": 316.1,
+      "prcp_km": 2.7,
+      "prcp_station": "GHCNH:UVI0000DFFD",
+      "provisional": false,
+      "timezone": "Africa/Ouagadougou",
+      "tmax_days": 967,
+      "tmax_km": 2.7,
+      "tmax_station": "GHCNH:UVI0000DFFD",
+      "truth": "GHCNh"
     },
     "Palma": {
       "country": "ES",
@@ -1900,10 +2856,12 @@
       "prcp_elev_m": 3.0,
       "prcp_km": 2.6,
       "prcp_station": "SPE00119882",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 766,
       "tmax_km": 2.6,
-      "tmax_station": "SPE00119882"
+      "tmax_station": "SPE00119882",
+      "truth": "GHCN"
     },
     "Paris": {
       "country": "FR",
@@ -1916,10 +2874,12 @@
       "prcp_elev_m": 89.0,
       "prcp_km": 15.3,
       "prcp_station": "FRM00007149",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 765,
       "tmax_km": 15.3,
-      "tmax_station": "FRM00007149"
+      "tmax_station": "FRM00007149",
+      "truth": "GHCN"
     },
     "Perth": {
       "country": "AU",
@@ -1932,10 +2892,12 @@
       "prcp_elev_m": 24.9,
       "prcp_km": 3.8,
       "prcp_station": "ASN00009225",
+      "provisional": false,
       "timezone": "Australia/Perth",
       "tmax_days": 764,
       "tmax_km": 3.8,
-      "tmax_station": "ASN00009225"
+      "tmax_station": "ASN00009225",
+      "truth": "GHCN"
     },
     "Petrozavodsk": {
       "country": "RU",
@@ -1948,10 +2910,12 @@
       "prcp_elev_m": 110.0,
       "prcp_km": 5.5,
       "prcp_station": "RSM00022820",
+      "provisional": false,
       "timezone": "Europe/Moscow",
       "tmax_days": 550,
       "tmax_km": 5.5,
-      "tmax_station": "RSM00022820"
+      "tmax_station": "RSM00022820",
+      "truth": "GHCN"
     },
     "Philadelphia": {
       "country": "US",
@@ -1964,10 +2928,12 @@
       "prcp_elev_m": 9.4,
       "prcp_km": 1.1,
       "prcp_station": "US1PAPH0034",
+      "provisional": false,
       "timezone": "America/New_York",
       "tmax_days": 755,
       "tmax_km": 1.0,
-      "tmax_station": "USC00366886"
+      "tmax_station": "USC00366886",
+      "truth": "GHCN"
     },
     "Phoenix": {
       "country": "US",
@@ -1980,10 +2946,12 @@
       "prcp_elev_m": 336.8,
       "prcp_km": 4.7,
       "prcp_station": "USC00026482",
+      "provisional": false,
       "timezone": "America/Phoenix",
       "tmax_days": 767,
       "tmax_km": 6.9,
-      "tmax_station": "USW00023183"
+      "tmax_station": "USW00023183",
+      "truth": "GHCN"
     },
     "Pinsk": {
       "country": "BY",
@@ -1996,10 +2964,12 @@
       "prcp_elev_m": 142.0,
       "prcp_km": 3.4,
       "prcp_station": "BOM00033019",
+      "provisional": false,
       "timezone": "Europe/Minsk",
       "tmax_days": 568,
       "tmax_km": 3.4,
-      "tmax_station": "BOM00033019"
+      "tmax_station": "BOM00033019",
+      "truth": "GHCN"
     },
     "Podgorica": {
       "country": "ME",
@@ -2012,10 +2982,30 @@
       "prcp_elev_m": 49.0,
       "prcp_km": 1.3,
       "prcp_station": "MJE00175553",
+      "provisional": false,
       "timezone": "Europe/Podgorica",
       "tmax_days": 737,
       "tmax_km": 1.3,
-      "tmax_station": "MJE00175553"
+      "tmax_station": "MJE00175553",
+      "truth": "GHCN"
+    },
+    "Pointe-Noire": {
+      "country": "CG",
+      "grid_elev_m": 8.0,
+      "is_capital": false,
+      "lat": -4.77609,
+      "lon": 11.86352,
+      "population": 1032000,
+      "prcp_days": 639,
+      "prcp_elev_m": 17.0,
+      "prcp_km": 6.3,
+      "prcp_station": "GHCNH:CFU004400-1",
+      "provisional": false,
+      "timezone": "Africa/Brazzaville",
+      "tmax_days": 927,
+      "tmax_km": 6.3,
+      "tmax_station": "GHCNH:CFU004400-1",
+      "truth": "GHCNh"
     },
     "Poltava": {
       "country": "UA",
@@ -2028,10 +3018,12 @@
       "prcp_elev_m": 160.0,
       "prcp_km": 1.5,
       "prcp_station": "UPM00033506",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 700,
       "tmax_km": 1.5,
-      "tmax_station": "UPM00033506"
+      "tmax_station": "UPM00033506",
+      "truth": "GHCN"
     },
     "Ponce": {
       "country": "PR",
@@ -2044,10 +3036,12 @@
       "prcp_elev_m": 36.3,
       "prcp_km": 3.5,
       "prcp_station": "RQ1PRPC0002",
+      "provisional": false,
       "timezone": "America/Puerto_Rico",
       "tmax_days": 745,
       "tmax_km": 10.6,
-      "tmax_station": "RQC00667292"
+      "tmax_station": "RQC00667292",
+      "truth": "GHCN"
     },
     "Preston": {
       "country": "GB",
@@ -2060,10 +3054,12 @@
       "prcp_elev_m": 33.0,
       "prcp_km": 1.2,
       "prcp_station": "UKE00105862",
+      "provisional": false,
       "timezone": "Europe/London",
       "tmax_days": 748,
       "tmax_km": 1.2,
-      "tmax_station": "UKE00105862"
+      "tmax_station": "UKE00105862",
+      "truth": "GHCN"
     },
     "Qarshi": {
       "country": "UZ",
@@ -2076,10 +3072,12 @@
       "prcp_elev_m": 376.0,
       "prcp_km": 9.2,
       "prcp_station": "UZM00038812",
+      "provisional": false,
       "timezone": "Asia/Samarkand",
       "tmax_days": 677,
       "tmax_km": 9.2,
-      "tmax_station": "UZM00038812"
+      "tmax_station": "UZM00038812",
+      "truth": "GHCN"
     },
     "Quebec": {
       "country": "CA",
@@ -2092,10 +3090,12 @@
       "prcp_elev_m": 76.5,
       "prcp_km": 6.4,
       "prcp_station": "CA1QC000047",
+      "provisional": false,
       "timezone": "America/Toronto",
       "tmax_days": 521,
       "tmax_km": 2.6,
-      "tmax_station": "CA007010565"
+      "tmax_station": "CA007010565",
+      "truth": "GHCN"
     },
     "Reykjavik": {
       "country": "IS",
@@ -2108,10 +3108,12 @@
       "prcp_elev_m": 52.0,
       "prcp_km": 1.0,
       "prcp_station": "IC000004030",
+      "provisional": false,
       "timezone": "Atlantic/Reykjavik",
       "tmax_days": 767,
       "tmax_km": 1.0,
-      "tmax_station": "IC000004030"
+      "tmax_station": "IC000004030",
+      "truth": "GHCN"
     },
     "Reynosa": {
       "country": "MX",
@@ -2124,10 +3126,30 @@
       "prcp_elev_m": 30.2,
       "prcp_km": 11.7,
       "prcp_station": "USW00012959",
+      "provisional": false,
       "timezone": "America/Matamoros",
       "tmax_days": 766,
       "tmax_km": 11.7,
-      "tmax_station": "USW00012959"
+      "tmax_station": "USW00012959",
+      "truth": "GHCN"
+    },
+    "Riga": {
+      "country": "LV",
+      "grid_elev_m": 6.0,
+      "is_capital": true,
+      "lat": 56.946,
+      "lon": 24.10589,
+      "population": 742572,
+      "prcp_days": 591,
+      "prcp_elev_m": 10.4,
+      "prcp_km": 8.5,
+      "prcp_station": "GHCNH:LGI0000EVRA",
+      "provisional": false,
+      "timezone": "Europe/Riga",
+      "tmax_days": 988,
+      "tmax_km": 8.5,
+      "tmax_station": "GHCNH:LGI0000EVRA",
+      "truth": "GHCNh"
     },
     "Rotterdam": {
       "country": "NL",
@@ -2140,10 +3162,12 @@
       "prcp_elev_m": -4.0,
       "prcp_km": 4.8,
       "prcp_station": "NLE00152490",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 4.8,
-      "tmax_station": "NLE00152490"
+      "tmax_station": "NLE00152490",
+      "truth": "GHCN"
     },
     "Salzburg": {
       "country": "AT",
@@ -2156,10 +3180,12 @@
       "prcp_elev_m": 437.0,
       "prcp_km": 3.3,
       "prcp_station": "AU000006306",
+      "provisional": false,
       "timezone": "Europe/Vienna",
       "tmax_days": 767,
       "tmax_km": 3.3,
-      "tmax_station": "AU000006306"
+      "tmax_station": "AU000006306",
+      "truth": "GHCN"
     },
     "Samsun": {
       "country": "TR",
@@ -2172,10 +3198,12 @@
       "prcp_elev_m": 4.0,
       "prcp_km": 3.0,
       "prcp_station": "TUM00017030",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 732,
       "tmax_km": 3.0,
-      "tmax_station": "TUM00017030"
+      "tmax_station": "TUM00017030",
+      "truth": "GHCN"
     },
     "San Antonio": {
       "country": "US",
@@ -2188,10 +3216,12 @@
       "prcp_elev_m": 208.5,
       "prcp_km": 3.0,
       "prcp_station": "US1TXBXR554",
+      "provisional": false,
       "timezone": "America/Chicago",
       "tmax_days": 765,
       "tmax_km": 9.7,
-      "tmax_station": "USW00012970"
+      "tmax_station": "USW00012970",
+      "truth": "GHCN"
     },
     "San Juan": {
       "country": "PR",
@@ -2204,10 +3234,30 @@
       "prcp_elev_m": 1.5,
       "prcp_km": 7.4,
       "prcp_station": "RQ1PRTB0001",
+      "provisional": false,
       "timezone": "America/Puerto_Rico",
       "tmax_days": 644,
       "tmax_km": 7.4,
-      "tmax_station": "RQC00669415"
+      "tmax_station": "RQC00669415",
+      "truth": "GHCN"
+    },
+    "San Pedro Sula": {
+      "country": "HN",
+      "grid_elev_m": 88.0,
+      "is_capital": false,
+      "lat": 15.50585,
+      "lon": -88.02588,
+      "population": 801259,
+      "prcp_days": 675,
+      "prcp_elev_m": 27.7,
+      "prcp_km": 12.5,
+      "prcp_station": "GHCNH:HOI0000MHLM",
+      "provisional": false,
+      "timezone": "America/Tegucigalpa",
+      "tmax_days": 981,
+      "tmax_km": 12.5,
+      "tmax_station": "GHCNH:HOI0000MHLM",
+      "truth": "GHCNh"
     },
     "Sanliurfa": {
       "country": "TR",
@@ -2220,10 +3270,30 @@
       "prcp_elev_m": 452.0,
       "prcp_km": 9.4,
       "prcp_station": "TUM00017270",
+      "provisional": false,
       "timezone": "Europe/Istanbul",
       "tmax_days": 648,
       "tmax_km": 9.4,
-      "tmax_station": "TUM00017270"
+      "tmax_station": "TUM00017270",
+      "truth": "GHCN"
+    },
+    "Sao Paulo": {
+      "country": "BR",
+      "grid_elev_m": 745.0,
+      "is_capital": false,
+      "lat": -23.5475,
+      "lon": -46.63611,
+      "population": 12400232,
+      "prcp_days": 729,
+      "prcp_elev_m": 801.9,
+      "prcp_km": 9.0,
+      "prcp_station": "GHCNH:BRI0000SBSP",
+      "provisional": false,
+      "timezone": "America/Sao_Paulo",
+      "tmax_days": 985,
+      "tmax_km": 9.0,
+      "tmax_station": "GHCNH:BRI0000SBSP",
+      "truth": "GHCNh"
     },
     "Sarajevo": {
       "country": "BA",
@@ -2236,10 +3306,12 @@
       "prcp_elev_m": 630.0,
       "prcp_km": 5.7,
       "prcp_station": "BKM00014654",
+      "provisional": false,
       "timezone": "Europe/Sarajevo",
       "tmax_days": 514,
       "tmax_km": 5.7,
-      "tmax_station": "BKM00014654"
+      "tmax_station": "BKM00014654",
+      "truth": "GHCN"
     },
     "Sendai": {
       "country": "JP",
@@ -2252,10 +3324,12 @@
       "prcp_elev_m": 43.0,
       "prcp_km": 2.9,
       "prcp_station": "JA000047590",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 505,
       "tmax_km": 2.9,
-      "tmax_station": "JA000047590"
+      "tmax_station": "JA000047590",
+      "truth": "GHCN"
     },
     "Sevilla": {
       "country": "ES",
@@ -2268,10 +3342,30 @@
       "prcp_elev_m": 34.0,
       "prcp_km": 9.1,
       "prcp_station": "SPE00120512",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 761,
       "tmax_km": 9.1,
-      "tmax_station": "SPE00120512"
+      "tmax_station": "SPE00120512",
+      "truth": "GHCN"
+    },
+    "Sfax": {
+      "country": "TN",
+      "grid_elev_m": 11.0,
+      "is_capital": false,
+      "lat": 34.74056,
+      "lon": 10.76028,
+      "population": 280566,
+      "prcp_days": 769,
+      "prcp_elev_m": 23.0,
+      "prcp_km": 4.3,
+      "prcp_station": "GHCNH:TSU0750-0-1",
+      "provisional": false,
+      "timezone": "Africa/Tunis",
+      "tmax_days": 982,
+      "tmax_km": 4.3,
+      "tmax_station": "GHCNH:TSU0750-0-1",
+      "truth": "GHCNh"
     },
     "Stavanger": {
       "country": "NO",
@@ -2284,10 +3378,12 @@
       "prcp_elev_m": 72.0,
       "prcp_km": 1.5,
       "prcp_station": "NOE00110590",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 1.5,
-      "tmax_station": "NOE00110590"
+      "tmax_station": "NOE00110590",
+      "truth": "GHCN"
     },
     "Stockholm": {
       "country": "SE",
@@ -2300,10 +3396,12 @@
       "prcp_elev_m": 44.0,
       "prcp_km": 1.3,
       "prcp_station": "SWE00138886",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 1.3,
-      "tmax_station": "SWE00138886"
+      "tmax_station": "SWE00138886",
+      "truth": "GHCN"
     },
     "Strasbourg": {
       "country": "FR",
@@ -2316,10 +3414,12 @@
       "prcp_elev_m": 150.0,
       "prcp_km": 8.6,
       "prcp_station": "FR000007190",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 762,
       "tmax_km": 8.6,
-      "tmax_station": "FR000007190"
+      "tmax_station": "FR000007190",
+      "truth": "GHCN"
     },
     "Stuttgart": {
       "country": "DE",
@@ -2332,10 +3432,12 @@
       "prcp_elev_m": 314.0,
       "prcp_km": 5.5,
       "prcp_station": "GME00115771",
+      "provisional": false,
       "timezone": "Europe/Berlin",
       "tmax_days": 767,
       "tmax_km": 5.5,
-      "tmax_station": "GME00115771"
+      "tmax_station": "GME00115771",
+      "truth": "GHCN"
     },
     "Sumy": {
       "country": "UA",
@@ -2348,10 +3450,12 @@
       "prcp_elev_m": 181.0,
       "prcp_km": 11.9,
       "prcp_station": "UPM00033275",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 707,
       "tmax_km": 11.9,
-      "tmax_station": "UPM00033275"
+      "tmax_station": "UPM00033275",
+      "truth": "GHCN"
     },
     "Sunshine Coast": {
       "country": "AU",
@@ -2364,10 +3468,12 @@
       "prcp_elev_m": 3.3,
       "prcp_km": 6.3,
       "prcp_station": "ASN00040861",
+      "provisional": false,
       "timezone": "Australia/Brisbane",
       "tmax_days": 764,
       "tmax_km": 6.3,
-      "tmax_station": "ASN00040861"
+      "tmax_station": "ASN00040861",
+      "truth": "GHCN"
     },
     "Sydney": {
       "country": "AU",
@@ -2380,10 +3486,12 @@
       "prcp_elev_m": 15.0,
       "prcp_km": 0.8,
       "prcp_station": "ASN00066006",
+      "provisional": false,
       "timezone": "Australia/Sydney",
       "tmax_days": 763,
       "tmax_km": 5.9,
-      "tmax_station": "ASN00066196"
+      "tmax_station": "ASN00066196",
+      "truth": "GHCN"
     },
     "Szczecin": {
       "country": "PL",
@@ -2396,10 +3504,12 @@
       "prcp_elev_m": 50.0,
       "prcp_km": 12.8,
       "prcp_station": "GME00131062",
+      "provisional": false,
       "timezone": "Europe/Warsaw",
       "tmax_days": 703,
       "tmax_km": 5.3,
-      "tmax_station": "PLM00012205"
+      "tmax_station": "PLM00012205",
+      "truth": "GHCN"
     },
     "Tallinn": {
       "country": "EE",
@@ -2412,10 +3522,12 @@
       "prcp_elev_m": 33.0,
       "prcp_km": 9.6,
       "prcp_station": "ENE00175051",
+      "provisional": false,
       "timezone": "Europe/Tallinn",
       "tmax_days": 767,
       "tmax_km": 9.6,
-      "tmax_station": "ENE00175051"
+      "tmax_station": "ENE00175051",
+      "truth": "GHCN"
     },
     "Tampere": {
       "country": "FI",
@@ -2428,10 +3540,48 @@
       "prcp_elev_m": 85.0,
       "prcp_km": 4.2,
       "prcp_station": "FIE00142736",
+      "provisional": false,
       "timezone": "Europe/Helsinki",
       "tmax_days": 767,
       "tmax_km": 2.6,
-      "tmax_station": "FIE00143575"
+      "tmax_station": "FIE00143575",
+      "truth": "GHCN"
+    },
+    "Tangier": {
+      "country": "MA",
+      "grid_elev_m": 19.0,
+      "is_capital": false,
+      "lat": 35.76727,
+      "lon": -5.79975,
+      "population": 1035141,
+      "prcp_days": 799,
+      "prcp_elev_m": 18.9,
+      "prcp_km": 11.5,
+      "prcp_station": "GHCNH:MOI0000GMTT",
+      "provisional": false,
+      "timezone": "Africa/Casablanca",
+      "tmax_days": 988,
+      "tmax_km": 11.5,
+      "tmax_station": "GHCNH:MOI0000GMTT",
+      "truth": "GHCNh"
+    },
+    "Tehran": {
+      "country": "IR",
+      "grid_elev_m": 1183.0,
+      "is_capital": false,
+      "lat": 35.69439,
+      "lon": 51.42151,
+      "population": 7153309,
+      "prcp_days": 733,
+      "prcp_elev_m": 1207.6,
+      "prcp_km": 9.8,
+      "prcp_station": "GHCNH:IRI0000OIII",
+      "provisional": false,
+      "timezone": "Asia/Tehran",
+      "tmax_days": 915,
+      "tmax_km": 9.8,
+      "tmax_station": "GHCNH:IRI0000OIII",
+      "truth": "GHCNh"
     },
     "Ternopil": {
       "country": "UA",
@@ -2444,10 +3594,12 @@
       "prcp_elev_m": 329.0,
       "prcp_km": 6.0,
       "prcp_station": "UPM00033415",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 715,
       "tmax_km": 6.0,
-      "tmax_station": "UPM00033415"
+      "tmax_station": "UPM00033415",
+      "truth": "GHCN"
     },
     "Tijuana": {
       "country": "MX",
@@ -2460,10 +3612,12 @@
       "prcp_elev_m": 158.8,
       "prcp_km": 8.1,
       "prcp_station": "USW00003178",
+      "provisional": false,
       "timezone": "America/Tijuana",
       "tmax_days": 689,
       "tmax_km": 8.1,
-      "tmax_station": "USW00003178"
+      "tmax_station": "USW00003178",
+      "truth": "GHCN"
     },
     "Tobolsk": {
       "country": "RU",
@@ -2476,10 +3630,12 @@
       "prcp_elev_m": 49.0,
       "prcp_km": 5.3,
       "prcp_station": "RSM00028275",
+      "provisional": false,
       "timezone": "Asia/Yekaterinburg",
       "tmax_days": 677,
       "tmax_km": 5.3,
-      "tmax_station": "RSM00028275"
+      "tmax_station": "RSM00028275",
+      "truth": "GHCN"
     },
     "Toulouse": {
       "country": "FR",
@@ -2492,10 +3648,12 @@
       "prcp_elev_m": 151.0,
       "prcp_km": 5.5,
       "prcp_station": "FR000007630",
+      "provisional": false,
       "timezone": "Europe/Paris",
       "tmax_days": 762,
       "tmax_km": 5.5,
-      "tmax_station": "FR000007630"
+      "tmax_station": "FR000007630",
+      "truth": "GHCN"
     },
     "Trondheim": {
       "country": "NO",
@@ -2508,10 +3666,12 @@
       "prcp_elev_m": 127.0,
       "prcp_km": 3.6,
       "prcp_station": "NOE00111040",
+      "provisional": false,
       "timezone": "Europe/Oslo",
       "tmax_days": 767,
       "tmax_km": 3.6,
-      "tmax_station": "NOE00111040"
+      "tmax_station": "NOE00111040",
+      "truth": "GHCN"
     },
     "Turku": {
       "country": "FI",
@@ -2524,10 +3684,12 @@
       "prcp_elev_m": 8.0,
       "prcp_km": 4.8,
       "prcp_station": "FIE00142010",
+      "provisional": false,
       "timezone": "Europe/Helsinki",
       "tmax_days": 767,
       "tmax_km": 4.8,
-      "tmax_station": "FIE00142010"
+      "tmax_station": "FIE00142010",
+      "truth": "GHCN"
     },
     "Umarkot": {
       "country": "PK",
@@ -2540,10 +3702,12 @@
       "prcp_elev_m": 6.0,
       "prcp_km": 17.5,
       "prcp_station": "PKM00041768",
+      "provisional": false,
       "timezone": "Asia/Karachi",
       "tmax_days": 731,
       "tmax_km": 17.5,
-      "tmax_station": "PKM00041768"
+      "tmax_station": "PKM00041768",
+      "truth": "GHCN"
     },
     "Umea": {
       "country": "SE",
@@ -2556,10 +3720,12 @@
       "prcp_elev_m": 10.0,
       "prcp_km": 2.3,
       "prcp_station": "SWE00140180",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 4.5,
-      "tmax_station": "SWE00140174"
+      "tmax_station": "SWE00140174",
+      "truth": "GHCN"
     },
     "Uppsala": {
       "country": "SE",
@@ -2572,10 +3738,12 @@
       "prcp_elev_m": 13.0,
       "prcp_km": 0.5,
       "prcp_station": "SWE00139148",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 767,
       "tmax_km": 0.5,
-      "tmax_station": "SWE00139148"
+      "tmax_station": "SWE00139148",
+      "truth": "GHCN"
     },
     "Utrecht": {
       "country": "NL",
@@ -2588,10 +3756,12 @@
       "prcp_elev_m": 2.0,
       "prcp_km": 4.0,
       "prcp_station": "NLM00006260",
+      "provisional": false,
       "timezone": "Europe/Amsterdam",
       "tmax_days": 767,
       "tmax_km": 4.0,
-      "tmax_station": "NLM00006260"
+      "tmax_station": "NLM00006260",
+      "truth": "GHCN"
     },
     "Vaesteras": {
       "country": "SE",
@@ -2604,10 +3774,12 @@
       "prcp_elev_m": 10.0,
       "prcp_km": 5.2,
       "prcp_station": "SWE00139028",
+      "provisional": false,
       "timezone": "Europe/Stockholm",
       "tmax_days": 741,
       "tmax_km": 5.2,
-      "tmax_station": "SWE00139028"
+      "tmax_station": "SWE00139028",
+      "truth": "GHCN"
     },
     "Vancouver": {
       "country": "CA",
@@ -2620,10 +3792,12 @@
       "prcp_elev_m": 136.2,
       "prcp_km": 11.4,
       "prcp_station": "CA1BC000054",
+      "provisional": false,
       "timezone": "America/Vancouver",
       "tmax_days": 521,
       "tmax_km": 5.6,
-      "tmax_station": "CA001108446"
+      "tmax_station": "CA001108446",
+      "truth": "GHCN"
     },
     "Vienna": {
       "country": "AT",
@@ -2636,10 +3810,12 @@
       "prcp_elev_m": 199.0,
       "prcp_km": 3.2,
       "prcp_station": "AU000005901",
+      "provisional": false,
       "timezone": "Europe/Vienna",
       "tmax_days": 767,
       "tmax_km": 3.2,
-      "tmax_station": "AU000005901"
+      "tmax_station": "AU000005901",
+      "truth": "GHCN"
     },
     "Vinnytsya": {
       "country": "UA",
@@ -2652,10 +3828,12 @@
       "prcp_elev_m": 298.0,
       "prcp_km": 9.5,
       "prcp_station": "UPM00033562",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 710,
       "tmax_km": 9.5,
-      "tmax_station": "UPM00033562"
+      "tmax_station": "UPM00033562",
+      "truth": "GHCN"
     },
     "Winnipeg": {
       "country": "CA",
@@ -2668,10 +3846,12 @@
       "prcp_elev_m": 164.9,
       "prcp_km": 1.4,
       "prcp_station": "CA1MB000361",
+      "provisional": false,
       "timezone": "America/Winnipeg",
       "tmax_days": 521,
       "tmax_km": 1.0,
-      "tmax_station": "CA005023262"
+      "tmax_station": "CA005023262",
+      "truth": "GHCN"
     },
     "Wonsan": {
       "country": "KP",
@@ -2684,10 +3864,30 @@
       "prcp_elev_m": 36.0,
       "prcp_km": 3.5,
       "prcp_station": "KNM00047055",
+      "provisional": false,
       "timezone": "Asia/Pyongyang",
       "tmax_days": 479,
       "tmax_km": 3.5,
-      "tmax_station": "KNM00047055"
+      "tmax_station": "KNM00047055",
+      "truth": "GHCN"
+    },
+    "Yerevan": {
+      "country": "AM",
+      "grid_elev_m": 988.0,
+      "is_capital": false,
+      "lat": 40.17765,
+      "lon": 44.5126,
+      "population": 1144700,
+      "prcp_days": 695,
+      "prcp_elev_m": 1090.0,
+      "prcp_km": 18.1,
+      "prcp_station": "GHCNH:AMM00037785",
+      "provisional": false,
+      "timezone": "Asia/Yerevan",
+      "tmax_days": 690,
+      "tmax_km": 18.1,
+      "tmax_station": "GHCNH:AMM00037785",
+      "truth": "GHCNh"
     },
     "Yokohama": {
       "country": "JP",
@@ -2700,10 +3900,12 @@
       "prcp_elev_m": 42.0,
       "prcp_km": 0.0,
       "prcp_station": "JA000047670",
+      "provisional": false,
       "timezone": "Asia/Tokyo",
       "tmax_days": 686,
       "tmax_km": 0.0,
-      "tmax_station": "JA000047670"
+      "tmax_station": "JA000047670",
+      "truth": "GHCN"
     },
     "Zaragoza": {
       "country": "ES",
@@ -2716,10 +3918,12 @@
       "prcp_elev_m": 247.0,
       "prcp_km": 10.9,
       "prcp_station": "SP000009434",
+      "provisional": false,
       "timezone": "Europe/Madrid",
       "tmax_days": 767,
       "tmax_km": 10.9,
-      "tmax_station": "SP000009434"
+      "tmax_station": "SP000009434",
+      "truth": "GHCN"
     },
     "Zhytomyr": {
       "country": "UA",
@@ -2732,10 +3936,30 @@
       "prcp_elev_m": 224.0,
       "prcp_km": 5.0,
       "prcp_station": "UPM00033325",
+      "provisional": false,
       "timezone": "Europe/Kyiv",
       "tmax_days": 692,
       "tmax_km": 5.0,
-      "tmax_station": "UPM00033325"
+      "tmax_station": "UPM00033325",
+      "truth": "GHCN"
+    },
+    "Zinder": {
+      "country": "NE",
+      "grid_elev_m": 459.0,
+      "is_capital": false,
+      "lat": 13.80716,
+      "lon": 8.9881,
+      "population": 318874,
+      "prcp_days": 736,
+      "prcp_elev_m": 462.1,
+      "prcp_km": 3.2,
+      "prcp_station": "GHCNH:NGI0000DRZR",
+      "provisional": false,
+      "timezone": "Africa/Niamey",
+      "tmax_days": 717,
+      "tmax_km": 3.2,
+      "tmax_station": "GHCNH:NGI0000DRZR",
+      "truth": "GHCNh"
     },
     "Zuerich": {
       "country": "CH",
@@ -2748,14 +3972,16 @@
       "prcp_elev_m": 555.0,
       "prcp_km": 2.2,
       "prcp_station": "SZ000003700",
+      "provisional": false,
       "timezone": "Europe/Zurich",
       "tmax_days": 765,
       "tmax_km": 2.2,
-      "tmax_station": "SZ000003700"
+      "tmax_station": "SZ000003700",
+      "truth": "GHCN"
     }
   },
-  "pool_size": 8150,
-  "probed": "2026-09-15",
+  "pool_size": 8197,
+  "probed": "2026-09-23",
   "rules": {
     "max_cities": 300,
     "max_elev_diff_m": 300.0,
@@ -2763,7 +3989,7 @@
     "max_station_km": 25.0,
     "min_city_separation_km": 30.0,
     "min_pairs": 500,
-    "min_population": 100000,
+    "min_population": 200000,
     "min_station_days": 525,
     "window_years": [
       2024,
