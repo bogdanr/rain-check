@@ -91,6 +91,13 @@ def study_points() -> pd.DataFrame:
         except Exception:
             continue
         for name, c in cities.items():
+            # The truth-error analysis (E20-E22) re-sites a city onto other
+            # GHCN gauges near it. GHCNh and ISD cities are, by construction,
+            # in countries without such gauges, so they sit outside its scope -
+            # and are skipped rather than scored against an empty neighbourhood.
+            import truth_sources
+            if truth_sources.is_external(c.prcp_station):
+                continue
             rows.append({"city": name, "lat": c.latitude, "lon": c.longitude,
                          "station": c.prcp_station})
     out = pd.DataFrame(rows).drop_duplicates(subset="city")

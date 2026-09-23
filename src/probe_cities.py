@@ -70,16 +70,33 @@ GEONAMES_URL = "https://download.geonames.org/export/dump/cities15000.zip"
 # Each city costs ~5 requests for the probability archive plus 1 for ERA5. At
 # the throttle in fetch.py that is roughly two seconds per city, so a few
 # hundred is comfortable and a few thousand is not.
+#
+# In practice this does not bind: the rules below leave ~140 cities, well under
+# it. That is deliberate. More cities in the same countries buys no precision
+# (E28: the design effect puts the resolving sample near 68,000 cities) and no
+# explanatory power (G4: no city property predicts skill). What the study can
+# use is more *countries* - more regimes, more national forecast pipelines -
+# and that is limited by where GHCN still has a reporting gauge, not by this
+# number. See Task 10 in plans/2026-09-22-session-state-v1.md.
 MAX_CITIES = 300
 
 # Ceiling per country. Set against the observation that the US alone supplies
 # 3,328 qualifying cities: without a cap the sample is a map of GHCN reporting
-# density rather than of world climate.
+# density rather than of world climate. Kept at 8 on purpose: the depth a
+# larger cap would add is exactly the kind of n that E28 says cannot resolve
+# anything, while it would tilt the sample back toward dense-GHCN countries.
 MAX_PER_COUNTRY = 8
 
 # Cities below this are unlikely to be anyone's daily forecast, and the pool is
-# large enough that we can afford to prefer places people live.
-MIN_POPULATION = 100_000
+# large enough that we can afford to prefer places people live. Raised from
+# 100k to 200k: it costs 36 cities but only two countries (Iceland via
+# Reykjavik, which the capital exemption below keeps anyway, and Morocco via
+# Nador), and a 176k town was never the forecast most readers check.
+#
+# Capitals are exempt. They are in the sample for comparability with the
+# published capitals run, not for their size, and the superset guarantee in
+# `select` only holds if the floor cannot remove one first.
+MIN_POPULATION = 200_000
 
 # Two cities this close share weather as well as, usually, a gauge. Applied
 # after station dedupe to catch neighbouring metros with separate stations.
@@ -141,10 +158,57 @@ def candidate_pool() -> pd.DataFrame:
                      r.dem, r.timezone,
                      p.id, float(p.km), float(p.elev_m), int(p.days),
                      t.id, float(t.km), float(t.elev_m), int(t.days)))
-    return pd.DataFrame(rows, columns=[
+    ghcn = pd.DataFrame(rows, columns=[
         "city", "country", "lat", "lon", "population", "dem", "timezone",
         "prcp_station", "prcp_km", "prcp_elev_m", "prcp_days",
         "tmax_station", "tmax_km", "tmax_elev_m", "tmax_days"])
+    return with_external(ghcn)
+
+
+def with_external(ghcn: pd.DataFrame) -> pd.DataFrame:
+    """Add GHCNh- and ISD-verified cities, if those stages have run.
+
+    One truth source per country, in priority order GHCN > GHCNh > ISD (see
+    truth_sources): a GHCNh city only where GHCN has no city at the floor, an
+    ISD city - provisional - only where neither has. The stages already chose
+    their countries that way, but the pools move as gauges open and close, so
+    the rule is enforced again here rather than trusted from files written
+    earlier.
+
+    The one sanctioned mix: a city kept below the floor only because it is
+    already published (or a capital) does not claim its country for GHCN.
+    Otherwise one grandfathered small city - Nador, 176k, read off a gauge
+    in Melilla - would lock Fes and Tangier out of Morocco. Every city
+    carries its `truth` label, so a per-country comparison can see the mix.
+    """
+    import ghcnh_truth
+    import isd_truth
+
+    out = ghcn.assign(truth="GHCN", provisional=False)
+    for label, rows in (("GHCNh", ghcnh_truth.pool_rows()),
+                        ("ISD", isd_truth.pool_rows())):
+        if rows.empty:
+            continue
+        covered = set(out[out.population >= MIN_POPULATION].country)
+        rows = rows[~rows.country.isin(covered)].assign(
+            truth=label, provisional=label == "ISD")
+        out = pd.concat([out, rows[out.columns]], ignore_index=True)
+    return out
+
+
+def published_keys() -> set[tuple[str, str]]:
+    """(city, country) for every city in the last written coverage file.
+
+    That file is what the site and the analyses were built from, so it is the
+    record of what has been published. Because this probe rewrites it with the
+    exempt cities included, the exemption carries forward run to run rather
+    than lapsing after one.
+    """
+    path = RAW / "city_coverage.json"
+    if not path.exists():
+        return set()
+    inc = json.loads(path.read_text()).get("included", {})
+    return {(name, v["country"]) for name, v in inc.items()}
 
 
 def select(pool: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
@@ -152,8 +216,19 @@ def select(pool: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     log = []
     n0 = len(pool)
 
-    keep = pool[pool.population >= MIN_POPULATION].copy()
-    log.append({"rule": f"population >= {MIN_POPULATION:,}",
+    # Matched on (name, country), not name: Paris, Texas is not a capital and
+    # must not ride the exemption past the floor.
+    #
+    # Cities already published are exempt too. The floor was raised after
+    # they went out; applying it retroactively would delete 35 live pages and
+    # silently change the sample E35 was measured on. New cities meet the new
+    # floor; old ones keep their place.
+    exempt = {(name, v[3]) for name, v in CAPITALS.items()} | published_keys()
+    is_exempt = pd.Series([(c, k) in exempt for c, k in
+                           zip(pool.city, pool.country)], index=pool.index)
+    keep = pool[(pool.population >= MIN_POPULATION) | is_exempt].copy()
+    log.append({"rule": f"population >= {MIN_POPULATION:,} "
+                        "(capitals and published cities exempt)",
                 "removed": n0 - len(keep), "remaining": len(keep)})
 
     # Rule 1: one city per rain gauge, keeping the largest.
@@ -194,13 +269,14 @@ def select(pool: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     # Always retain the capitals already analysed, so the new run is a superset
     # of the published one and the two can be compared directly.
     caps = set(CAPITALS)
+    n4 = len(keep)
     forced = keep.city.isin(caps)
     rest = (keep[~forced].sort_values("population", ascending=False)
             .head(max(0, MAX_CITIES - int(forced.sum()))))
     keep = pd.concat([keep[forced], rest]).sort_values(
         "population", ascending=False).reset_index(drop=True)
     log.append({"rule": f"budget of {MAX_CITIES} (capitals retained)",
-                "removed": n3 - len(keep), "remaining": len(keep)})
+                "removed": n4 - len(keep), "remaining": len(keep)})
     return keep, log
 
 
@@ -273,6 +349,10 @@ def main() -> None:
             "tmax_km": round(float(r.tmax_km), 1),
             "tmax_days": int(r.tmax_days),
             "is_capital": r.city in CAPITALS,
+            "truth": r.truth,
+            # Provisional cities (ISD, 400-pair gate) are shown on the site
+            # with their own numbers but never enter a pooled claim.
+            "provisional": bool(r.provisional),
         }
 
     out = RAW / "city_coverage.json"

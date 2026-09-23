@@ -63,7 +63,7 @@ from config import (
 from constants import POP_ARCHIVE_START
 from fetch import fetch_json, is_error, reason
 from observations import GHCN_URL
-from probe_capitals import MIN_PAIRS
+import truth_sources
 
 # Lag scan settings (Task 31).
 SCAN_SHIFTS = range(-2, 3)
@@ -93,6 +93,28 @@ EUROPE = frozenset(
 
 def artefact(name: str):
     return PROCESSED / f"{CITY_SET}_{name}.parquet"
+
+
+def provisional_artefact(name: str):
+    """Where provisional cities' tables live (see `truth_sources`).
+
+    Deliberately a different file, not a flag column in the canonical one.
+    Every pooled claim downstream - sampling, window, triangulation, decision
+    metrics, the report's ribbons and medians - reads `artefact(...)`, and
+    none of them has to remember to filter: a provisional city is simply not
+    in the tables they read. Only the per-city site pages look here.
+    """
+    return PROCESSED / f"{CITY_SET}_provisional_{name}.parquet"
+
+
+def split_provisional(daily: pd.DataFrame, diag: pd.DataFrame):
+    """(confirmed daily, provisional daily, provisional city names)."""
+    if diag is None or "provisional" not in diag.columns:
+        return daily, daily.iloc[0:0], set()
+    prov = set(diag.loc[diag.included & diag.provisional.fillna(False)
+                        .astype(bool), "city"])
+    mask = daily.city.isin(prov)
+    return daily[~mask], daily[mask], prov
 
 
 def figure(name: str):
@@ -191,7 +213,14 @@ def load_ghcn(station_id: str) -> pd.DataFrame:
     Prefers the bulk extract, which covers every selected station in a single
     file; falls back to the per-station download so the module still works
     before ghcn_bulk.py has been run.
+
+    Cities in countries GHCN cannot reach carry a "GHCNH:" or "ISD:" station
+    id and are served by `truth_sources`, which returns the same columns - so
+    the lag scan, the pair count and every exclusion below apply unchanged.
     """
+    ext = truth_sources.load_prcp(station_id)
+    if ext is not None:
+        return ext
     store = _bulk_store()
     if store is not None:
         out = store[store.station == station_id][["ghcn_date", "prcp"]]
@@ -228,6 +257,9 @@ def load_ghcn_temp(station_id: str) -> pd.DataFrame:
     impossible, so they are dropped and counted - a station failing this often
     is not usable at all, which `track_a` enforces.
     """
+    ext = truth_sources.load_temp(station_id)
+    if ext is not None:
+        return ext
     store = _bulk_store()
     if store is not None:
         sel = store[store.station == station_id]
@@ -334,7 +366,7 @@ def track_a(cities: dict[str, City]) -> pd.DataFrame:
             g = g[(g.n_hours == 24) & (g.n_null == 0)].reset_index()
             m = g.merge(obs, on="local_date", how="inner").dropna(
                 subset=["fc_tmax", "obs_tmax"])
-            if len(m) < MIN_PAIRS:
+            if len(m) < truth_sources.min_pairs(city.tmax_station):
                 continue
             err = m.fc_tmax - m.obs_tmax
             rows.append({"city": name, "lead_days": lead, "n": len(m),
@@ -456,10 +488,11 @@ def build(cities: dict[str, City],
         d["city"] = name
         d["offset_days"] = offset
 
-        if len(d) < MIN_PAIRS:
+        gate = truth_sources.min_pairs(city.prcp_station)
+        if len(d) < gate:
             diag.append({"city": name, "included": False, "n": len(d),
                          "offset": offset, "scan_r": scan["r"],
-                         "why": f"only {len(d)} usable pairs (< {MIN_PAIRS})"})
+                         "why": f"only {len(d)} usable pairs (< {gate})"})
             print(f"  {name:12s} EXCLUDED - {len(d)} pairs")
             continue
 
@@ -476,6 +509,9 @@ def build(cities: dict[str, City],
                      "offset": offset, "scan_r": scan["r"],
                      "scan_margin": scan["margin"],
                      "prcp_km": city.prcp_km, "continentality_c": cont,
+                     "truth": truth_sources.source_of(city.prcp_station),
+                     "provisional": truth_sources.is_provisional(
+                         city.prcp_station),
                      "why": ""})
         print(f"  {name:12s} n={len(d):4d}  offset={offset:+d}  "
               f"scan r={scan['r']:.2f}  base rate="
@@ -965,6 +1001,11 @@ def main() -> None:
     if mode in ("metrics", "leads") and daily_path.exists():
         daily = pd.read_parquet(daily_path)
         diag = pd.read_parquet(artefact("diagnostics"))
+        # A previous run already moved provisional cities out of the daily
+        # table; bring them back so the split below sees the whole set.
+        if provisional_artefact("pop").exists():
+            daily = pd.concat([daily, pd.read_parquet(
+                provisional_artefact("pop"))], ignore_index=True)
     else:
         cities = registry()
         print(f"=== Tasks 31-32: building {len(cities)} {label} ===")
@@ -974,6 +1015,28 @@ def main() -> None:
 
     if daily.empty:
         raise SystemExit(f"no {label} survived the coverage and offset rules")
+
+    # Provisional cities leave here, before any statistic across cities is
+    # formed. The canonical daily table is rewritten confirmed-only so that
+    # every later reader of it is safe by construction.
+    daily, prov_daily, prov = split_provisional(daily, diag)
+    for name in ("pop", "metrics", "wet_bias"):
+        p = provisional_artefact(name)
+        if p.exists():
+            p.unlink()
+    daily.to_parquet(daily_path, index=False)
+    if prov:
+        prov_daily.to_parquet(provisional_artefact("pop"), index=False)
+        pm = metrics(prov_daily, diag)
+        # A rank among provisional cities alone means nothing, and a rank
+        # among confirmed ones would put them in the league they were kept
+        # out of. The site shows where the score falls instead.
+        pm[["rank_lo", "rank_hi"]] = np.nan
+        pm.to_parquet(provisional_artefact("metrics"), index=False)
+        wet_bias_across_cities(prov_daily).to_parquet(
+            provisional_artefact("wet_bias"), index=False)
+        print(f"\n  {len(prov)} provisional {label} held out of every pooled "
+              f"claim: {', '.join(sorted(prov))}")
 
     met = metrics(daily, diag)
     met.to_parquet(artefact("metrics"), index=False)
@@ -1043,8 +1106,16 @@ def main() -> None:
 
     if mode in ("all", "leads"):
         print("\n=== Task 36: temperature error vs lead time across capitals ===")
-        la = track_a(registry())
+        reg = registry()
+        la = track_a(reg)
+        provisional_artefact("lead_mae").unlink(missing_ok=True)
         if len(la):
+            held = la.city.map(lambda c: c in reg and truth_sources.
+                               is_provisional(reg[c].prcp_station))
+            if held.any():
+                la[held].to_parquet(provisional_artefact("lead_mae"),
+                                    index=False)
+            la = la[~held]
             la.to_parquet(artefact("lead_mae"), index=False)
             piv = la.pivot(index="city", columns="lead_days",
                            values="tmax_mae_debiased")

@@ -29,6 +29,7 @@ import sys
 
 import pandas as pd
 
+import truth_sources
 from config import GHCN_SCALE, RAW
 
 YEAR_DIR = RAW / "ghcn_year"
@@ -71,12 +72,22 @@ def wanted_stations() -> set[str]:
         payload = json.loads(path.read_text())
         for v in payload["included"].values():
             for key in ("prcp_station", "tmax_station"):
-                if v.get(key):
+                # GHCNh- and ISD-verified cities are served by their own
+                # modules (see truth_sources), not by this extract.
+                if v.get(key) and not truth_sources.is_external(v[key]):
                     ids.add(v[key])
     return ids
 
 
-def extract(ids: set[str] | None = None) -> pd.DataFrame:
+def extract(ids: set[str] | None = None, write: bool = True) -> pd.DataFrame:
+    """The study stations (default) or `ids`, read from the year files.
+
+    Only the default call may write the shared store: an ad-hoc extract for a
+    side analysis must never replace the gauge data every stage verifies
+    against. Passing `ids` therefore implies write=False unless forced.
+    """
+    if ids is not None and write is True:
+        write = False
     ensure_downloaded()
     ids = ids or wanted_stations()
     print(f"  extracting {len(ids)} stations x {len(ELEMENTS)} elements")
@@ -116,6 +127,8 @@ def extract(ids: set[str] | None = None) -> pd.DataFrame:
         "tmin": wide["TMIN"] / GHCN_SCALE,
     }).sort_values(["station", "ghcn_date"])
 
+    if not write:
+        return out
     out.to_parquet(STORE, index=False)
     print(f"\nwrote {STORE}  rows={len(out):,}  stations={out.station.nunique()}")
     print(f"  span {out.ghcn_date.min().date()} .. {out.ghcn_date.max().date()}")

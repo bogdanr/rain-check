@@ -91,7 +91,17 @@ def say(msg: str) -> None:
 # 1. What is in the pool?
 # ---------------------------------------------------------------------------
 def load_pool() -> pd.DataFrame:
-    if not POOL_CACHE.exists():
+    # The pool also carries GHCNh/ISD cities (probe_cities.with_external), so
+    # a cache written before those stages last ran is a different pool -
+    # rebuild rather than sweep a stale one.
+    feeders = [RAW / "ghcnh_candidates.json", RAW / "isd_candidates.json"]
+    stale = POOL_CACHE.exists() and any(
+        f.exists() and f.stat().st_mtime > POOL_CACHE.stat().st_mtime
+        for f in feeders)
+    if POOL_CACHE.exists() and not stale and \
+            "truth" not in pd.read_parquet(POOL_CACHE).columns:
+        stale = True
+    if stale or not POOL_CACHE.exists():
         import probe_cities
         pool = probe_cities.candidate_pool()
         pool.to_parquet(POOL_CACHE, index=False)
@@ -496,9 +506,13 @@ def run_checks() -> None:
     # 1. The cap reproduction matches the selection the study actually shipped.
     import json
     cov = json.loads((RAW / "city_coverage.json").read_text())
-    shipped = set(cov["included"])
-    pool = load_pool()
     rules = cov["rules"]
+    # Capitals and already-published cities ride past the population floor by
+    # a documented exemption (probe_cities.select). The sweep reproduces the
+    # floor-and-cap rule, so it is checked against the cities that rule chose.
+    shipped = {c for c, v in cov["included"].items()
+               if (v.get("population") or 0) >= rules["min_population"]}
+    pool = load_pool()
     mine = apply_cap(pool, rules["max_per_country"], rules["min_population"])
     overlap = len(shipped & set(mine.city)) / max(len(shipped), 1)
     if overlap < 0.80:
