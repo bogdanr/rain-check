@@ -32,7 +32,9 @@ run_fresh() {
     if [ "$a" = "--" ]; then seen=1; continue; fi
     if [ "$seen" = 0 ]; then cmd+=("$a"); else outs+=("$a"); fi
   done
-  if [ "$SKIP_UNCHANGED" = "1" ] && [ ${#outs[@]} -gt 0 ]; then
+  # FORCE=1 run_fresh ... re-runs regardless, for a stage whose real input is
+  # a derived table in data/processed that this check cannot see.
+  if [ "$SKIP_UNCHANGED" = "1" ] && [ "${FORCE:-0}" != "1" ] && [ ${#outs[@]} -gt 0 ]; then
     local stale=0 o oldest newest
     for o in "${outs[@]}"; do [ -e "$o" ] || stale=1; done
     if [ "$stale" = 0 ]; then
@@ -93,6 +95,15 @@ run_fresh S capitals.py pinned -- data/processed/capitals_pinned.parquet
 echo "== 10/27 beyond the capitals: probe every city with a usable gauge =="
 # GHCN's per-year bulk files replace ~16 GB of per-station downloads, so the
 # expanded set costs one 422 MB fetch rather than one request per station.
+#
+# Two further truth sources reach countries GHCN-Daily cannot, and must run
+# before the probe, which merges them (one source per country, GHCN first):
+# GHCNh, NOAA's current hourly archive, at the full 500-pair gate; then ISD,
+# whose public files stop in August 2025, at a 400-pair *provisional* gate.
+# Provisional cities get labelled pages but are held out of every pooled claim
+# (src/truth_sources.py). Both cache their downloads; warm runs are offline.
+S ghcnh_truth.py
+S isd_truth.py
 S probe_cities.py
 run_fresh S ghcn_bulk.py -- data/raw/ghcn_bulk.parquet
 # The Track A leg of this run is API-heavy and can trip Open-Meteo's hourly
@@ -117,6 +128,36 @@ else
   echo "WARNING: provider probe/collection failed or was rate-limited;"
   echo "         continuing from cache. Missing legs will show as"
   echo "         'Collection pending' in the report; re-run to resume."
+fi
+# The served-vs-ensemble comparison (stage 14) needs the one pinned vendor
+# model at EVERY world city, not just the capitals. This used to be a manual
+# step, so a widened city set silently left its new cities out of stages
+# 14-15. Cached per city, so it costs requests only for new cities.
+if ! S collect_archive.py model-world gfs_seamless; then
+  echo "WARNING: world vendor archive incomplete; stage 14 will cover fewer cities."
+fi
+# Stage 14 also needs the GEFS members at every world city. The collector
+# skips any city-month already complete, so a warm run reads nothing (~1 min);
+# only new cities or new months cost downloads (~0.5 GB per month per 47
+# cities). A failure is a warning: the derivation below runs on what is there.
+if ! S collect_members.py collect world; then
+  echo "WARNING: GEFS member collection incomplete; stage 14 will cover fewer cities."
+fi
+# Member-derived PoP for the world set. Capitals are a subset and their rows
+# are computed per city, so they come out byte-identical to a capitals-only
+# run. Not wrapped in run_fresh: that helper deliberately ignores data/raw/gefs
+# (see the top of this file), so it would never notice newly collected
+# members. Recomputed instead whenever the member archive, the city set or the
+# module is newer than the table.
+GEFS_POP=data/processed/gefs_pop.parquet
+GEFS_POP_CHANGED=0
+if [ "$SKIP_UNCHANGED" = "1" ] && [ -e "$GEFS_POP" ] && [ -z "$(find \
+     data/raw/gefs data/raw/city_coverage.json src/ensemble_pop.py \
+     src/collect_members.py -type f -newer "$GEFS_POP" -print -quit)" ]; then
+  echo "   (up to date, skipped: ensemble_pop.py compute gefs --cities=world)"
+else
+  S ensemble_pop.py compute gefs --mode=all --cities=world
+  GEFS_POP_CHANGED=1   # stages 14-15 read this table; make them re-run
 fi
 
 echo "== 12/27 per-provider verification, league table, robustness =="
@@ -164,7 +205,7 @@ echo "== 14/27 served vs member-derived probability (Task 21, triangulation) =="
 # Every series is scored on one identical sample of city-days; the module
 # aborts loudly (stage-5 style) if that sample is not identical, and its
 # selftest runs first.
-run_fresh S triangulation.py all --scope=world -- \
+FORCE=$GEFS_POP_CHANGED run_fresh S triangulation.py all --scope=world -- \
   data/processed/triangulation.parquet \
   data/processed/triangulation_divergence.parquet \
   data/processed/triangulation_reliability.parquet \
@@ -179,7 +220,7 @@ echo "== 15/27 paired significance and FDR control (Tasks 25-26) =="
 # known truth, that the naive independent-sample interval covers about a third
 # of the time at a nominal 95% - which is the size of mistake this stage
 # exists to prevent. Two minutes, no network.
-run_fresh S significance.py all --scope=world -- \
+FORCE=$GEFS_POP_CHANGED run_fresh S significance.py all --scope=world -- \
   data/processed/significance_headline.parquet \
   data/processed/significance_cells.parquet \
   data/processed/significance_block_sensitivity.parquet
