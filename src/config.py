@@ -501,6 +501,10 @@ API_FORECAST = "https://api.open-meteo.com/v1/forecast"
 API_PREVIOUS_RUNS = "https://previous-runs-api.open-meteo.com/v1/forecast"
 API_HISTORICAL_FORECAST = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 API_HISTORICAL_WEATHER = "https://archive-api.open-meteo.com/v1/archive"
+# The archive's default model is ECMWF IFS, not ERA5 (checked 2026-09-23 at six
+# cities on three continents: identical on every day). Every call that means
+# "reanalysis" must pin this, or it silently gets the forecast model.
+ERA5_MODEL = "era5"
 API_ENSEMBLE = "https://ensemble-api.open-meteo.com/v1/ensemble"
 
 # --------------------------------------------------------------------------

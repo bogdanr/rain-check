@@ -276,18 +276,22 @@ def reliability_chart(pop: pd.DataFrame, met: pd.DataFrame) -> str:
 # ---------------------------------------------------------------------------
 # 2. Calibration fingerprint: every city is one dot, at any count
 # ---------------------------------------------------------------------------
+# Fixed window, in percentage points, on both axes. A few extreme gauges once
+# stretched the frame and packed most cities into a corner; cities outside it
+# are drawn hollow on the nearest edge and keep their values in the tooltip.
+FP_LO, FP_HI = -10.0, 40.0
+
+
 def _fp_frame(wb: pd.DataFrame):
     H = 470
     pad = (62, 20, 34, 54)
-    x = wb.low_gap * 100
-    y = -wb.high_gap * 100
-    x_lo = float(min(-2, np.floor(x.min() / 2) * 2 - 1))
-    x_hi = float(max(6, np.ceil(x.max() / 2) * 2 + 1))
-    y_lo = float(min(-2, np.floor(y.min() / 2) * 2 - 1))
-    y_hi = float(max(6, np.ceil(y.max() / 2) * 2 + 1))
+    x_lo = y_lo = FP_LO
+    x_hi = y_hi = FP_HI
     fx0, fy0 = _frame(W, H, pad)
+    clamp = lambda v: min(max(v, FP_LO), FP_HI)
     return (W, H, pad, x_lo, x_hi, y_lo, y_hi,
-            (lambda v: fx0(v, x_lo, x_hi)), (lambda v: fy0(v, y_lo, y_hi)))
+            (lambda v: fx0(clamp(v), x_lo, x_hi)),
+            (lambda v: fy0(clamp(v), y_lo, y_hi)))
 
 
 def fingerprint_chart(wb: pd.DataFrame) -> str:
@@ -308,10 +312,8 @@ def fingerprint_chart(wb: pd.DataFrame) -> str:
     Wc, H, pad, x_lo, x_hi, y_lo, y_hi, fx, fy = _fp_frame(d)
 
     p = _open(Wc, H, "Each city's calibration fingerprint", "fingerprint")
-    xt = [(v, f"{v:+.0f}") for v in np.arange(np.ceil(x_lo / 4) * 4,
-                                              x_hi + 1e-9, 4)]
-    yt = [(v, f"{v:+.0f}") for v in np.arange(np.ceil(y_lo / 4) * 4,
-                                              y_hi + 1e-9, 4)]
+    xt = [(v, f"{v:+.0f}") for v in np.arange(x_lo, x_hi + 1e-9, 10)]
+    yt = [(v, f"{v:+.0f}") for v in np.arange(y_lo, y_hi + 1e-9, 10)]
     _axes(p, Wc, H, pad, xt, yt, fx, fy,
           "Extra rain on low-chance days (percentage points)",
           "Missing rain on high-chance days (pp)")
@@ -335,6 +337,11 @@ def fingerprint_chart(wb: pd.DataFrame) -> str:
     p.append(_anno(fx(x_lo) + 8, fy(y_lo) - 24,
                    ['opposite corner: the classic "wet bias"',
                     "the literature expected"], anchor="start"))
+    out = (x < x_lo) | (x > x_hi) | (y < y_lo) | (y > y_hi)
+    if out.any():
+        p.append(_anno(fx(x_hi) - 8, fy(y_hi) + 54,
+                       f"\u25cb {int(out.sum())} off the scale, drawn on the edge",
+                       anchor="end"))
 
     r = 5 if len(d) <= 200 else (3.5 if len(d) <= 600 else 2.8)
     field = _LabelField()
@@ -347,7 +354,9 @@ def fingerprint_chart(wb: pd.DataFrame) -> str:
                f"&#10;high end {row._y:+.0f}pp")
         cx, cy = fx(row._x), fy(row._y)
         body = f'<circle cx="{_n(cx)}" cy="{_n(cy)}" r="{_n(r)}"/>'
-        p.append(_city_g(row.city, "cc-dot", body, tip))
+        off = not (x_lo <= row._x <= x_hi and y_lo <= row._y <= y_hi)
+        p.append(_city_g(row.city, "cc-dot cc-off" if off else "cc-dot",
+                         body, tip))
     p.append('</g>')
     # Name the handful of extreme cities - the ones a reader will ask about.
     named = 0
@@ -355,9 +364,18 @@ def fingerprint_chart(wb: pd.DataFrame) -> str:
         if named >= 6:
             break
         cx, cy = fx(row._x), fy(row._y)
-        if field.try_place(cx + r + 3, cy + 4, str(row.city)):
-            p.append(f'<text class="chart-point-label" x="{_n(cx + r + 3)}" '
-                     f'y="{_n(cy + 4)}" font-size="12">{esc(row.city)}</text>')
+        name = str(row.city)
+        # Near the right edge the name goes on the left of the dot, or it
+        # runs out of the frame.
+        tw = len(name) * 12.5 * 0.58 + 6
+        left = cx + r + 3 + tw > Wc - pad[1]
+        lx = cx - r - 3 - tw if left else cx + r + 3
+        if field.try_place(lx, cy + 4, name):
+            tx, anchor = ((cx - r - 3, ' text-anchor="end"') if left
+                          else (cx + r + 3, ""))
+            p.append(f'<text class="chart-point-label" x="{_n(tx)}" '
+                     f'y="{_n(cy + 4)}" font-size="12"{anchor}>'
+                     f'{esc(name)}</text>')
             named += 1
     p.append('<g class="cc-top"></g></svg>')
     return "".join(p)
@@ -366,15 +384,34 @@ def fingerprint_chart(wb: pd.DataFrame) -> str:
 # ---------------------------------------------------------------------------
 # 3. Skill against rain frequency
 # ---------------------------------------------------------------------------
+# The skill axis stops here. A handful of cities far below zero once
+# stretched it and squashed every other city into the top of the frame.
+# Cities below the floor are drawn on it, hollow, and keep their value in the
+# tooltip; the note on the chart names them.
+SCATTER_Y_FLOOR = -0.5
+
+
 def _scatter_frame(d: pd.DataFrame):
     H = 440
     pad = (62, 20, 34, 54)
     fx0, fy0 = _frame(W, H, pad)
-    x_hi = float(min(0.6, max(0.25, d.base_rate.max() * 1.12)))
-    y_lo = float(min(-0.05, d.bss.min() - 0.04))
+    # Round up to a whole 10%, so the wettest city is inside the frame; a
+    # fixed 60% cap once drew one past the right edge.
+    x_hi = float(min(1.0, max(0.3, np.ceil(d.base_rate.max() * 1.04 * 10)
+                              / 10)))
+    y_lo = float(max(SCATTER_Y_FLOOR, min(-0.05, d.bss.min() - 0.04)))
     y_hi = float(max(0.6, d.bss.max() + 0.04))
     return (W, H, pad, x_hi, y_lo, y_hi,
-            (lambda v: fx0(v, 0, x_hi)), (lambda v: fy0(v, y_lo, y_hi)))
+            (lambda v: fx0(v, 0, x_hi)),
+            (lambda v: fy0(max(v, y_lo), y_lo, y_hi)))
+
+
+def _nice_ticks(lo: float, hi: float, target: int = 8) -> list[float]:
+    """About `target` ticks at a step of 0.1, 0.2, 0.25 or 0.5, with 0 on one."""
+    step = next(s for s in (0.1, 0.2, 0.25, 0.5, 1.0)
+                if (hi - lo) / s <= target)
+    return [round(v, 2) for v in np.arange(np.ceil(lo / step) * step,
+                                            hi + 1e-9, step)]
 
 
 def baserate_scatter(met: pd.DataFrame) -> str:
@@ -393,7 +430,7 @@ def baserate_scatter(met: pd.DataFrame) -> str:
 
     p = _open(Wc, H, "Skill score against how often it rains", "baserate")
     xt = [(v, f"{v*100:.0f}%") for v in np.arange(0, x_hi + 1e-9, 0.1)]
-    yt = [(v, f"{v:.1f}") for v in np.arange(round(y_lo, 1), y_hi + 1e-9, 0.1)]
+    yt = [(v, f"{v:.1f}") for v in _nice_ticks(y_lo, y_hi)]
     _axes(p, Wc, H, pad, xt, yt, fx, fy,
           "Share of days with rain", "Skill score (higher is better)")
 
@@ -427,6 +464,18 @@ def baserate_scatter(met: pd.DataFrame) -> str:
                     f'height="{_n(fy(yv0)-fy(yv1))}" opacity="{o:.2f}"/>')
         p.append('<g class="cc-density-layer">' + "".join(cells) + '</g>')
 
+    off = d[d.bss < y_lo]
+    if len(off):
+        # Say on the chart that the bottom edge is a floor, not a value.
+        worst = off.sort_values("bss").head(3)
+        names = ", ".join(f"{c} {b:.1f}" for c, b in zip(worst.city, worst.bss))
+        more = f" and {len(off) - 3} more" if len(off) > 3 else ""
+        # Top-right corner: wet and highly skilful is the emptiest part of
+        # the frame, so the note never sits on dots.
+        p.append(_anno(fx(x_hi) - 8, fy(y_hi) + 18,
+                       [f"\u25cb on the bottom edge: below {y_lo:.1f}",
+                        f"{names}{more}"], anchor="end"))
+
     r = 5 if len(d) <= 200 else (3.5 if len(d) <= 600 else 2.8)
     p.append('<g class="cc-dots">')
     for _, row in d.iterrows():
@@ -434,16 +483,20 @@ def baserate_scatter(met: pd.DataFrame) -> str:
                f"rain on {row.base_rate:.0%} of days&#10;{int(row.n)} days")
         body = (f'<circle cx="{_n(fx(row.base_rate))}" '
                 f'cy="{_n(fy(row.bss))}" r="{_n(r)}"/>')
-        p.append(_city_g(row.city, "cc-dot", body, tip))
+        cls = "cc-dot cc-off" if row.bss < y_lo else "cc-dot"
+        p.append(_city_g(row.city, cls, body, tip))
     p.append('</g>')
 
     # Name the cities a reader will point at: the best and worst by skill.
+    # `data-for` lets the browser hide a name while the same city carries the
+    # selection label, so it is never written twice.
     field = _LabelField()
     ranked = d.sort_values("bss")
     for _, row in pd.concat([ranked.tail(2), ranked.head(2)]).iterrows():
         cx, cy = fx(row.base_rate), fy(row.bss)
         if field.try_place(cx + r + 3, cy + 4, str(row.city)):
-            p.append(f'<text class="chart-point-label" x="{_n(cx + r + 3)}" '
+            p.append(f'<text class="chart-point-label" '
+                     f'data-for="{slugify(row.city)}" x="{_n(cx + r + 3)}" '
                      f'y="{_n(cy + 4)}" font-size="12">{esc(row.city)}</text>')
 
     p.append('<g class="cc-top"></g></svg>')

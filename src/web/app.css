@@ -478,6 +478,12 @@ a { color: var(--accent); }
 }
 .citychart .cc { cursor: pointer; }
 .citychart .cc-dot:hover circle { fill: var(--ink); opacity: 1; }
+/* A city below the skill axis's floor: drawn on the floor, hollow, so it is
+   visibly not at that value. */
+.citychart .cc-off circle {
+  fill: none; stroke: var(--ch-dot); stroke-width: 1.6; stroke-dasharray: 2,2;
+  opacity: .9;
+}
 .citychart .cc-median {
   stroke: var(--ch-median); stroke-width: 2.8; fill: none;
   stroke-linejoin: round; stroke-linecap: round;
@@ -576,6 +582,35 @@ figure .chart-note {
 }
 .gcard-stats dd .muted { font-size: 12.5px; }
 .gcard-more { margin: 12px 0 0; font-size: 13px; }
+
+/* The "?" explainers on the card. A <details>, so it opens on tap and from the
+   keyboard and can carry a link; the pop-over floats over the card rather than
+   pushing the stats down. The visible circle is 18px, the hit area 28px. */
+.ginfo { display: inline-block; position: relative; vertical-align: 1px; margin-left: 5px; }
+.ginfo > summary {
+  list-style: none; cursor: pointer; position: relative;
+  width: 18px; height: 18px; border-radius: 50%; box-sizing: border-box;
+  border: 1px solid var(--line); color: var(--muted);
+  font-size: 11px; font-weight: 700; line-height: 16px; text-align: center;
+  text-transform: none; letter-spacing: 0;
+}
+.ginfo > summary::-webkit-details-marker { display: none; }
+.ginfo > summary::after { content: ""; position: absolute; inset: -5px; }
+.ginfo > summary:hover, .ginfo[open] > summary {
+  color: var(--ink); border-color: var(--accent);
+}
+.ginfo > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ginfo-pop {
+  position: absolute; z-index: 40; top: calc(100% + 7px); left: -10px;
+  width: min(260px, 72vw); padding: 9px 12px;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 13px; font-weight: 400; line-height: 1.5;
+  text-transform: none; letter-spacing: normal;
+}
+.ginfo-pop p { margin: 0; }
+.ginfo-pop p + p { margin-top: 6px; }
 
 /* The skill key. The ramp is a full-width bar with its two ends labelled under
    it, because the labels are phrases: set beside a fixed 130px swatch they had

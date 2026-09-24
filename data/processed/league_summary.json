@@ -5,6 +5,13 @@
         "aliases": [
           "metno_seamless"
         ],
+        "city": "Amsterdam",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
         "city": "Andorra la Vella",
         "kept": "ecmwf_ifs025"
       },
@@ -96,6 +103,13 @@
         "aliases": [
           "metno_seamless"
         ],
+        "city": "Sarajevo",
+        "kept": "ecmwf_ifs025"
+      },
+      {
+        "aliases": [
+          "metno_seamless"
+        ],
         "city": "Stockholm",
         "kept": "ecmwf_ifs025"
       },
@@ -115,18 +129,25 @@
       }
     ],
     "checked": true,
-    "n_rows_collapsed": 16
+    "n_rows_collapsed": 18
   },
   "held_fixed": {
-    "max_abs_bss_diff": 0.07770628773972021,
-    "n_cities_checked": 16,
-    "n_published_equals_pinned": 10,
-    "spearman_published_vs_pinned": 0.976470588235294,
+    "max_abs_bss_diff": 0.20359960534129318,
+    "n_cities_checked": 18,
+    "n_published_equals_pinned": 11,
+    "spearman_published_vs_pinned": 0.9834881320949431,
     "verdict": "individual values shift under pinning but the city ordering survives, so the published ranking measures geography, not routing"
   },
-  "n_cities_in_league": 16,
+  "n_cities_in_league": 18,
   "n_models_in_league": 5,
   "per_city_matches": [
+    {
+      "abs_diff": 0.014487094643715115,
+      "city": "Amsterdam",
+      "model": "ecmwf_ifs025",
+      "pinned_bss": 0.2868418172490451,
+      "published_bss": 0.27235472260533
+    },
     {
       "abs_diff": 0.0017973357414647895,
       "city": "Andorra la Vella",
@@ -217,6 +238,13 @@
       "model": "ecmwf_ifs025",
       "pinned_bss": -0.0700196193799707,
       "published_bss": -0.06938715035799548
+    },
+    {
+      "abs_diff": 0.20359960534129318,
+      "city": "Sarajevo",
+      "model": "icon_eu",
+      "pinned_bss": -1.2568944500617905,
+      "published_bss": -1.0532948447204973
     },
     {
       "abs_diff": 0.025050359017181778,

@@ -451,7 +451,7 @@ def check_browser(base_url: str, dist: Path, cfg: dict, r: Result) -> None:
         # that clicking the globe card's link to the full verdict - or any rail
         # link - silently reloaded Bucharest over the top of whichever city the
         # reader had selected, while the address bar still named their city.
-        page.click("#city-card a")
+        page.click("#city-card .gcard-more a")
         page.wait_for_timeout(700)
         r.add(page.locator("#h1-city").inner_text() == name,
               "an in-page link leaves the selection alone",

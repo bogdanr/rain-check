@@ -46,6 +46,7 @@ from config import (
     API_PREVIOUS_RUNS,
     ARCHIVE_END,
     BOOTSTRAP_BLOCK_DAYS,
+    ERA5_MODEL,
     FIGURES,
     GHCN_SCALE,
     N_PROB_BINS,
@@ -193,11 +194,19 @@ def fetch_pop(city: City, model: str | None = None) -> pd.DataFrame:
 
 
 def fetch_era5(city: City) -> pd.DataFrame:
-    """ERA5 daily precipitation, used only to date the station record."""
+    """ERA5 daily precipitation, used only to date the station record.
+
+    `models=era5` is pinned. The archive's default (`best_match`) serves
+    ECMWF IFS, the operational forecast model, at every location tested
+    (Bucharest, Berlin, Tokyo, New York, Lome, Bogota: 100% identical days
+    in 2024 and 2026). At the 70 cities whose forecast is also IFS it
+    returned the forecast's own totals, so the lag scan was dating each
+    gauge against the forecast it then scored.
+    """
     payload = fetch_json(API_HISTORICAL_WEATHER, {
         "latitude": round(city.latitude, 4),
         "longitude": round(city.longitude, 4),
-        "timezone": city.timezone,
+        "timezone": city.timezone, "models": ERA5_MODEL,
         "daily": ("precipitation_sum,temperature_2m_max,temperature_2m_min,"
                   "temperature_2m_mean"),
         "start_date": POP_ARCHIVE_START, "end_date": ARCHIVE_END,
@@ -556,6 +565,19 @@ def scan_benchmark(cities: dict[str, City]) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Build the per-city verification table
 # ---------------------------------------------------------------------------
+MIN_GAUGE_ERA5_RATIO = 1 / 3
+
+
+def _gauge_era5_ratio(s: pd.DataFrame, era5: pd.DataFrame) -> float | None:
+    """Gauge rain / ERA5 rain over the days both have (`s` already dated)."""
+    e = era5[["local_date", "precipitation_sum"]].dropna()
+    k = s.merge(e, on="local_date")
+    tot = float(k.precipitation_sum.sum())
+    if len(k) < 180 or tot <= 0:
+        return None
+    return round(float(k.obs_precip_mm.sum()) / tot, 3)
+
+
 def build(cities: dict[str, City],
           model: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     rows, diag = [], []
@@ -600,6 +622,21 @@ def build(cities: dict[str, City],
         d["city"] = name
         d["offset_days"] = offset
 
+        # Plausibility: a gauge that catches under a third of the reanalysis
+        # rain over the same days is not measuring the city's rain (Barranquilla:
+        # 190 mm a year where ~800 fall). Amounts only - ERA5's excess of
+        # drizzle days makes a wet-day-count test unfair to real dry gauges.
+        # The threshold was fixed before the pinned-ERA5 numbers were seen.
+        ratio = _gauge_era5_ratio(s, era5)
+        if ratio is not None and ratio < MIN_GAUGE_ERA5_RATIO:
+            diag.append({"city": name, "included": False, "n": len(d),
+                         "offset": offset, "scan_r": scan["r"],
+                         "gauge_era5_ratio": ratio,
+                         "why": f"gauge records {ratio:.0%} of the reanalysis "
+                                f"rain (< {MIN_GAUGE_ERA5_RATIO:.0%})"})
+            print(f"  {name:12s} EXCLUDED - gauge/ERA5 rain {ratio:.2f}")
+            continue
+
         gate = truth_sources.min_pairs(city.prcp_station)
         if len(d) < gate:
             diag.append({"city": name, "included": False, "n": len(d),
@@ -621,6 +658,7 @@ def build(cities: dict[str, City],
                      "offset": offset, "scan_r": scan["r"],
                      "scan_margin": scan["margin"],
                      "scan_share": scan["share"],
+                     "gauge_era5_ratio": ratio,
                      "prcp_km": city.prcp_km, "continentality_c": cont,
                      "truth": truth_sources.source_of(city.prcp_station),
                      "provisional": truth_sources.is_provisional(
@@ -1050,17 +1088,35 @@ def plot_pinned(pin: pd.DataFrame, published: pd.DataFrame) -> None:
     wide = wide.join(published.set_index("city")["bss"].rename("published"))
     wide = wide.sort_values("icon_eu")
 
+    # Same floor as the site's skill scatter: one city far below zero would
+    # otherwise stretch the axis and squash the rest against the right edge.
+    # Values below it are drawn on the edge as a left arrow with the number.
+    floor = -0.5
+    clip = lambda s: s.clip(lower=floor)
     fig, ax = plt.subplots(figsize=(8.4, 6.0))
     y = np.arange(len(wide))
-    ax.hlines(y, wide.ecmwf_ifs025, wide.icon_eu, color="#c9d1d9", lw=3,
-              zorder=1)
-    ax.scatter(wide.ecmwf_ifs025, y, s=42, color="#1f77b4", zorder=3,
-               label="ECMWF IFS, pinned")
-    ax.scatter(wide.icon_eu, y, s=42, color="#ff7f0e", zorder=3,
-               label="ICON-EU, pinned")
-    ax.scatter(wide.published, y, s=58, facecolors="none",
+    ax.hlines(y, clip(wide.ecmwf_ifs025), clip(wide.icon_eu), color="#c9d1d9",
+              lw=3, zorder=1)
+    for col, color, label in [("ecmwf_ifs025", "#1f77b4", "ECMWF IFS, pinned"),
+                              ("icon_eu", "#ff7f0e", "ICON-EU, pinned")]:
+        ok = wide[col] >= floor
+        ax.scatter(wide[col][ok], y[ok], s=42, color=color, zorder=3,
+                   label=label)
+        ax.scatter(np.full((~ok).sum(), floor), y[~ok], s=60, marker="<",
+                   color=color, zorder=3)
+    ok = wide.published >= floor
+    ax.scatter(wide.published[ok], y[ok], s=58, facecolors="none",
                edgecolors="#d62728", lw=1.4, zorder=4,
                label="as published (best_match)")
+    for yi, (c, row) in zip(y, wide.iterrows()):
+        low = [f"{n} {v:.2f}" for n, v in (("ICON", row.icon_eu),
+                                          ("ECMWF", row.ecmwf_ifs025))
+               if v < floor]
+        if low:
+            ax.annotate("\u25c0 off scale: " + ", ".join(low), (floor, yi),
+                        xytext=(10, 0), textcoords="offset points",
+                        va="center", fontsize=8, color="#555")
+    ax.set_xlim(floor - 0.03, max(0.7, wide.max().max() + 0.05))
     ax.set_yticks(y)
     ax.set_yticklabels([("Bucharest" if c == "Bucharest" else c)
                         for c in wide.index], fontsize=9)

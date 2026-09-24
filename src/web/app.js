@@ -268,6 +268,10 @@
       }
       var old = svg.querySelector('.cc-injected');
       if (old) old.parentNode.removeChild(old);
+      // A city named by Python and also selected would be written twice.
+      svg.querySelectorAll('.chart-point-label[data-for]').forEach(function (t) {
+        t.style.display = t.getAttribute('data-for') === slug ? 'none' : '';
+      });
       var g = svg.querySelector('.cc[data-city="' + slug + '"]:not(.cc-cmp)');
       if (g) {
         g.classList.add('on');
@@ -1112,10 +1116,52 @@
       });
   }
 
+  /* ---------------------------------------------------------- explainers */
+  /* The card's "?" pop-overs are plain <details>, so they open without this
+   * script. What it adds is closing them the way pop-overs are expected to
+   * close: a click anywhere else, following their link, or Escape. Delegated,
+   * because the card is replaced on every city switch. */
+  function initExplainers() {
+    function closeAll(except) {
+      $$('details.ginfo[open]').forEach(function (d) {
+        if (d !== except) d.open = false;
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var d = e.target.closest && e.target.closest('details.ginfo');
+      if (d && e.target.closest('.ginfo-pop a')) { d.open = false; return; }
+      closeAll(d);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      $$('details.ginfo[open]').forEach(function (d) {
+        var back = d.contains(document.activeElement);
+        d.open = false;
+        if (back) d.querySelector('summary').focus();
+      });
+    });
+    // Anchored to its "?", the box runs off a phone screen when the "?" sits
+    // late in its line. Shift it back on screen when it opens. `toggle` does
+    // not bubble, hence the capture listener.
+    document.addEventListener('toggle', function (e) {
+      var d = e.target;
+      if (!d.classList || !d.classList.contains('ginfo') || !d.open) return;
+      var pop = d.querySelector('.ginfo-pop');
+      pop.style.left = '';
+      var r = pop.getBoundingClientRect();
+      var over = r.right - (document.documentElement.clientWidth - 8);
+      if (over > 0) {
+        pop.style.left = (parseFloat(getComputedStyle(pop).left) -
+                          Math.min(over, r.left - 8)) + 'px';
+      }
+    }, true);
+  }
+
   /* --------------------------------------------------------------- init */
   function init() {
     initThemeControls();
     initTooltip();
+    initExplainers();
     initPalette();
     initRail();
     initGlobe();

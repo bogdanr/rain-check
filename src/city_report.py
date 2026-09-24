@@ -271,6 +271,51 @@ _TIERS = [
 ]
 
 
+# What each tier means, said as a comparison with a guess anyone could make:
+# quote the city's own rain frequency every day. That guess is exactly the
+# reference the skill score divides by (calibration.brier_decomposition), so
+# the plain sentence and the number cannot drift apart. Keyed by short label.
+_VS_GUESS = {
+    "Cannot beat climatology": "The forecast did worse than that guess.",
+    "Barely beats the average": "The forecast did only slightly better.",
+    "Moderately skilful": "The forecast did better.",
+    "Genuinely useful": "The forecast did clearly better.",
+    "Strongly skilful": "The forecast did far better.",
+}
+
+
+def _info(label: str, body: str) -> str:
+    """A small '?' that opens a short explanation.
+
+    A <details> rather than the hover tooltip (#tip): it opens on tap and from
+    the keyboard, works before and without the script, and can hold a link,
+    which a pointer-events:none hover box cannot.
+    """
+    return (f'<details class="ginfo"><summary aria-label="{esc(label)}" '
+            f'title="{esc(label)}">?</summary>'
+            f'<div class="ginfo-pop" role="note">{body}</div></details>')
+
+
+def _card_explainers(meta: dict, short: str) -> tuple[str, str]:
+    """(tier explainer, skill-score explainer) for the city card."""
+    rate = f"{meta['base_rate']:.0%}"
+    verdict = _VS_GUESS[short]
+    # When the interval spans zero the direction is not established, and the
+    # sentence must not claim it was.
+    if meta["bss_lo"] < 0 <= meta["bss_hi"]:
+        verdict += " The difference is within the margin of error."
+    gloss = '<a href="#bss">How the skill score works</a>'
+    tier = (f"<p>Compared with a simple guess: saying &ldquo;{rate} chance of "
+            f"rain&rdquo; every day, because it rains here on {rate} of "
+            f"days.</p><p>{verdict}</p><p>{gloss}</p>")
+    skill = ("<p>How much better the forecast is than that simple guess. "
+             "0 means no better, 1 means perfect, below 0 means worse. "
+             "Day-ahead rain forecasts usually score 0.3 to 0.5.</p>"
+             f"<p>{gloss}</p>")
+    return (_info("What does this label mean?", tier),
+            _info("What is the skill score?", skill))
+
+
 def _tier(bss: float) -> tuple[str, str, str]:
     """(short label, sentence fragment, tone class) for a skill score."""
     for cut, short, phrase, cls in _TIERS:
@@ -331,13 +376,16 @@ def sec_city_card(city: dict, meta: dict) -> str:
                      f'{meta["rank_hi"]:.0f}\n      <span class="muted">of '
                      f'{meta["n_cities"]}</span></dd></div>')
         badge = ""
+    tier_info, skill_info = _card_explainers(meta, short)
+    # The tier line is a <div>, not a <p>: <details> is not allowed inside a
+    # paragraph, and the parser would silently close the <p> before it.
     return f"""
 <div class="gcard">
   <p class="gcard-head"><b>{esc(meta['name'])}</b>{country}{badge}</p>
-  <p class="gcard-tier"><span class="tag {cls}">{short}</span>
-    <span class="muted">{honesty}</span></p>
+  <div class="gcard-tier"><span class="tag {cls}">{short}</span>{tier_info}
+    <span class="muted">{honesty}</span></div>
   <dl class="gcard-stats">
-    <div><dt>Skill score</dt><dd>{m['brier_skill_score']:.2f}</dd></div>
+    <div><dt>Skill score{skill_info}</dt><dd>{m['brier_skill_score']:.2f}</dd></div>
     {rank_cell}
     <div><dt>Record</dt><dd>{meta['n']} <span class="muted">days</span></dd></div>
   </dl>
@@ -524,6 +572,10 @@ def exclusions(k: dict) -> list[dict]:
          "calendar day. Their rain nevertheless lines up confidently with a "
          "different day, so either the timestamps or the record are wrong. "
          "They are left out rather than shifted."),
+        ("implausible", "The gauge misses most of the rain",
+         "Over the same days the gauge records less than a third of the rain "
+         "the ERA5 reanalysis puts at its location, so it is not measuring "
+         "the city's rain."),
         ("nodata", "No usable record at all",
          "The station, the reanalysis or the forecast archive returned "
          "nothing overlapping the evaluation window."),
@@ -534,6 +586,8 @@ def exclusions(k: dict) -> list[dict]:
             return "sparse"
         if "contradicts its own dating" in why:
             return "contradict"
+        if "of the reanalysis rain" in why:
+            return "implausible"
         if "share too little weather" in why:
             return "weak"
         if "resamples" in why or "single lag" in why:

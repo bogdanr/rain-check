@@ -21,6 +21,7 @@ from config import (
     API_PREVIOUS_RUNS,
     ARCHIVE_END,
     ARCHIVE_START,
+    ERA5_MODEL,
     LATITUDE,
     LEAD_DAYS,
     LONGITUDE,
@@ -196,6 +197,8 @@ def collect_era5() -> pd.DataFrame:
     """Task 4: ERA5 secondary ground truth, aggregated on local calendar days."""
     payload = fetch_json(API_HISTORICAL_WEATHER, {
         "latitude": LATITUDE, "longitude": LONGITUDE, "timezone": "Europe/Bucharest",
+        # Pinned: the archive's default is ECMWF IFS (see config.ERA5_MODEL).
+        "models": ERA5_MODEL,
         "daily": "precipitation_sum,temperature_2m_max,temperature_2m_min,temperature_2m_mean",
         "start_date": ARCHIVE_START, "end_date": ARCHIVE_END,
     })

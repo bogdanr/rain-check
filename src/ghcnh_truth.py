@@ -393,16 +393,45 @@ def zero_rule_on() -> bool:
     return bool(json.loads(ZERO_VALIDATION.read_text()).get("passed"))
 
 
+# A report class (one accumulation period) that files zero every time, at a
+# station whose other classes do record rain, is a placeholder and not a
+# measurement. Barranquilla's 3/6/12 h groups were 100% zero over two years
+# (4,379 reports) while its 24 h group recorded rain; mixed in, they cut the
+# city's rain to 190 mm a year and its skill score to -5.3.
+PLACEHOLDER_MIN_REPORTS = 200
+PLACEHOLDER_MAX_WET_SHARE = 0.002
+PLACEHOLDER_OTHER_WET_SHARE = 0.03
+
+
+def drop_placeholder_classes(rec: pd.DataFrame) -> tuple[pd.DataFrame, list]:
+    """`rec` without its placeholder classes, and the periods dropped."""
+    if rec.empty:
+        return rec, []
+    wet = rec.groupby("hours").mm.agg(n="size", wet=lambda s: (s > 0).mean())
+    drop = []
+    for h, r in wet.iterrows():
+        others = wet.drop(index=h)
+        if (r.n >= PLACEHOLDER_MIN_REPORTS
+                and r.wet <= PLACEHOLDER_MAX_WET_SHARE
+                and (others.wet >= PLACEHOLDER_OTHER_WET_SHARE).any()):
+            drop.append(float(h))
+    return (rec[~rec.hours.isin(drop)].reset_index(drop=True) if drop
+            else rec), drop
+
+
 def precip_records(df: pd.DataFrame, infer: bool | None = None
                    ) -> tuple[pd.DataFrame, dict]:
-    rec = parse_precip(df)
+    rec, dropped = drop_placeholder_classes(parse_precip(df))
     if infer is None:
         infer = zero_rule_on()
     if not infer:
         rec = rec.copy()
         rec["inferred"] = False
-        return rec, zero_practice(rec)
-    return infer_zeros(df, rec)
+        info = zero_practice(rec)
+    else:
+        rec, info = infer_zeros(df, rec)
+    info["placeholder_hours"] = dropped
+    return rec, info
 
 
 def parse_temp(df: pd.DataFrame) -> pd.DataFrame:
