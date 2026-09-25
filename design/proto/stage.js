@@ -7,8 +7,14 @@
  * north-west terrain light. What changes is where it runs: on the GPU, so the
  * camera can fly between states at frame rate instead of repainting on the CPU.
  *
- * Prototype scope: no limb displacement, no macro-field blur (a mip level
- * stands in for it), no clustering. Markers are an SVG layer projected with
+ * Relief at the horizon (as on main, src/web/globe.js:146-207): land is given
+ * real height near the limb with the same law - 20x at the summits, a square
+ * root below, a 100x ceiling on low ground - so mountains break the outline.
+ * On the GPU this is an honest ray march against the displaced sphere, which
+ * gives the silhouette and the parallax near the edge from one test.
+ *
+ * Prototype scope: no macro-field blur (a mip level stands in for it), no
+ * clustering. Markers are an SVG layer projected with
  * the same orthographic maths, so they stay focusable and labelled.
  */
 (function (global) {
@@ -27,6 +33,7 @@
     'uniform float uR, uLon0, uLat0, uDim, uHasTex;',
     'uniform vec3 cAbyss, cShelf, cForest, cDesert, cRock, cIce, cShore, cAtmo, cGround, cLand;',
     'uniform vec4 uLight;',                     // ambient, contrast, seaAmbient, sun
+    'uniform vec3 uDisp;',                      // per metre, per root-metre, tallest (radius fractions)
     'out vec4 o;',
     'const float PI = 3.14159265;',
     'float metres(float c){',
@@ -36,25 +43,61 @@
     '}',
     'float hAt(vec2 uv, float lod){ return metres(textureLod(uElev, uv, lod).r); }',
     'float hash(vec2 q){ return fract(sin(dot(q, vec2(12.9898, 78.233))) * 43758.5453); }',
+    // Only land is displaced; the sea stays on the sphere.
+    'float disp(float h){ h = max(h, 0.0); return min(h * uDisp.x, sqrt(h) * uDisp.y); }',
+    'vec2 uvOf(vec3 n, out float lat){',
+    '  float sl = sin(uLat0), cl = cos(uLat0);',
+    '  lat = asin(clamp(n.y * cl + n.z * sl, -1.0, 1.0));',
+    '  float lon = uLon0 + atan(n.x, n.z * cl - n.y * sl);',
+    '  return vec2(fract(lon / (2.0 * PI) + 0.5), 0.5 - lat / PI);',
+    '}',
+    // Radial gap between a point on the view ray and the terrain under it.
+    'float gapAt(vec3 p, out vec3 n){',
+    '  float r = length(p); n = p / r; float la;',
+    '  return r - 1.0 - disp(hAt(uvOf(n, la), 0.0));',
+    '}',
     'void main(){',
     '  vec2 q = (gl_FragCoord.xy - uCtr) / uR;',
-    '  float rho2 = dot(q, q);',
-    '  if (rho2 > 1.0){',
-    '    float rho = sqrt(rho2);',
-    '    float halo = exp(-(rho - 1.0) * 16.0) * 0.55 + exp(-(rho - 1.0) * 4.0) * 0.12;',
-    '    vec2 sp = floor(gl_FragCoord.xy / 2.0);',
-    '    float star = step(0.9975, hash(sp)) * hash(sp + 7.0) * 0.55;',
-    '    vec3 col = cGround + cAtmo * halo * (1.0 - uDim * 0.5) + vec3(star);',
-    '    o = vec4(col, 1.0); return;',
+    '  float rho2 = dot(q, q), rho = sqrt(rho2);',
+    // Space: stars and a thin atmosphere hugging the limb.
+    '  float a = max(rho - 1.0, 0.0);',
+    '  float halo = exp(-a * 70.0) * 0.28 + exp(-a * 14.0) * 0.045;',
+    '  vec2 sp = floor(gl_FragCoord.xy / 2.0);',
+    '  float star = step(0.9975, hash(sp)) * hash(sp + 7.0) * 0.55 * step(1.0, rho);',
+    '  vec3 bg = cGround + cAtmo * halo * (1.0 - uDim * 0.5) + vec3(star);',
+    '  float top = uHasTex > 0.5 ? uDisp.z : 0.0, RM = 1.0 + top;',
+    '  if (rho2 >= RM * RM){ o = vec4(bg, 1.0); return; }',
+    // March the view ray (orthographic, along -z) through the relief shell.
+    '  float zT = sqrt(RM * RM - rho2);',
+    '  float zB = rho2 < 1.0 ? sqrt(1.0 - rho2) : -zT;',
+    '  vec3 n = vec3(q, max(zB, 0.0)), nb;',
+    '  float cov = 0.0, best = 1e9;',
+    '  if (top <= 0.0){ cov = step(rho2, 1.0); }',
+    '  else {',
+    '    int N = rho < 0.8 ? 8 : 28;',
+    '    float zp = zT;',
+    '    for (int i = 1; i <= 28; i++){',
+    '      if (i > N) break;',
+    '      float z = mix(zT, zB, float(i) / float(N));',
+    '      float g = gapAt(vec3(q, z), nb);',
+    '      if (g <= 1e-5){',
+    '        float lo = zp, hi = z;',
+    '        for (int j = 0; j < 5; j++){',
+    '          float m = 0.5 * (lo + hi);',
+    '          if (gapAt(vec3(q, m), nb) <= 1e-5) hi = m; else lo = m;',
+    '        }',
+    '        gapAt(vec3(q, hi), n); cov = 1.0; break;',
+    '      }',
+    '      if (g < best){ best = g; n = nb; }',
+    '      zp = z;',
+    '    }',
+    // A near miss is partial coverage: antialiasing for the silhouette.
+    '    if (cov < 1.0) cov = 1.0 - smoothstep(0.0, 1.2 / uR, best);',
     '  }',
-    '  float z = sqrt(1.0 - rho2);',
-    '  vec3 v = vec3(q, z);',
-    '  float sl = sin(uLat0), cl = cos(uLat0);',
-    '  float lat = asin(clamp(v.y * cl + v.z * sl, -1.0, 1.0));',
-    '  float lon = uLon0 + atan(v.x, v.z * cl - v.y * sl);',
-    '  vec2 uv = vec2(fract(lon / (2.0 * PI) + 0.5), 0.5 - lat / PI);',
+    '  if (cov <= 0.0){ o = vec4(bg, 1.0); return; }',
+    '  float lat; vec2 uv = uvOf(n, lat);',
     '  vec3 col;',
-    '  float sph = max(dot(v, normalize(vec3(-0.42, 0.46, 0.78))), 0.0);',
+    '  float sph = max(dot(n, normalize(vec3(-0.42, 0.46, 0.78))), 0.0);',
     '  float sunBase = 1.0 - uLight.w * 0.72;',
     '  if (uHasTex < 0.5){',
     '    col = mix(cAbyss, cShelf, 0.35) * (0.55 + 0.45 * sph);',
@@ -93,14 +136,13 @@
     '      col = mix(col, cIce, step(0.02, bio.g) * bio.g);',
     '      col *= (uLight.z + 0.25 * (hill - 1.0)) * (sunBase + uLight.w * sph * 0.7);',
     '      vec3 hv = normalize(normalize(vec3(-0.42, 0.46, 0.78)) + vec3(0.0, 0.0, 1.0));',
-    '      col += pow(max(dot(v, hv), 0.0), 32.0) * 0.35;',
+    '      col += pow(max(dot(n, hv), 0.0), 32.0) * 0.35;',
     '      col += cShore * pow(bio.b, 14.0) * 0.45;',
     '    }',
     '  }',
-    '  col += cAtmo * pow(1.0 - z, 3.0) * 0.55;',             // the atmosphere at the limb
+    '  col += cAtmo * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0) * 0.22;',  // thin limb haze
     '  col = mix(col, cGround, uDim);',                       // stage dims behind reading
-    '  float edge = smoothstep(1.0, 0.994, sqrt(rho2));',
-    '  o = vec4(mix(cGround + cAtmo * 0.5, col, edge), 1.0);',
+    '  o = vec4(mix(bg, col, cov), 1.0);',
     '}'
   ].join('\n');
 
@@ -134,9 +176,12 @@
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     this.u = {};
     var self = this;
-    ['uElev', 'uBio', 'uRes', 'uCtr', 'uTex', 'uR', 'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight',
+    ['uElev', 'uBio', 'uRes', 'uCtr', 'uTex', 'uR', 'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp',
      'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand']
       .forEach(function (n) { self.u[n] = gl.getUniformLocation(self.prog, n); });
+    // The main globe's displacement law (src/web/globe.js:193-207).
+    var RE = 6371000, TOP_M = 8500;
+    gl.uniform3f(this.u.uDisp, 100 / RE, 20 * Math.sqrt(TOP_M) / RE, 20 * TOP_M / RE);
     this.hasTex = 0;
     this._loadTextures();
     this.readTheme();

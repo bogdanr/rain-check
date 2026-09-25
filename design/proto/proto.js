@@ -7,10 +7,6 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var root = document.documentElement;
-  var qs = new URLSearchParams(location.search);
-  if (qs.get('ground')) root.dataset.ground = qs.get('ground');
-  if (qs.get('accent')) root.dataset.accent = qs.get('accent');
 
   function pct(v, d) { return (v * 100).toFixed(d || 0) + '%'; }
   function minus(s) { return String(s).replace('-', '\u2212'); }

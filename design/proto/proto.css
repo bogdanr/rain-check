@@ -33,11 +33,6 @@
   --r: 18px;
   color-scheme: dark;
 }
-/* Review variants: ?ground=navy, ?accent=amber */
-:root[data-ground="navy"] { --ground: #060d1c; --glass: rgba(14, 24, 44, .58); --r-abyss: #06142a; }
-:root[data-accent="amber"] { --accent: #ffb547; --accent-rgb: 255, 181, 71; --accent-ink: #1d1100;
-  --r-shore: rgba(255, 190, 110, .35); }
-
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

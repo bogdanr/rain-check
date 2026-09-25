@@ -86,7 +86,7 @@ def shoot_proto() -> None:
     out = proto / "shots"
     out.mkdir(parents=True, exist_ok=True)
     url, httpd = serve(proto)
-    variants = ["", "?ground=navy", "?accent=amber"]
+    variants = [""]          # black ground + cyan accent chosen 2026-09-25
     with sync_playwright() as pw:
         browser = pw.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader",
                                            "--enable-unsafe-swiftshader"])
