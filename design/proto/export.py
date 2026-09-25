@@ -131,11 +131,11 @@ def coverage() -> dict:
 
 
 def tiers() -> list[list]:
-    """The site's skill tiers (upper bound, label, tone) from their one home."""
+    """The site's skill tiers (upper bound, label, tone, plain phrase) from their one home."""
     sys.path.insert(0, str(ROOT / "src"))
     from city_report import _TIERS
-    return [[None if hi == float("inf") else hi, label, tone]
-            for hi, label, _frag, tone in _TIERS]
+    return [[None if hi == float("inf") else hi, label, tone, frag]
+            for hi, label, frag, tone in _TIERS]
 
 
 STAR_MAG_LIMIT = 7.5     # past the naked-eye limit, so the Milky Way shows by density
@@ -143,14 +143,22 @@ STAR_MAG_LIMIT = 7.5     # past the naked-eye limit, so the Milky Way shows by d
 
 def _bv_rgb(bv: np.ndarray) -> np.ndarray:
     """B-V colour index -> sRGB, via Ballesteros' temperature and a blackbody
-    fit, then pulled 55% toward white: real star colour is a tint, not paint."""
+    fit. The true colours are subtle pastels that read as white on a screen,
+    so they are exaggerated on purpose: normalised to full brightness, then
+    saturation raised 2.8x around their luminance. The order of colours (blue
+    O/B stars to red M giants) stays the real one; only the strength is art."""
     bv = np.clip(np.nan_to_num(bv, nan=0.6), -0.4, 2.0)
     t = 4600 * (1 / (0.92 * bv + 1.7) + 1 / (0.92 * bv + 0.62)) / 100
     r = np.where(t <= 66, 255, 329.7 * (t - 60).clip(1e-6) ** -0.1332)
     g = np.where(t <= 66, 99.47 * np.log(t) - 161.1, 288.1 * (t - 60).clip(1e-6) ** -0.0755)
     b = np.where(t >= 66, 255, np.where(t <= 19, 0, 138.5 * np.log((t - 10).clip(1e-6)) - 305.0))
-    rgb = np.stack([r, g, b], 1).clip(0, 255)
-    return rgb + (255 - rgb) * 0.55
+    rgb = np.stack([r, g, b], 1).clip(1, 255)
+    rgb = rgb / rgb.max(1, keepdims=True) * 255
+    lum = (rgb @ np.array([0.2126, 0.7152, 0.0722]))[:, None]
+    return (lum + (rgb - lum) * STAR_SATURATION).clip(0, 255)
+
+
+STAR_SATURATION = 2.8
 
 
 def stars(as_of: str) -> int:

@@ -43,14 +43,17 @@
     <div class="score">
       <div class="score-num">
         <span class="huge tnum" data-count="bss" data-fmt="2"></span>
-        <span class="score-lab">skill score<br><span class="dim">0 = the usual, 1 = perfect</span></span>
+        <span class="score-lab">
+          <span class="grade" id="grade"><i></i><b data-k="grade"></b><span data-k="tier"></span></span>
+          <span class="grade-say" data-k="say"></span>
+          <span class="dim">skill score · 0 = the usual rain chance, 1 = perfect</span></span>
       </div>
       <div class="scale" role="img" aria-labelledby="scale-cap">
         <div class="scale-track" id="scale-track">
           <span class="scale-ci"></span>
           <span class="scale-pt"></span>
         </div>
-        <p class="scale-cap mono" id="scale-cap"><span class="scale-tier" data-k="tier"></span>95% range <b data-k="ci"></b></p>
+        <p class="scale-cap mono" id="scale-cap">95% range <b data-k="ci"></b></p>
       </div>
     </div>
 

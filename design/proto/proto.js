@@ -76,7 +76,8 @@
     S.h = h; S.tier = tier;
     var K = {
       name: h.name, country: h.country, n_cities: h.n_cities, lead: h.lead,
-      ci: h.bss_lo == null ? 'not available' : h.bss_lo.toFixed(2) + ' \u2013 ' + h.bss_hi.toFixed(2), tier: tier[1],
+      ci: h.bss_lo == null ? 'not available' : minus(h.bss_lo.toFixed(2)) + ' \u2013 ' + minus(h.bss_hi.toFixed(2)), tier: tier[1],
+      grade: GRADE[D.tiers.indexOf(tier)], say: SAY[D.tiers.indexOf(tier)],
       rank: h.rank, rank_range: h.rank_lo + '\u2013' + h.rank_hi,
       n: h.n.toLocaleString('en') + ' days', base_pct: pct(h.base_rate),
       station: title(h.station), station_km: h.station_km == null ? '\u2014' : h.station_km,
@@ -88,6 +89,10 @@
     big._to = h.bss; big._fmt = 2; big._suf = '';
     if (first || reduce) big.textContent = (first && !reduce ? 0 : h.bss).toFixed(2); else count(big);
     big.classList.toggle('neg', h.bss < 0);
+    // The whole card takes the colour of its grade (t0 = fails ... t4 = excellent).
+    var ti = D.tiers.indexOf(tier), card = $('.hero-card');
+    card.className = card.className.replace(/\bt\d\b/g, '').trim() + ' t' + ti;
+    $('#grade').setAttribute('aria-label', 'Grade: ' + GRADE[ti] + ', ' + tier[1]);
 
     scale(D.tiers, h, tier);
     promise(h);
@@ -98,27 +103,42 @@
     if (stage) stage.setCity(h, first);
   }
 
+  // One plain word per site tier, worst to best: the site's labels stay as
+  // the precise wording beside it.
+  var GRADE = ['Fails', 'Poor', 'Fair', 'Good', 'Excellent'];
+  // What each grade means for someone reading the forecast. "The usual" is
+  // the city's own long-run rain rate, the yardstick the skill score uses.
+  var SAY = [
+    'Worse than just quoting the usual chance of rain. Don\u2019t rely on it.',
+    'Only slightly better than quoting the usual chance of rain.',
+    'Clearly better than the usual chance of rain, but often off.',
+    'Reliable enough to plan around on most days.',
+    'Reliable. One of the strongest forecasts in this audit.'
+  ];
+
   function tierOf(T, v) {
     for (var i = 0; i < T.length; i++) if (T[i][0] === null || v < T[i][0]) return T[i];
     return T[T.length - 1];
   }
 
-  /* ── Skill scale: the site's own tiers, 0 to 0.7 ─ */
+  /* ── Skill scale: the site's own tiers, from below 0 up to 0.7 ─ */
   function scale(T, h, cur) {
-    var max = 0.7, track = $('#scale-track'), lo = 0;
-    function x(v) { return Math.max(0, Math.min(1, v / max)) * 100; }
+    // The "fails" band gets its own stretch left of 0, so a negative score
+    // lands visibly in the red instead of being pinned to the edge.
+    var min = -0.2, max = 0.7, track = $('#scale-track'), lo = min;
+    function x(v) { return Math.max(0, Math.min(1, (v - min) / (max - min))) * 100; }
     $$('.scale-band', track).forEach(function (b) { b.remove(); });
-    T.forEach(function (t) {
+    T.forEach(function (t, i) {
       var hi = t[0] === null ? max : t[0];
-      if (hi <= 0) return;                       // "cannot beat climatology" lies left of 0
       var b = document.createElement('span');
-      b.className = 'scale-band' + (t === cur ? ' cur' : '');
+      b.className = 'scale-band t' + i + (t === cur ? ' cur' : '');
       b.style.left = x(lo) + '%'; b.style.width = 'calc(' + (x(hi) - x(lo)) + '% - 2px)';
-      b.title = t[1];
-      var em = document.createElement('em'); em.textContent = String(+lo.toFixed(2));
-      b.appendChild(em); track.insertBefore(b, track.firstChild); lo = hi;
+      b.title = GRADE[i] + ' \u00b7 ' + t[1];
+      var em = document.createElement('em'); em.textContent = i === 0 ? 'below 0' : String(+lo.toFixed(2));
+      var g = document.createElement('strong'); g.textContent = GRADE[i];
+      b.appendChild(em); b.appendChild(g); track.insertBefore(b, track.firstChild); lo = hi;
     });
-    track.style.height = '42px';
+    track.style.height = '52px';
     var hasCi = h.bss_lo != null;
     setTimeout(function () {
       track.style.setProperty('--ci-lo', x(hasCi ? h.bss_lo : h.bss) + '%');
@@ -257,7 +277,7 @@
     function body(k) {
       var h = S.h;
       if (k === 'rank') return '<b>Rank ' + h.rank + ' of ' + h.n_cities + '.</b> Allowing for the uncertainty in every city\u2019s score, it could sit anywhere from ' + h.rank_lo + ' to ' + h.rank_hi + '.';
-      return '<b>Brier skill score ' + h.bss.toFixed(3) + '</b> \u00b7 ' + esc(S.tier[1]) +
+      return '<b>Brier skill score ' + minus(h.bss.toFixed(3)) + '</b> \u00b7 ' + GRADE[D.tiers.indexOf(S.tier)] + ', ' + esc(S.tier[1]) +
         '<dl><dt>range</dt><dd>' + (h.bss_lo == null ? 'not available' : h.bss_lo.toFixed(3) + ' \u2013 ' + h.bss_hi.toFixed(3) + ' (95%)') + '</dd>' +
         '<dt>days</dt><dd>' + h.n + '</dd><dt>vs</dt><dd>the city\u2019s own rain rate (' + pct(h.base_rate, 1) + ')</dd>' +
         '<dt>event</dt><dd>' + esc(D.event) + '</dd><dt>source</dt><dd>data/cities/' + esc(h.slug) + '.json</dd></dl>';
@@ -282,7 +302,7 @@
     var c = bySlug[m.slug], t = tierOf(D.tiers, c[5]);
     tip.dataset.globe = 1;
     tip.innerHTML = '<b>' + esc(c[1]) + '</b> <span class="dim mono">' + esc(c[2]) + '</span><br>' +
-      '<span class="mono">skill ' + minus(c[5].toFixed(2)) + '</span> \u00b7 ' + esc(t[1]) +
+      '<span class="mono">skill ' + minus(c[5].toFixed(2)) + '</span> \u00b7 <b class="tc t' + D.tiers.indexOf(t) + '">' + GRADE[D.tiers.indexOf(t)] + '</b> ' + esc(t[1]) +
       '<br><span class="dim">click to open this city</span>';
     tip.hidden = false;
     tip.style.left = Math.min(innerWidth - tip.offsetWidth - 8, x + 16) + 'px';
@@ -292,7 +312,6 @@
   /* ── City palette: search, arrows, enter; opened by the pill or "/" ── */
   function palette() {
     var dlg = $('#palette'), q = $('#pal-q'), list = $('#pal-list'), items = [], act = 0;
-    var tone = { bad: 'q0', ok: 'q1', good: 'q2' };
     var all = D.cities.slice().sort(function (a, b) { return a[1].localeCompare(b[1]); });
     function fold(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
     function draw() {
@@ -303,9 +322,9 @@
       if (!items.length) { var li = document.createElement('li'); li.className = 'pal-empty'; li.textContent = 'No city matches \u201c' + q.value + '\u201d'; list.appendChild(li); return; }
       items.forEach(function (c, i) {
         var li = document.createElement('li'), t = tierOf(D.tiers, c[5]);
-        li.id = 'pal-' + i; li.setAttribute('role', 'option'); li.className = tone[t[2]] + (S.h && c[0] === S.h.slug ? ' here' : '');
+        li.id = 'pal-' + i; li.setAttribute('role', 'option'); li.className = 't' + D.tiers.indexOf(t) + (S.h && c[0] === S.h.slug ? ' here' : '');
         li.innerHTML = '<span class="pal-cc mono">' + esc(c[2]) + '</span><span class="pal-name">' + esc(c[1]) + '</span>' +
-          '<span class="pal-tier">' + esc(t[1]) + '</span><span class="pal-bss mono">' + minus(c[5].toFixed(2)) + '</span>';
+          '<span class="pal-tier">' + GRADE[D.tiers.indexOf(t)] + ' \u00b7 ' + esc(t[1]) + '</span><span class="pal-bss mono">' + minus(c[5].toFixed(2)) + '</span>';
         li.addEventListener('click', function () { pick(i); });
         li.addEventListener('pointermove', function () { if (act !== i) mark(i); });
         list.appendChild(li);
@@ -346,7 +365,6 @@
       onHover: globeTip
     });
     if (st.failed) { document.body.classList.add('nogl'); return null; }
-    var tone = { bad: 'q0', ok: 'q1', good: 'q2' };
     var countries = C.countries.map(function (c) {
       var cls = c[4] > 0 ? 'ok' : c[5] === 'no gauge nearby' ? 'none' : 'broken';
       return { lon: c[2], lat: c[1], r: Math.min(22, 2.5 + Math.sqrt(c[3] / 1e6) * 1.1), cls: cls, title: c[0] + ' \u00b7 ' + (cls === 'ok' ? 'can be checked' : c[5]) };
@@ -372,7 +390,7 @@
     // shot for the current chapter is recomputed from the new coordinates).
     st.setCity = function (h, first) {
       st.cityMarks = D.cities.filter(function (c) { return c[0] !== h.slug; }).map(function (c) {
-        return { slug: c[0], lon: c[4], lat: c[3], r: 2.8, cls: 'city ' + tone[tierOf(D.tiers, c[5])[2]] };
+        return { slug: c[0], lon: c[4], lat: c[3], r: 2.8, cls: 'city t' + D.tiers.indexOf(tierOf(D.tiers, c[5])) };
       }).concat([{ lon: h.lon, lat: h.lat, r: 6, cls: 'here', pulse: true, label: h.name }]);
       st.go(first ? 'city' : st.current || 'city', !!first);
     };

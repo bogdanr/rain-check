@@ -20,6 +20,10 @@
   /* Signal */
   --accent: #5cc8ff; --accent-rgb: 92, 200, 255; --accent-ink: #03121e;
   --good: #3fdc93; --warn: #f5bd4f; --bad: #ff6f61;
+  /* Skill grades, worst to best (the site's five tiers): red, orange,
+     amber, green, cyan. One ramp used by the card, scale, globe dots,
+     palette and tooltips, so a colour always means the same grade. */
+  --t0: 255, 77, 94; --t1: 255, 138, 76; --t2: 245, 200, 79; --t3: 86, 224, 150; --t4: 92, 200, 255;
   /* Relief (same names the site globe reads) */
   --r-abyss: #030c17; --r-shelf: #0f4a70;
   --r-forest: #2c6339; --r-desert: #9c845a; --r-rock: #695e50; --r-ice: #e6eef8;
@@ -65,7 +69,9 @@ body {
 
 .mk circle { fill: var(--accent); stroke: none; }
 .mk.city circle { fill: rgba(var(--accent-rgb), .55); }
-.mk.q0 circle { fill: var(--bad); } .mk.q1 circle { fill: var(--warn); } .mk.q2 circle { fill: rgba(var(--accent-rgb), .75); }
+.t0 { --tc: var(--t0); } .t1 { --tc: var(--t1); } .t2 { --tc: var(--t2); } .t3 { --tc: var(--t3); } .t4 { --tc: var(--t4); }
+.mk.city circle { fill: rgba(var(--tc), .85); }
+.tc { color: rgb(var(--tc)); }
 .mk.here circle { fill: #fff; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), .9)); }
 .mk.here .pulse { fill: none; stroke: var(--accent); stroke-width: 1.5; transform-origin: 0 0;
   animation: pulse 2.4s var(--ease) infinite; }
@@ -131,7 +137,28 @@ main { position: relative; z-index: 2; pointer-events: none; }
 h1, h2 { margin: 0; color: var(--ink-strong); letter-spacing: -.025em; font-weight: 650; text-wrap: balance; }
 h1 { font-size: clamp(30px, 3.6vw, 46px); line-height: 1.08; }
 h2 { font-size: clamp(26px, 2.8vw, 36px); line-height: 1.12; }
-.hl { background: linear-gradient(90deg, #fff, rgba(var(--accent-rgb), 1)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hl { background: linear-gradient(90deg, #fff, rgb(var(--tc, var(--accent-rgb)))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* The verdict card wears its grade: city name, big number, grade pill,
+   scale and card edge all take the tier colour. Poor and failing cities
+   also get a warm wash and a stronger edge, so a bad forecast cannot be
+   mistaken for a good one at a glance. */
+:where(.hero-card) { --tc: var(--accent-rgb); }   /* zero specificity: the .tN grade wins */
+.hero-card::before { background: linear-gradient(135deg, rgba(var(--tc), .6), transparent 35%, transparent 70%, rgba(var(--tc), .22)); }
+.hero-card.t0, .hero-card.t1 {
+  background: linear-gradient(160deg, rgba(var(--tc), .13), transparent 45%), var(--glass);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(var(--tc), .35), 0 0 60px -10px rgba(var(--tc), .35); }
+.hero-card .kicker { color: rgb(var(--tc)); }
+.hero-card .huge { color: #fff; text-shadow: 0 0 40px rgba(var(--tc), .55); }
+.hero-card.t0 .huge, .hero-card.t1 .huge { color: rgb(var(--tc)); }
+.hero-card .badge { color: rgb(var(--tc)); border-color: rgba(var(--tc), .4); }
+.grade { display: inline-flex; align-items: center; gap: 8px; width: max-content; margin-bottom: 6px;
+  padding: 4px 11px 4px 9px; border-radius: 99px; font: 500 12.5px var(--sans);
+  color: var(--ink-strong); background: rgba(var(--tc), .16); box-shadow: inset 0 0 0 1px rgba(var(--tc), .55); }
+.grade i { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--tc)); box-shadow: 0 0 10px rgb(var(--tc)); }
+.grade b { font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: rgb(var(--tc)); }
+.grade-say { display: block; color: var(--ink); font: 400 13px/1.4 var(--sans); margin-bottom: 4px; }
+.grade-say::first-letter { text-transform: uppercase; }
 .answer { font-size: 18px; line-height: 1.5; color: var(--ink); margin: 16px 0 22px; text-wrap: pretty; }
 .lede { color: var(--muted); margin: 14px 0 20px; text-wrap: pretty; }
 code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding: 1px 6px; border-radius: 5px; }
@@ -146,16 +173,23 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .score-num { display: flex; align-items: flex-end; gap: 16px; }
 .huge { font: 600 clamp(64px, 7vw, 92px)/.9 var(--sans); letter-spacing: -.04em; color: var(--ink-strong);
   text-shadow: 0 0 40px rgba(var(--accent-rgb), .35); }
-.score-lab { font: 500 13px/1.35 var(--mono); color: var(--ink); padding-bottom: 6px; }
+.score-lab { display: flex; flex-direction: column; font: 400 11.5px/1.35 var(--mono); padding-bottom: 6px; }
 .scale-track { position: relative; height: 34px; }
-.scale-band { position: absolute; top: 12px; height: 8px; background: rgba(255, 255, 255, .07); border-radius: 3px; }
-.scale-band.cur { background: rgba(var(--accent-rgb), .2); }
-.scale-band em { position: absolute; top: 14px; left: -1px; font: 400 10.5px var(--mono); color: var(--faint); font-style: normal; }
-.scale-tier { color: var(--accent); font-weight: 700; margin-right: 8px; }
-.scale-ci { position: absolute; top: 9px; height: 14px; border-radius: 7px; background: rgba(var(--accent-rgb), .35);
-  box-shadow: 0 0 18px rgba(var(--accent-rgb), .5); left: var(--ci-lo, 0); width: var(--ci-w, 0);
+/* Each band fades from the previous grade's colour into its own, so the
+   bar reads as one red-to-cyan ramp; the city's own band is lit up. */
+.scale-band { position: absolute; top: 22px; height: 8px; border-radius: 3px; opacity: .38;
+  background: linear-gradient(90deg, rgba(var(--from), 1), rgba(var(--tc), 1)); transition: opacity .4s; }
+.scale-band.t0 { --from: var(--t0); } .scale-band.t1 { --from: var(--t0); } .scale-band.t2 { --from: var(--t1); }
+.scale-band.t3 { --from: var(--t2); } .scale-band.t4 { --from: var(--t3); }
+.scale-band.cur { opacity: 1; box-shadow: 0 0 14px rgba(var(--tc), .6); }
+.scale-band em { position: absolute; top: 14px; left: -1px; font: 400 10.5px var(--mono); color: var(--faint); font-style: normal; white-space: nowrap; }
+.scale-band strong { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font: 600 9.5px var(--mono);
+  letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--tc)); opacity: .7; white-space: nowrap; }
+.scale-band.cur strong { opacity: 1; }
+.scale-ci { position: absolute; top: 19px; height: 14px; border-radius: 7px; background: rgba(255, 255, 255, .22);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 0 18px rgba(var(--tc), .5); left: var(--ci-lo, 0); width: var(--ci-w, 0);
   transition: left 1s var(--ease), width 1s var(--ease); }
-.scale-pt { position: absolute; top: 6px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff;
+.scale-pt { position: absolute; top: 16px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff;
   box-shadow: 0 0 12px #fff; left: var(--pt, 0); transition: left 1s var(--ease); }
 .scale-cap { margin: 10px 0 0; font-size: 11.5px; color: var(--muted); }
 .scale-cap b { color: var(--ink); font-weight: 400; }
@@ -293,7 +327,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 .pal-name { color: var(--ink-strong); font-weight: 500; }
 .pal-tier { font-size: 12px; color: var(--muted); }
 .pal-bss { text-align: right; font-size: 13px; }
-#pal-list li.q2 .pal-bss { color: var(--accent); } #pal-list li.q1 .pal-bss { color: var(--warn); } #pal-list li.q0 .pal-bss { color: var(--bad); }
+#pal-list .pal-bss { color: rgb(var(--tc)); }
 #pal-list .pal-empty { display: block; cursor: default; color: var(--muted); }
 .pal-foot { display: flex; gap: 18px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--edge); font-size: 11px; color: var(--faint); }
 
