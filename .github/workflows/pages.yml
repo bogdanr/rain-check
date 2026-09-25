@@ -83,8 +83,13 @@ jobs:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
+          # Pages reports http:// for a custom domain inherited from the user
+          # site, though it serves a valid certificate. Canonical URLs must be
+          # the https ones search engines index, so the scheme is forced.
+          origin="${BASE_URL%"$BASE_PATH"}"
+          origin="https://${origin#*://}"
           cd src
-          python atlas.py --base "${BASE_PATH}/" --origin "${BASE_URL%"$BASE_PATH"}"
+          python atlas.py --base "${BASE_PATH}/" --origin "$origin"
 
       - name: Verify in a browser at the published base path
         env:
