@@ -194,39 +194,47 @@
       g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
     g.globalCompositeOperation = 'lighter';
-    for (i = 0; i < 34; i++) {
-      var t = rnd(), p = band(t), k = rnd();
-      blob(p[0] + (rnd() - .5) * D * .06, p[1] + (rnd() - .5) * D * .06, (0.08 + rnd() * 0.16) * D,
-           k < 0.62 ? '80,130,255' : k < 0.85 ? '150,100,255' : '255,160,110', (0.012 + rnd() * 0.02).toFixed(3));
+    // Milky Way glow: many soft overlapping clouds along the spine, a bright
+    // core near the middle, blue-white with violet and a warm core tint.
+    for (i = 0; i < 70; i++) {
+      var t = rnd(), p = band(t), k = rnd(), core = Math.exp(-Math.pow((t - 0.55) / 0.22, 2));
+      blob(p[0] + (rnd() - .5) * D * .08, p[1] + (rnd() - .5) * D * .08, (0.05 + rnd() * 0.13) * D,
+           k < 0.55 ? '90,140,255' : k < 0.82 ? '160,110,255' : '255,180,130',
+           (0.022 + rnd() * 0.03 + core * 0.035).toFixed(3));
     }
-    // Dust lane: carve a darker streak just off the band's spine.
+    // Two faint nebulae well away from the band, for colour.
+    blob(W * 0.12, H * 0.2, D * 0.2, '40,190,255', 0.05); blob(W * 0.16, H * 0.24, D * 0.1, '120,90,255', 0.05);
+    blob(W * 0.9, H * 0.82, D * 0.18, '255,80,160', 0.035); blob(W * 0.86, H * 0.78, D * 0.08, '255,140,120', 0.04);
+    // Dust lane: carve a darker, broken streak just off the band's spine.
     g.globalCompositeOperation = 'destination-out';
-    for (i = 0; i < 40; i++) {
+    for (i = 0; i < 60; i++) {
       var tt = rnd(), q = band(tt);
-      blob(q[0] + D * 0.012, q[1] + D * 0.018, (0.02 + rnd() * 0.04) * D, '0,0,0', (0.25 + rnd() * 0.3).toFixed(2));
+      blob(q[0] + D * 0.01, q[1] + D * 0.016, (0.012 + rnd() * 0.035) * D, '0,0,0', (0.3 + rnd() * 0.35).toFixed(2));
     }
     g.globalCompositeOperation = 'lighter';
     function star(x, y, m) {
-      var c = starColour(rnd), r = 0.3 + m * m * 1.5, al = 0.18 + m * 0.8;
-      if (m > 0.8) blob(x, y, r * 5, c.join(','), (al * 0.22).toFixed(3));
+      // m in 0..1 is brightness. Even the faintest star is a visible dot
+      // (0.55 px radius, 35% alpha); the brightest carry a halo and spikes.
+      var c = starColour(rnd), r = 0.55 + m * m * 1.9, al = Math.min(1, 0.35 + m * 0.75);
+      if (m > 0.6) blob(x, y, r * 6, c.join(','), (al * 0.28).toFixed(3));
       g.fillStyle = 'rgba(' + c.join(',') + ',' + al.toFixed(3) + ')';
       g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
-      if (m > 0.955) {                          // the brightest few get faint spikes
-        var L = r * 9;
+      if (m > 0.9) {                            // the brightest few get diffraction spikes
+        var L = r * 11;
         [[1, 0], [0, 1]].forEach(function (d) {
           var gr = g.createLinearGradient(x - d[0] * L, y - d[1] * L, x + d[0] * L, y + d[1] * L);
-          gr.addColorStop(0, 'rgba(' + c + ',0)'); gr.addColorStop(.5, 'rgba(' + c + ',' + (al * .5).toFixed(2) + ')');
+          gr.addColorStop(0, 'rgba(' + c + ',0)'); gr.addColorStop(.5, 'rgba(' + c + ',' + (al * .7).toFixed(2) + ')');
           gr.addColorStop(1, 'rgba(' + c + ',0)');
-          g.strokeStyle = gr; g.lineWidth = 0.7; g.beginPath();
+          g.strokeStyle = gr; g.lineWidth = 0.9; g.beginPath();
           g.moveTo(x - d[0] * L, y - d[1] * L); g.lineTo(x + d[0] * L, y + d[1] * L); g.stroke();
         });
       }
     }
-    var nField = Math.round(W * H / 1100), nBand = Math.round(W * H / 700);
-    for (i = 0; i < nField; i++) star(rnd() * W, rnd() * H, Math.pow(rnd(), 3.2));
-    for (i = 0; i < nBand; i++) {                // band stars: dense, faint, gaussian across the spine
-      var b = band(rnd()), gs = (rnd() + rnd() + rnd() - 1.5) * D * 0.06;
-      star(b[0] + gs * 0.45, b[1] + gs, Math.pow(rnd(), 4.5) * 0.8);
+    var nField = Math.round(W * H / 1500), nBand = Math.round(W * H / 450);
+    for (i = 0; i < nField; i++) star(rnd() * W, rnd() * H, Math.pow(rnd(), 2.6));
+    for (i = 0; i < nBand; i++) {                // band stars: dense, gaussian across the spine
+      var b = band(rnd()), gs = (rnd() + rnd() + rnd() - 1.5) * D * 0.055;
+      star(b[0] + gs * 0.45, b[1] + gs, Math.pow(rnd(), 3.5) * 0.85);
     }
     g.globalCompositeOperation = 'source-over';
   }
@@ -235,11 +243,11 @@
    * CSS on the compositor, so the expensive globe never redraws for them. */
   function liveSky(host) {
     var rnd = mulberry(7), i, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    for (i = 0; i < 38; i++) {
+    for (i = 0; i < 60; i++) {
       var s = document.createElement('i'), c = starColour(rnd);
       s.className = 'tw';
       s.style.cssText = 'left:' + (rnd() * 100).toFixed(2) + '%;top:' + (rnd() * 100).toFixed(2) + '%;' +
-        '--c:rgb(' + c + ');--s:' + (1.4 + rnd() * 1.8).toFixed(1) + 'px;' +
+        '--c:rgb(' + c + ');--s:' + (1.8 + rnd() * 2.2).toFixed(1) + 'px;' +
         'animation-duration:' + (2.8 + rnd() * 4.5).toFixed(2) + 's;animation-delay:-' + (rnd() * 7).toFixed(2) + 's';
       host.appendChild(s);
     }
@@ -256,7 +264,7 @@
           m.addEventListener('animationend', function () { m.remove(); });
         }
         meteor();
-      }, 7000 + Math.random() * 14000);
+      }, 5000 + Math.random() * 10000);
     })();
   }
 
@@ -356,7 +364,10 @@
     this.dirty = true;
   };
 
-  Stage.prototype.setMarkers = function (list) { this.markers = list; this.dirty = true; };
+  Stage.prototype.setMarkers = function (list) {
+    if (list !== this.markers) this._nodes = null;   // rebuild the SVG for a new set
+    this.markers = list; this.dirty = true;
+  };
 
   /* Fly to a named camera state. Reduced motion jumps. */
   Stage.prototype.fly = function (state, instant) {
@@ -371,24 +382,61 @@
     this.dirty = true;
   };
 
+  /* Drag spins the globe; a press that barely moves is a click, handed to
+   * opts.onPick with the nearest marker (if any is within reach). Hovering
+   * reports the nearest marker to opts.onHover, so the page can show it. */
   Stage.prototype._bindDrag = function () {
-    var self = this, last = null;
+    var self = this, last = null, down = null, moved = 0;
     var hit = this.opts.dragTarget;
     if (!hit) return;
     hit.addEventListener('pointerdown', function (e) {
+      down = [e.clientX, e.clientY]; moved = 0;
       if (!self._onGlobe(e.clientX, e.clientY)) return;
-      last = [e.clientX, e.clientY]; self.spin = 0; self.to = null;
-      hit.setPointerCapture(e.pointerId); hit.classList.add('grabbing');
+      last = [e.clientX, e.clientY];
+      hit.setPointerCapture(e.pointerId);
     });
     hit.addEventListener('pointermove', function (e) {
-      if (!last) return;
+      if (!last) {
+        var m = self.nearest(e.clientX, e.clientY, e.pointerType === 'touch' ? 22 : 12);
+        hit.classList.toggle('pick', !!m);
+        self.opts.onHover && self.opts.onHover(m, e.clientX, e.clientY);
+        return;
+      }
+      moved += Math.abs(e.clientX - last[0]) + Math.abs(e.clientY - last[1]);
+      if (moved < 4) return;
+      if (!hit.classList.contains('grabbing')) {
+        hit.classList.add('grabbing'); self.spin = 0; self.to = null;
+        self.opts.onHover && self.opts.onHover(null);
+      }
       var R = self._radius();
       self.cam.lon -= (e.clientX - last[0]) / R * 57.3;
       self.cam.lat = Math.max(-80, Math.min(80, self.cam.lat + (e.clientY - last[1]) / R * 57.3));
       last = [e.clientX, e.clientY]; self.dirty = true;
     });
-    function up() { last = null; hit.classList.remove('grabbing'); }
+    function up(e) {
+      var click = down && moved < 4 && e.type === 'pointerup';
+      last = null; down = null; hit.classList.remove('grabbing');
+      if (click) {
+        var m = self.nearest(e.clientX, e.clientY, e.pointerType === 'touch' ? 22 : 12);
+        if (m && self.opts.onPick) self.opts.onPick(m);
+      }
+    }
     hit.addEventListener('pointerup', up); hit.addEventListener('pointercancel', up);
+    hit.addEventListener('pointerleave', function () { hit.classList.remove('pick'); self.opts.onHover && self.opts.onHover(null); });
+  };
+
+  /* The visible, pickable marker closest to a screen point, within maxPx. */
+  Stage.prototype.nearest = function (x, y, maxPx) {
+    var best = null, bd = maxPx * maxPx;
+    for (var i = 0; i < this.markers.length; i++) {
+      var m = this.markers[i];
+      if (!m.slug) continue;
+      var p = this.project(m.lon, m.lat);
+      if (p[2] <= 0.05) continue;
+      var d = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
   };
 
   Stage.prototype._radius = function () {

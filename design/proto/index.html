@@ -19,7 +19,7 @@
 
 <header class="bar">
   <a class="brand" href="#hero"><span class="brand-dot"></span>rain<b>check</b></a>
-  <button class="citypill" type="button" aria-label="Change city">
+  <button class="citypill" type="button" aria-haspopup="dialog" aria-controls="palette" title="Change city (/)">
     <span class="cc" data-k="country"></span><span data-k="name"></span>
     <kbd>/</kbd>
   </button>
@@ -64,7 +64,6 @@
     </dl>
     <p class="event"><span class="badge">event</span> <span data-k="event"></span> · <span data-k="span"></span></p>
   </div>
-  <p class="scroll-cue mono" aria-hidden="true">scroll · the camera follows the story</p>
 </section>
 
 <!-- 2 ─ The promise -->
@@ -112,6 +111,9 @@
         <p class="umb-say" id="umb-say" aria-live="polite"></p>
       </div>
     </div>
+    <p class="umb-none" id="umb-none" hidden>The decision-value curves were not computed for
+      <b id="umb-none-name"></b>, so there is nothing honest to show here. Pick another city, or
+      scroll on.</p>
     <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 190" role="img"
          aria-label="Value of following the forecast against the cost-loss ratio"></svg>
     <p class="note mono">Relative economic value · source <code>served_world</code> in decision_value_curves ·
@@ -157,6 +159,19 @@
 </main>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
+
+<dialog id="palette" class="palette" aria-label="Choose a city">
+  <div class="pal-in">
+    <div class="pal-head">
+      <input id="pal-q" type="search" autocomplete="off" spellcheck="false"
+             role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list"
+             placeholder="Search a city or a country code">
+      <kbd>esc</kbd>
+    </div>
+    <ul id="pal-list" role="listbox" aria-label="Cities"></ul>
+    <p class="pal-foot mono"><span>&uarr;&darr; move</span><span>enter open</span><span>or click any dot on the globe</span></p>
+  </div>
+</dialog>
 <script src="stage.js"></script>
 <script src="proto.js"></script>
 </body>

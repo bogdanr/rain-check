@@ -5,11 +5,13 @@ Design-branch prototype only (plan 2026-09-24-site-redesign-atlas-noir, Task
 displays is read here from the built site payloads or the processed tables,
 never typed in, so a screenshot of it can be judged as the real page would be.
 
-Reads:   dist/data/cities-index.*.json, dist/data/cities/bucharest.*.json
+Reads:   dist/data/cities-index.*.json, dist/data/cities/<slug>.*.json
          data/processed/decision_value_curves.parquet
          data/processed/country_coverage.parquet
          data/raw/cities15000.txt            (capital coordinates only)
-Writes:  design/proto/data.json, design/proto/assets/  (git-ignored)
+Writes:  design/proto/data.json              (index, world numbers, tiers)
+         design/proto/cities/<slug>.json     (one per city, loaded on demand)
+         design/proto/assets/                (all git-ignored)
 
 Usage:   .venv/bin/python design/proto/export.py
 """
@@ -30,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROTO = ROOT / "design" / "proto"
 PROCESSED = ROOT / "data" / "processed"
 FONTS = ROOT.parent.parent / "Work" / "Specure" / "RTR" / "slides" / "node_modules"
-CITY = "bucharest"
+DEFAULT_CITY = "bucharest"
 
 
 def _one(pattern: str) -> Path:
@@ -52,19 +54,20 @@ def cities() -> list[list]:
              r[col["lat"]], r[col["lon"]], r[col["bss"]]] for r in ix["rows"]]
 
 
-def hero() -> dict:
-    p = json.loads(_one(f"dist/data/cities/{CITY}.*.json").read_text())
+def hero(slug: str) -> dict:
+    p = json.loads(_one(f"dist/data/cities/{slug}.*.json").read_text())
     # The verdict sentence and the record span are the site's own words, taken
     # from the rendered answer so the prototype cannot restate them differently.
     ans = p["html"]["answer"]
     lead = re.sub(r"<[^>]+>", "", re.search(r'<p class="lead">(.*?)</p>', ans, re.S).group(1))
     span = re.search(r"(\d{4}-\d\d-\d\d) to\s+(\d{4}-\d\d-\d\d)", ans)
     return {
-        "name": p["name"], "country": p["country"], "lat": p["lat"], "lon": p["lon"],
+        "slug": slug, "name": p["name"], "country": p["country"],
+        "lat": p["lat"], "lon": p["lon"],
         "bss": _r(p["bss"]), "bss_lo": _r(p["bss_lo"]), "bss_hi": _r(p["bss_hi"]),
         "rank": p["rank"], "rank_lo": _r(p["rank_lo"], 0), "rank_hi": _r(p["rank_hi"], 0),
         "n_cities": p["n_cities"], "n": p["n"], "base_rate": _r(p["base_rate"]),
-        "station": p["station"], "station_km": p["prcp_km"],
+        "station": p.get("station"), "station_km": p.get("prcp_km"),
         "first": span.group(1), "last": span.group(2),
         "lead": " ".join(lead.split()),
         "bins": [{"said": _r(b["mean"]), "rained": _r(b["obs"]), "n": b["n"],
@@ -73,20 +76,24 @@ def hero() -> dict:
     }
 
 
-def umbrella(name: str) -> dict:
+def umbrella_all() -> dict:
+    """World median curve plus one curve set per city, on one shared grid."""
     d = pd.read_parquet(PROCESSED / "decision_value_curves.parquet")
     w = d[d.source == "served_world"]
-    c = w[w.city == name].sort_values("alpha")
-    med = w.groupby("alpha")[["v_envelope", "v_calibrated"]].median().reset_index()
-    return {
-        "alpha": [_r(a, 2) for a in c.alpha],
-        "follow": [_r(v, 3) for v in c.v_calibrated],
-        "best": [_r(v, 3) for v in c.v_envelope],
-        "trigger": [_r(v, 2) for v in c.envelope_threshold],
-        "world_follow": [_r(v, 3) for v in med.v_calibrated],
-        "world_n": int(w.city.nunique()),
-        "n": int(c.n.iloc[0]),
-    }
+    med = w.groupby("alpha")[["v_calibrated"]].median().reset_index()
+    grid = [_r(a, 2) for a in med.alpha]
+    per = {}
+    for name, c in w.groupby("city"):
+        c = c.sort_values("alpha")
+        if [_r(a, 2) for a in c.alpha] != grid:
+            raise SystemExit(f"{name}: decision curve is not on the shared alpha grid")
+        per[name] = {"follow": [_r(v, 3) for v in c.v_calibrated],
+                     "best": [_r(v, 3) for v in c.v_envelope],
+                     "trigger": [_r(v, 2) for v in c.envelope_threshold],
+                     "n": int(c.n.iloc[0])}
+    return {"world": {"alpha": grid, "follow": [_r(v, 3) for v in med.v_calibrated],
+                      "n": int(w.city.nunique())},
+            "cities": per}
 
 
 def coverage() -> dict:
@@ -144,17 +151,28 @@ def stage_assets() -> None:
 
 
 def main() -> None:
-    h = hero()
     thr = re.search(r"^RAIN_THRESHOLD_MM = ([\d.]+)",
                     (ROOT / "src" / "config.py").read_text(), re.M).group(1)
-    data = {"hero": h, "cities": cities(), "umbrella": umbrella(h["name"]),
-            "coverage": coverage(),
+    idx, umb = cities(), umbrella_all()
+    out = PROTO / "cities"
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True)
+    lasts, no_curve = [], 0
+    for slug, *_ in idx:
+        h = hero(slug)
+        u = umb["cities"].get(h["name"])
+        no_curve += u is None
+        (out / f"{slug}.json").write_text(
+            json.dumps({"hero": h, "umbrella": u}, separators=(",", ":")))
+        lasts.append(h["last"])
+    data = {"cities": idx, "default": DEFAULT_CITY,
+            "umbrella_world": umb["world"], "coverage": coverage(),
             "event": f"day total \u2265 {thr} mm at the gauge",
-            "as_of": h["last"],
-            "tiers": tiers()}
+            "as_of": max(lasts), "tiers": tiers()}
     (PROTO / "data.json").write_text(json.dumps(data, separators=(",", ":")))
     stage_assets()
-    print(f"wrote {PROTO / 'data.json'}: {len(data['cities'])} cities, "
+    print(f"wrote {PROTO / 'data.json'} and {len(idx)} city files "
+          f"({no_curve} without decision curves), "
           f"{len(data['coverage']['countries'])} countries")
 
 
