@@ -256,7 +256,7 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .umb > * { min-width: 0; }
 .umb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; align-items: start; }
 .umb-ctl label { display: block; font-size: 16px; color: var(--ink); margin-bottom: 8px; }
-.umb-ratio { display: inline-block; min-width: 2.6em; color: var(--accent); font: 700 22px var(--mono); text-shadow: 0 0 18px rgba(var(--accent-rgb), .6); }
+.umb-ratio { display: inline-block; min-width: 1.8em; color: var(--accent); font: 700 22px var(--mono); text-shadow: 0 0 18px rgba(var(--accent-rgb), .6); }
 input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: none; cursor: pointer; }
 input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
   background: linear-gradient(90deg, var(--accent) var(--p, 4%), rgba(255, 255, 255, .1) var(--p, 4%)); }

@@ -219,7 +219,15 @@
     // than protecting (C/L >= 0.05). Beyond that nobody reasons in "times".
     var s0 = 0; while (s0 < U.alpha.length - 1 && U.alpha[s0] < 0.05 - 1e-9) s0++;
     U = Object.keys(U).reduce(function (o, k) { o[k] = Array.isArray(U[k]) ? U[k].slice(s0) : U[k]; return o; }, {});
-    var keep = +inp.value, first = !inp._init; inp._init = true;
+    var keep = inp._a, first = !inp._init; inp._init = true;
+    // The slider only stops where getting wet is a whole number of times
+    // worse (20x, 17x, ... 2x, 1x): one grid point per whole ratio, the one
+    // whose 1/a lies closest to it, so the label never reads 4.7x.
+    var stops = [], best = {};
+    U.alpha.forEach(function (x, i) { var k = Math.round(1 / x), d = Math.abs(1 / x - k);
+      if (!(k in best) || d < best[k][1]) best[k] = [i, d]; });
+    Object.keys(best).forEach(function (k) { stops.push(best[k][0]); });
+    stops.sort(function (p, q) { return p - q; });
     var W = 860, H = 168, L = 44, R = 12, T = 26, B = 26;   // T leaves a row for the legend
     var all = U.save.concat(U.world_save).filter(function (v) { return v != null; });
     var ymax = Math.max(0.25, Math.ceil(Math.max.apply(null, all) * 4) / 4);
@@ -259,13 +267,14 @@
     ex.forEach(function (e) {
       var b = document.createElement('button'); b.type = 'button'; b.dataset.a = e[2];
       b.innerHTML = esc(e[0]) + ' <span>' + esc(e[1]) + '</span>';
-      b.addEventListener('click', function () { inp.value = idx(e[2]); upd(); });
+      b.addEventListener('click', function () { inp.value = pos(e[2]); upd(); });
       exBox.appendChild(b);
     });
-    function idx(a) { var best = 0; U.alpha.forEach(function (x, i) { if (Math.abs(x - a) < Math.abs(U.alpha[best] - a)) best = i; }); return best; }
-    inp.max = U.alpha.length - 1; inp.value = first ? idx(0.25) : keep;   // a new city keeps your setting
+    // Slider position of the stop nearest a cost ratio a.
+    function pos(a) { var b = 0; stops.forEach(function (s, j) { if (Math.abs(U.alpha[s] - a) < Math.abs(U.alpha[stops[b]] - a)) b = j; }); return b; }
+    inp.max = stops.length - 1; inp.value = pos(first || keep == null ? 0.25 : keep);   // a new city keeps your setting
 
-    function times(x) { var r = 1 / x; return (r >= 10 ? Math.round(r) : r.toFixed(1).replace(/\.0$/, '')) + '\u00d7'; }
+    function times(x) { return Math.round(1 / x) + '\u00d7'; }
     function n0(v) { return Math.round(v).toLocaleString('en'); }
     // Plain verdict: only the sign is judged (0 = the best no-forecast habit);
     // the percentage carries the size, so no invented bands.
@@ -275,8 +284,9 @@
     }
     function cost(acted, missed, a) { return acted + missed / a; }
     function upd() {
-      var i = +inp.value, a = U.alpha[i], f = U.save[i];
-      inp.style.setProperty('--p', (i / (U.alpha.length - 1) * 100) + '%');
+      var i = stops[+inp.value], a = U.alpha[i], f = U.save[i];
+      inp._a = a;
+      inp.style.setProperty('--p', (+inp.value / (stops.length - 1) * 100) + '%');
       $('#umb-ratio').textContent = times(a);
       $$('button', exBox).forEach(function (x) { x.setAttribute('aria-pressed', Math.abs(+x.dataset.a - a) < 0.006); });
       // The best fixed habit without a forecast: always protect if that is cheaper, else never.
@@ -589,7 +599,18 @@
     $$('.chapters a, .brand').forEach(function (a) {
       a.addEventListener('click', function (e) {
         var t = document.getElementById(a.getAttribute('href').slice(1)); if (!t) return;
-        e.preventDefault(); t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+        e.preventDefault();
+        // A chapter's card sits mid-way down a section taller than the screen,
+        // so scrolling to the section's top leaves it low. Centre the card in
+        // the space under the fixed bar instead (top-aligned if it is too tall).
+        // Layout offsets, not getBoundingClientRect, so the card's not-yet-run
+        // entry transform doesn't skew the target.
+        var card = t.id === 'hero' ? null : t.querySelector(':scope > .card');
+        if (!card) { t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); return; }
+        var top = 0; for (var n = card; n; n = n.offsetParent) top += n.offsetTop;
+        var bar = $('.bar'), barB = bar ? bar.getBoundingClientRect().bottom + 12 : 0;
+        var room = innerHeight - barB, y = top - barB - Math.max(0, (room - card.offsetHeight) / 2);
+        scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
       });
     });
     var io = new IntersectionObserver(function (es) {
