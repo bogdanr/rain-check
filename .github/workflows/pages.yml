@@ -1,4 +1,4 @@
-# Rebuild the report page from committed artefacts and publish it to Pages.
+# Rebuild the Atlas site (src/atlas.py) from committed artefacts and publish it to Pages.
 #
 # CI deliberately does not re-run the study. run_all.sh needs days of archive
 # downloads and would make every deploy a fresh experiment whose numbers could
@@ -59,37 +59,37 @@ jobs:
         # difference between a five second fix and a confused afternoon.
         run: |
           missing=0
-          for f in data/processed/verification_pop.parquet \
-                   data/processed/verification_leads.parquet \
-                   data/processed/capitals_metrics.parquet \
-                   data/processed/capitals_pop.parquet \
-                   data/processed/capitals_diagnostics.parquet \
+          for f in data/processed/cities_metrics.parquet \
+                   data/processed/cities_pop.parquet \
+                   data/processed/decision_value_curves.parquet \
+                   data/processed/country_coverage.parquet \
+                   data/processed/country_capitals.csv \
+                   data/processed/stars.parquet \
+                   data/processed/significance_headline.parquet \
                    data/raw/capital_coverage.json \
-                   data/raw/station_observations.parquet \
-                   data/raw/station_hourly.parquet; do
+                   data/raw/city_coverage.json; do
             if [ ! -f "$f" ]; then echo "missing artefact: $f"; missing=1; fi
           done
           test "$missing" -eq 0
 
-      - name: Build and verify at the root base path
-        # src/check_site.py serves dist/ from the root of a local HTTP server,
-        # so it can only exercise a root-base build: a build whose assets live
-        # under /<repo>/ would 404 every one of them and the globe would never
-        # draw. Verification therefore runs against a root build, and the
-        # published build is produced afterwards from the same inputs - the two
-        # differ only in the URL prefix baked into the HTML.
-        run: |
-          python src/report.py
-          python src/check_site.py
+      - id: pages
+        uses: actions/configure-pages@v5
 
-      - name: Build the site for publication
-        # A project site is served from /<repo>/, so the base path is derived
-        # from the repository name rather than hardcoded - renaming the repo
-        # (this one was renamed once already) would otherwise 404 every asset.
+      - name: Build the Atlas site
+        # The base path and the public origin come from the Pages settings, so
+        # the custom domain (bogdan.nimblex.net) lands in every canonical URL,
+        # Open Graph tag and sitemap entry rather than the github.io alias.
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
-          python src/report.py \
-            --base "/${GITHUB_REPOSITORY#*/}/" \
-            --origin "https://${GITHUB_REPOSITORY%%/*}.github.io"
+          cd src
+          python atlas.py --base "${BASE_PATH}/" --origin "${BASE_URL%"$BASE_PATH"}"
+
+      - name: Verify in a browser at the published base path
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: cd src && python check_atlas.py --base "${BASE_PATH}/"
 
       - uses: actions/upload-pages-artifact@v3
         with:

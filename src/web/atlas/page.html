@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en" data-theme="noir">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+{HEAD}
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070a">
+<link rel="icon" href="{ICON}" type="image/svg+xml">
+<link rel="preload" href="{DATA}" as="fetch" crossorigin>
+<link rel="stylesheet" href="{CSS}">
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<a class="skip" href="#hero">Skip to the report</a>
+
+<!-- The stage: one fixed WebGL globe behind every chapter. -->
+<canvas id="stage" aria-hidden="true"></canvas>
+<svg id="marks" aria-hidden="true"></svg>
+<div id="stage-hit" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="bar">
+  <a class="brand" href="#hero"><span class="brand-dot"></span>rain<b>check</b></a>
+  <button class="citypill" type="button" aria-haspopup="dialog" aria-controls="palette" title="Change city (/)">
+    <span class="cc" data-k="country"></span><span data-k="name"></span>
+    <kbd>/</kbd>
+  </button>
+  <nav class="chapters" aria-label="Chapters">
+    <a href="#hero" data-ch="hero"><i></i><span>Verdict</span></a>
+    <a href="#promise" data-ch="promise"><i></i><span>The promise</span></a>
+    <a href="#umbrella" data-ch="umbrella"><i></i><span>Your decision</span></a>
+    <a href="#desert" data-ch="desert"><i></i><span>Who can't check</span></a>
+    <a href="#deep" data-ch="deep"><i></i><span>Evidence</span></a>
+  </nav>
+  <span class="asof mono">data as of <b data-k="as_of"></b></span>
+</header>
+
+<main>
+<!-- 1 ─ Verdict -->
+<section id="hero" class="chapter" data-stage="city">
+  <div class="card hero-card rise">
+    <p class="kicker">Forecast audit · <span data-k="n_cities"></span> cities · one rain gauge each</p>
+    <h1>How good is the <span class="hl" data-k="name"></span> rain forecast?</h1>
+    <p class="answer" data-k="lead"></p>
+
+    <div class="score">
+      <p class="grade" id="grade"><i></i><b data-k="grade"></b><span data-k="tier"></span></p>
+      <div class="score-num">
+        <span class="huge tnum" data-count="bss" data-fmt="2"></span>
+        <span class="score-lab">
+          <span class="grade-say" data-k="say"></span>
+          <span class="dim">skill score · 1 = perfect · 0 = same as the usual rain chance · below 0 = worse</span></span>
+      </div>
+      <div class="scale" role="img" aria-labelledby="scale-cap">
+        <div class="scale-track" id="scale-track">
+          <span class="scale-ci"></span>
+          <span class="scale-pt"></span>
+        </div>
+        <p class="scale-cap mono" id="scale-cap">95% range <b data-k="ci"></b></p>
+      </div>
+    </div>
+
+    <dl class="facts">
+      <div><dt>Rank</dt><dd class="tnum"><span data-k="rank"></span> <span class="dim">of <span data-k="n_cities"></span></span>
+        <span class="chip" tabindex="0" data-tip="rank">could be <span data-k="rank_range"></span></span></dd></div>
+      <div><dt>Days checked</dt><dd class="tnum" data-k="n"></dd></div>
+      <div><dt>It rained on</dt><dd class="tnum"><span data-k="base_pct"></span> <span class="dim">of days</span></dd></div>
+      <div><dt>Gauge</dt><dd><span data-k="station"></span> <span class="dim">· <span data-k="station_km"></span> km</span></dd></div>
+    </dl>
+    <p class="event"><span class="badge">event</span> <span data-k="event"></span> · <span data-k="span"></span></p>
+    <p class="nojs-note">The interactive chapters need JavaScript. Every city has its own page: see the
+      <a href="{BASE}cities/">list of all cities</a>.</p>
+  </div>
+</section>
+
+<!-- 2 ─ The promise -->
+<section id="promise" class="chapter right" data-stage="city-close">
+  <div class="card rise">
+    <p class="kicker">Chapter 1 · Is it honest?</p>
+    <h2>A forecast is a promise you can count.</h2>
+    <p class="lede">Pick what the app said. Each square is one real day it said that in
+      <span data-k="name"></span>; the lit ones are the days it actually rained.</p>
+    <div class="seg bins" role="tablist" aria-label="What the forecast said"></div>
+    <div class="promise">
+      <div class="grid-days" aria-live="polite"></div>
+      <div class="promise-read">
+        <p class="pr-said"><span class="dim">It said</span> <b class="big tnum" id="pr-said"></b></p>
+        <p class="pr-got"><span class="dim">It rained</span> <b class="big tnum accent" id="pr-got"></b></p>
+        <p class="pr-verdict" id="pr-verdict"></p>
+        <p class="pr-n mono" id="pr-n"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ─ The decision -->
+<section id="umbrella" class="chapter" data-stage="dim">
+  <div class="card wide rise">
+    <p class="kicker">Chapter 2 · Is it useful to you?</p>
+    <h2>Umbrella or not: does following the forecast pay off?</h2>
+    <p class="lede">The forecast is Open-Meteo’s daily chance of rain for <span data-k="name"></span>, the
+      number a weather app shows you. Say how much you mind getting wet; we replay the last
+      <span data-k="umb_n"></span> days.</p>
+
+    <div class="umb">
+      <div class="umb-ctl">
+        <label for="alpha">Getting wet is <b class="umb-ratio" id="umb-ratio"></b> worse than protecting yourself</label>
+        <input type="range" id="alpha" min="0" max="98" step="1" value="4"
+               aria-describedby="umb-say">
+        <div class="umb-ex" id="umb-ex"></div>
+        <p class="umb-rule" id="umb-rule"></p>
+      </div>
+      <div class="umb-out" aria-live="polite">
+        <p class="umb-verdict" id="umb-say"></p>
+        <p class="umb-days" id="umb-days"></p>
+      </div>
+    </div>
+    <p class="umb-none" id="umb-none" hidden>The decision-value curves were not computed for
+      <b id="umb-none-name"></b>, so there is nothing honest to show here. Pick another city, or
+      scroll on.</p>
+    <p class="umb-chart-head"><b>Bother saved, across the slider.</b>
+      <span class="dim">The dot is you · 0% = no better than not checking · in the red = worse.</span></p>
+    <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 168" role="img"
+         aria-label="Share of bother saved by following the forecast, against how much worse getting wet is"></svg>
+    <p class="note mono">Saving = relative economic value rescaled to the no-forecast habit · source <code>served_world</code> in decision_value_curves ·
+      <span data-k="name"></span> <span data-k="umb_n"></span> days · world median over
+      <span data-k="umb_world"></span> cities · event: <span data-k="event"></span></p>
+  </div>
+</section>
+
+<!-- 4 ─ The desert -->
+<section id="desert" class="chapter right" data-stage="world">
+  <div class="card rise">
+    <p class="kicker">Chapter 3 · Who can check?</p>
+    <h2>Most of the world cannot audit its forecast.</h2>
+    <p class="lede">A forecast can only be checked where a working rain gauge sits close by.
+      Lit points are countries where that exists; hollow rings are countries where it does
+      not, sized by how many people live in their cities.</p>
+    <div class="stats">
+      <div><span class="big tnum" data-count="covered"></span><span class="dim">of <span data-k="n_countries"></span> countries can be checked</span></div>
+      <div><span class="big tnum" data-count="missing_bn" data-fmt="2" data-suffix=" bn"></span><span class="dim">people in cities of <span data-k="floor"></span>+ live where no one can check</span></div>
+    </div>
+    <ul class="legend">
+      <li><i class="lg-ok"></i> can be checked</li>
+      <li><i class="lg-broken"></i> gauge record too broken or short</li>
+      <li><i class="lg-none"></i> no gauge nearby</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5 ─ Where the dense part starts: the globe docks -->
+<section id="deep" class="chapter dense" data-stage="dock">
+  <div class="dense-in">
+    <p class="kicker">Below here · the evidence, for professionals</p>
+    <h2>Every claim, with the attacks it survived.</h2>
+    <p class="lede">Every headline above rests on claims. Each one was attacked: a different
+      rain definition, a different gauge, a different model, more cities. Here is what held and
+      what didn’t, with the intervals, then every city’s score, the method and the words.</p>
+    <nav class="ev-tabs" aria-label="Evidence sections">
+      <a href="#ev-claims">Claims</a><a href="#ev-league">League table</a>
+      <a href="#ev-methods">Methods</a><a href="#ev-gloss">Glossary</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <section class="ev" id="ev-claims" aria-labelledby="ev-claims-h">
+      <header class="ev-head"><h3 id="ev-claims-h">Claims and the challenges they faced</h3>
+        <p class="dim" id="ev-claims-sum"></p></header>
+      <ul class="ev-key mono">
+        <li><i class="st held"></i>held</li><li><i class="st reversed"></i>reversed / flipped</li>
+        <li><i class="st weakened"></i>weakened</li><li><i class="st unresolved"></i>unresolved</li>
+        <li><i class="st new"></i>new finding</li><li><i class="st limit"></i>limit of the claim</li>
+      </ul>
+      <div class="claims" id="claims"></div>
+    </section>
+
+    <section class="ev" id="ev-league" aria-labelledby="ev-league-h">
+      <header class="ev-head"><h3 id="ev-league-h">League table · all <span data-k="n_cities"></span> cities</h3>
+        <div class="lg-tools">
+          <input type="search" id="lg-q" placeholder="Filter cities or country code" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" id="lg-csv">Download CSV</button>
+        </div></header>
+      <p class="dim ev-sub">Click a column to sort, a row to open that city. The bar shows each score's 95% range on
+        the same axis as the verdict card; the rank range is where the city could sit once every score's
+        uncertainty is allowed for.</p>
+      <div class="lg-wrap" tabindex="0" aria-label="League table, scrollable">
+        <table class="lg" id="lg"><thead></thead><tbody></tbody></table>
+      </div>
+      <p class="note mono" id="lg-n"></p>
+    </section>
+
+    <div class="ev-2">
+      <section class="ev" id="ev-methods" aria-labelledby="ev-methods-h">
+        <header class="ev-head"><h3 id="ev-methods-h">Methods in one screen</h3></header>
+        <dl class="methods" id="methods"></dl>
+        <p class="note mono">Values read from <code>src/config.py</code>, <code>src/probe_*.py</code>,
+          <code>src/league.py</code> and the significance table at export time.</p>
+      </section>
+      <section class="ev" id="ev-gloss" aria-labelledby="ev-gloss-h">
+        <header class="ev-head"><h3 id="ev-gloss-h">Glossary</h3>
+          <input type="search" id="gl-q" placeholder="Find a term" autocomplete="off" spellcheck="false"></header>
+        <div class="gloss" id="gloss"></div>
+      </section>
+    </div>
+
+    <section class="ev contact" id="contact" aria-labelledby="contact-h">
+      <img class="contact-pic" src="{PORTRAIT}" width="380" height="363" loading="lazy"
+           decoding="async" alt="Bogdan Rădulescu">
+      <div class="contact-body">
+        <header class="ev-head"><h3 id="contact-h">Get in touch</h3></header>
+        <p class="contact-who"><b>Bogdan Rădulescu</b> <span class="dim">· Principal Architect, Cloud,
+          Infrastructure &amp; Security · Bucharest</span></p>
+        <p class="contact-say">This report is a side project. My day job: platforms that stay fast and
+          reliable under heavy traffic.</p>
+        <ul class="contact-cv">
+          <li>16 years scaling a high-traffic online game to ~200 cloud instances</li>
+          <li>PCI DSS payments, auctions for 9 national regulators, a global VPN fleet</li>
+          <li>AWS, Kubernetes, private cloud, and private AI inference in Rust</li>
+          <li>20 years of open source, Linux kernel patches included</li>
+        </ul>
+        <p class="contact-say">I also take on research like this: does a forecast, a model or a vendor’s
+          claim hold up against real data?</p>
+      </div>
+      <aside class="contact-cta" aria-label="Contact links">
+        <p class="kicker">Let’s talk</p>
+        <p class="contact-ask">A platform to scale, or a question worth measuring?</p>
+        <a class="btn primary" href="mailto:bogdan@nimblex.org">bogdan@nimblex.org</a>
+        <ul class="contact-links">
+          <li><a class="btn" href="https://www.linkedin.com/in/bogdanr" rel="me noopener">LinkedIn</a></li>
+          <li><a class="btn" href="https://github.com/bogdanr" rel="me noopener">GitHub</a></li>
+          <li><a class="btn" href="https://bogdan.nimblex.net/cv/" rel="me noopener">CV</a></li>
+          <li><a class="btn" href="https://github.com/bogdanr/rain-check" rel="noopener">Report code</a></li>
+        </ul>
+      </aside>
+    </section>
+
+    <footer class="site-foot">
+      <p>Forecasts: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0), including ECMWF,
+        DWD, Météo-France, ECCC, JMA, MET Norway, KNMI, DMI, ARPAE, MeteoSwiss and Met Office (CC BY-SA 4.0) models.
+        Rain gauges: NOAA GHCN-Daily and ISD, JMA. Full credits in
+        <a href="https://github.com/bogdanr/rain-check/blob/main/NOTICE.md">NOTICE.md</a>.</p>
+      <p>Sky: every star to magnitude 7.5 at its real position and colour, from the
+        HYG Database v4.1 (astronexus, CC BY-SA 4.0).</p>
+      <p><a href="{BASE}cities/">All {N_CITIES} cities</a> · <a href="https://github.com/bogdanr/rain-check">Code and data</a>
+        · by <a href="https://bogdan.nimblex.net/" rel="author">Bogdan Rădulescu</a> · data as of {AS_OF}</p>
+    </footer>
+  </div>
+</section>
+</main>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<dialog id="palette" class="palette" aria-label="Choose a city">
+  <div class="pal-in">
+    <div class="pal-head">
+      <input id="pal-q" type="search" autocomplete="off" spellcheck="false"
+             role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list"
+             placeholder="Search a city or a country code">
+      <kbd>esc</kbd>
+    </div>
+    <ul id="pal-list" role="listbox" aria-label="Cities"></ul>
+    <p class="pal-foot mono"><span>&uarr;&darr; move</span><span>enter open</span><span>or click any dot on the globe</span></p>
+  </div>
+</dialog>
+<script id="cfg" type="application/json">{CFG}</script>
+<script src="{STAGE_JS}"></script>
+<script src="{APP_JS}"></script>
+</body>
+</html>
