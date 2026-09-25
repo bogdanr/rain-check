@@ -148,13 +148,54 @@
   <div class="dense-in">
     <p class="kicker">Below here · the evidence, for professionals</p>
     <h2>Every claim, with the attacks it survived.</h2>
-    <p class="lede">Past this point the globe docks and the page becomes a report: tables,
-      intervals, methods and downloads, each one click away. Prototype placeholder: the real
-      sections come from <code>src/report.py</code>.</p>
-    <div class="ledger">
-      <div class="lg-row"><b>Claim</b><span>Challenge 1</span><span>Challenge 2</span><span>Challenge 3</span><span>Status</span></div>
-      <div class="lg-row"><span class="ph">layout placeholder, real claims come from the claim ledger</span><span class="ph">…</span><span class="ph">…</span><span class="ph">…</span><span class="ph">…</span></div>
+    <p class="lede">Every headline above rests on claims. Each one was attacked: a different
+      rain definition, a different gauge, a different model, more cities. Here is what held and
+      what didn’t, with the intervals, then every city’s score, the method and the words.</p>
+    <nav class="ev-tabs" aria-label="Evidence sections">
+      <a href="#ev-claims">Claims</a><a href="#ev-league">League table</a>
+      <a href="#ev-methods">Methods</a><a href="#ev-gloss">Glossary</a>
+    </nav>
+
+    <section class="ev" id="ev-claims" aria-labelledby="ev-claims-h">
+      <header class="ev-head"><h3 id="ev-claims-h">Claims and the challenges they faced</h3>
+        <p class="dim" id="ev-claims-sum"></p></header>
+      <ul class="ev-key mono">
+        <li><i class="st held"></i>held</li><li><i class="st reversed"></i>reversed / flipped</li>
+        <li><i class="st weakened"></i>weakened</li><li><i class="st unresolved"></i>unresolved</li>
+        <li><i class="st new"></i>new finding</li><li><i class="st limit"></i>limit of the claim</li>
+      </ul>
+      <div class="claims" id="claims"></div>
+    </section>
+
+    <section class="ev" id="ev-league" aria-labelledby="ev-league-h">
+      <header class="ev-head"><h3 id="ev-league-h">League table · all <span data-k="n_cities"></span> cities</h3>
+        <div class="lg-tools">
+          <input type="search" id="lg-q" placeholder="Filter cities or country code" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" id="lg-csv">Download CSV</button>
+        </div></header>
+      <p class="dim ev-sub">Click a column to sort, a row to open that city. The bar shows each score's 95% range on
+        the same axis as the verdict card; the rank range is where the city could sit once every score's
+        uncertainty is allowed for.</p>
+      <div class="lg-wrap" tabindex="0" aria-label="League table, scrollable">
+        <table class="lg" id="lg"><thead></thead><tbody></tbody></table>
+      </div>
+      <p class="note mono" id="lg-n"></p>
+    </section>
+
+    <div class="ev-2">
+      <section class="ev" id="ev-methods" aria-labelledby="ev-methods-h">
+        <header class="ev-head"><h3 id="ev-methods-h">Methods in one screen</h3></header>
+        <dl class="methods" id="methods"></dl>
+        <p class="note mono">Values read from <code>src/config.py</code>, <code>src/probe_*.py</code>,
+          <code>src/league.py</code> and the significance table at export time.</p>
+      </section>
+      <section class="ev" id="ev-gloss" aria-labelledby="ev-gloss-h">
+        <header class="ev-head"><h3 id="ev-gloss-h">Glossary</h3>
+          <input type="search" id="gl-q" placeholder="Find a term" autocomplete="off" spellcheck="false"></header>
+        <div class="gloss" id="gloss"></div>
+      </section>
     </div>
+
     <p class="note mono">Sky: every star to magnitude 7.5 at its real position and colour, from the
       HYG Database v4.1 (astronexus, CC BY-SA 4.0).</p>
   </div>

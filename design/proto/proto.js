@@ -53,6 +53,7 @@
     stage = makeStage();
     chapters();
     palette();
+    evidence();
     var want = new URLSearchParams(location.search).get('city');
     select(bySlug[want] ? want : D.default, true).then(reveal);
   }
@@ -102,6 +103,7 @@
       acted: c.umbrella.acted, missed: c.umbrella.missed, b_acted: c.umbrella.b_acted, b_missed: c.umbrella.b_missed
     } : null, h.name);
     if (stage) stage.setCity(h, first);
+    if (evidence.redraw) evidence.redraw();
   }
 
   // One plain word per site tier, worst to best: the site's labels stay as
@@ -290,6 +292,126 @@
     }
     inp.oninput = upd;
     upd();
+  }
+
+  /* ── Evidence: claims, league table, methods, glossary ── */
+  var ST = { held: 'held', reversed: 'reversed', flipped: 'flipped', weakened: 'weakened',
+             unresolved: 'unresolved', 'new': 'new finding', failed: 'did not replicate', limit: 'limit' };
+  function stClass(s) { return s === 'flipped' ? 'reversed' : s === 'failed' ? 'reversed' : s; }
+  function evidence() {
+    var E = D.evidence;
+    // Claims: one card each; the challenges fold open under a summary strip.
+    var box = $('#claims'), tot = {};
+    E.claims.forEach(function (c, ci) {
+      var n = {}; c.challenges.forEach(function (x) { n[x.status] = (n[x.status] || 0) + 1; tot[x.status] = (tot[x.status] || 0) + 1; });
+      var d = document.createElement('details'); d.className = 'claim'; if (ci === 0) d.open = true;
+      var dots = c.challenges.map(function (x) { return '<i class="st ' + stClass(x.status) + '" title="' + esc(x.what + ': ' + ST[x.status]) + '"></i>'; }).join('');
+      var tally = Object.keys(n).map(function (k) { return n[k] + ' ' + ST[k]; }).join(' \u00b7 ');
+      // Intervals of all 'sig' challenges share one axis per claim, with 0 marked.
+      var sigs = c.challenges.filter(function (x) { return x.sig; }), lo = 0, hi = 0;
+      sigs.forEach(function (x) { lo = Math.min(lo, x.sig.lo); hi = Math.max(hi, x.sig.hi); });
+      var pad = (hi - lo) * 0.08 || 0.01; lo -= pad; hi += pad;
+      function X(v) { return ((v - lo) / (hi - lo) * 100).toFixed(2) + '%'; }
+      var rows = c.challenges.map(function (x) {
+        var right = x.sig
+          ? '<span class="ci-bar" style="--z:' + X(0) + ';--a:' + X(x.sig.lo) + ';--b:' + X(x.sig.hi) + ';--e:' + X(x.sig.est) + '"><i></i><b></b></span>' +
+            '<span class="ci-num mono tnum">' + minus(x.sig.est.toFixed(4)) + ' <span class="dim">[' + minus(x.sig.lo.toFixed(4)) + ', ' + minus(x.sig.hi.toFixed(4)) + ']' +
+            ' p ' + (x.sig.p <= 0.001 ? '\u2264 0.001' : x.sig.p.toFixed(3)) + '</span></span>'
+          : '';
+        return '<li class="' + stClass(x.status) + '"><span class="ch-st mono"><i class="st ' + stClass(x.status) + '"></i>' + ST[x.status] + '</span>' +
+          '<span class="ch-what">' + esc(x.what) + (x.detail ? '<small>' + esc(x.detail) + '</small>' : '') + '</span>' +
+          '<span class="ch-sig">' + right + '</span></li>';
+      }).join('');
+      d.innerHTML = '<summary><span class="cl-scope mono">' + esc(c.scope) + '</span>' +
+        '<span class="cl-text">' + esc(c.claim) + '</span>' +
+        '<span class="cl-dots" aria-label="' + esc(tally) + '">' + dots + '</span>' +
+        '<span class="cl-tally mono">' + esc(tally) + '</span><span class="cl-chev" aria-hidden="true"></span></summary>' +
+        (c.stat ? '<p class="cl-stat mono">' + esc(c.stat) + ' \u00b7 95% interval, bar axis includes 0</p>' : '') +
+        '<ul class="ch">' + rows + '</ul>' +
+        '<p class="cl-src mono">source <code>' + esc(c.source) + '</code></p>';
+      box.appendChild(d);
+    });
+    var nch = E.claims.reduce(function (s, c) { return s + c.challenges.length; }, 0);
+    $('#ev-claims-sum').textContent = E.claims.length + ' claims \u00b7 ' + nch + ' challenges \u00b7 ' +
+      (tot.held || 0) + ' held, ' + ((tot.reversed || 0) + (tot.flipped || 0) + (tot.failed || 0)) + ' reversed or failed, ' +
+      (tot.weakened || 0) + ' weakened. The failures are shown, not hidden.';
+
+    // League table.
+    var C = E.league_cols, ci = {}; C.forEach(function (k, i) { ci[k] = i; });
+    var COLS = [
+      ['rank', '#', 'num'], ['name', 'City', ''], ['bss', 'Skill', 'num'], ['ci', '95% range', 'ci'],
+      ['rank_lo', 'Could rank', 'num'], ['n', 'Days', 'num'], ['ess', 'Indep. days', 'num'],
+      ['base_rate', 'Rain rate', 'num'], ['reliability', 'Reliability', 'num'], ['resolution', 'Resolution', 'num'], ['gauge_km', 'Gauge km', 'num']
+    ];
+    var TIPS = { ess: 'effective independent days, after allowing for weather persisting', reliability: 'calibration error, lower is better',
+      resolution: 'how much the forecast separates wet from dry days, higher is better', rank_lo: 'rank range across joint resamples' };
+    var rows = E.league.map(function (r, i) { var o = { rank: i + 1 }; C.forEach(function (k) { o[k] = r[ci[k]]; }); return o; });
+    var sortK = 'rank', dir = 1, q = '';
+    var thead = $('#lg thead'), tbody = $('#lg tbody');
+    thead.innerHTML = '<tr>' + COLS.map(function (c) {
+      return '<th class="' + c[2] + '" scope="col"' + (TIPS[c[0]] ? ' title="' + esc(TIPS[c[0]]) + '"' : '') + '>' +
+        (c[0] === 'ci' ? c[1] : '<button type="button" data-sort="' + c[0] + '">' + c[1] + '<i></i></button>') + '</th>';
+    }).join('') + '</tr>';
+    $$('button', thead).forEach(function (b) { b.addEventListener('click', function () {
+      var k = b.dataset.sort; if (sortK === k) dir = -dir; else { sortK = k; dir = (k === 'name' || k === 'rank' || k === 'rank_lo' || k === 'reliability' || k === 'gauge_km') ? 1 : -1; }
+      draw(); }); });
+    var MIN = -0.2, MAX = 0.8;
+    function x(v) { return (Math.max(0, Math.min(1, (v - MIN) / (MAX - MIN))) * 100).toFixed(1) + '%'; }
+    function fold(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+    function draw() {
+      var s = fold(q);
+      var list = rows.filter(function (r) { return !s || fold(r.name).indexOf(s) >= 0 || r.cc.toLowerCase() === s; });
+      list.sort(function (a, b) { var A = a[sortK], B = b[sortK];
+        return (typeof A === 'string' ? A.localeCompare(B) : (A == null) - (B == null) || A - B) * dir; });
+      $$('button', thead).forEach(function (b) { var th = b.parentNode;
+        if (b.dataset.sort === sortK) th.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort'); });
+      var here = S.h && S.h.slug;
+      tbody.innerHTML = list.map(function (r) {
+        var t = D.tiers.indexOf(tierOf(D.tiers, r.bss));
+        return '<tr class="t' + t + (r.slug === here ? ' here' : '') + '" data-slug="' + r.slug + '" tabindex="0">' +
+          '<td class="num mono">' + r.rank + '</td>' +
+          '<td><span class="lg-cc mono">' + esc(r.cc) + '</span>' + esc(r.name) + '</td>' +
+          '<td class="num mono lg-bss">' + minus(r.bss.toFixed(2)) + '</td>' +
+          '<td class="ci"><span class="lg-ci" style="--z:' + x(0) + ';--a:' + x(r.bss_lo) + ';--b:' + x(r.bss_hi) + ';--e:' + x(r.bss) + '"><i></i><b></b></span></td>' +
+          '<td class="num mono">' + r.rank_lo + '\u2013' + r.rank_hi + '</td>' +
+          '<td class="num mono">' + r.n + '</td><td class="num mono">' + r.ess + '</td>' +
+          '<td class="num mono">' + pct(r.base_rate) + '</td>' +
+          '<td class="num mono">' + r.reliability.toFixed(4) + '</td><td class="num mono">' + r.resolution.toFixed(4) + '</td>' +
+          '<td class="num mono">' + (r.gauge_km == null ? '\u2014' : r.gauge_km.toFixed(1)) + '</td></tr>';
+      }).join('');
+      $('#lg-n').textContent = list.length + ' of ' + rows.length + ' cities \u00b7 sorted by ' +
+        (COLS.filter(function (c) { return c[0] === sortK; })[0] || [0, sortK])[1].toLowerCase() + ' \u00b7 source cities_metrics \u00b7 event: ' + D.event;
+    }
+    evidence.redraw = draw;
+    function open(tr) { if (tr && tr.dataset.slug && tr.dataset.slug !== S.h.slug) { select(tr.dataset.slug); scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); } }
+    tbody.addEventListener('click', function (e) { open(e.target.closest('tr')); });
+    tbody.addEventListener('keydown', function (e) { if (e.key === 'Enter') open(e.target.closest('tr')); });
+    $('#lg-q').addEventListener('input', function (e) { q = e.target.value.trim(); draw(); });
+    $('#lg-csv').addEventListener('click', function () {
+      var csv = C.join(',') + '\n' + E.league.map(function (r) { return r.map(function (v) {
+        return v == null ? '' : typeof v === 'string' && /[",]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','); }).join('\n');
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'rain-check-league-' + D.as_of + '.csv'; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    });
+    draw();
+
+    // Methods and glossary.
+    $('#methods').innerHTML = E.methods.map(function (m) { return '<div><dt>' + esc(m[0]) + '</dt><dd>' + esc(m[1]) + '</dd></div>'; }).join('');
+    var gl = $('#gloss');
+    gl.innerHTML = E.glossary.map(function (g) {
+      return '<details class="g" id="g-' + esc(g[0]) + '"><summary><b>' + esc(g[1]) + '</b>' + (g[2] && g[2] !== g[1] ? ' <span class="dim">' + esc(g[2]) + '</span>' : '') +
+        '</summary><p>' + esc(g[3]) + '</p><p class="g-care"><span class="mono">careful</span> ' + esc(g[4]) + '</p></details>';
+    }).join('');
+    $('#gl-q').addEventListener('input', function (e) {
+      var s = fold(e.target.value.trim());
+      $$('.g', gl).forEach(function (d, i) { var g = E.glossary[i];
+        var hit = !s || fold(g[1] + ' ' + g[2] + ' ' + g[3]).indexOf(s) >= 0;
+        d.hidden = !hit; d.open = !!s && hit; });
+    });
+    $$('.ev-tabs a').forEach(function (a) { a.addEventListener('click', function (e) {
+      e.preventDefault(); var t = $(a.getAttribute('href')); t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }); });
   }
 
   /* ── Provenance tooltips (read the current city from S) ── */

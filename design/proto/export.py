@@ -180,6 +180,133 @@ def tiers() -> list[list]:
             for hi, label, frag, tone in _TIERS]
 
 
+def _const(path: str, name: str) -> float:
+    """A constant read from its one definition in the source, never retyped."""
+    m = re.search(rf"^{name} = ([\d._]+)", (ROOT / path).read_text(), re.M)
+    return float(m.group(1).replace("_", ""))
+
+
+def _sig(row) -> dict:
+    return {"est": _r(row.estimate), "lo": _r(row.ci_lo), "hi": _r(row.ci_hi),
+            "p": _r(row.p_boot, 3), "n": int(row.n), "cities": int(row.n_cities)}
+
+
+def evidence(idx: list[list]) -> dict:
+    """Claims with the challenges each one faced, the league table, methods and
+    glossary. Every figure comes from a processed table or a source constant;
+    the status of each challenge uses the same rule as the report section it
+    comes from (src/report.py sec_robust, sec_world, sec_served)."""
+    sys.path.insert(0, str(ROOT / "src"))
+    from report_content import GLOSSARY
+    claims = []
+
+    # 1. Bucharest's overconfidence at both ends (sec_robust's rule).
+    rb = pd.read_parquet(PROCESSED / "robustness.parquet")
+    ch = []
+    for r in rb.itertuples():
+        held = r.top_bin_observed < r.top_bin_stated and r.bot_bin_observed > r.bot_bin_stated
+        ch.append({"what": r.variant, "status": "held" if held else "flipped",
+                   "detail": f"\u201c{r.top_bin_stated:.0%}\u201d rained {r.top_bin_observed:.0%} \u00b7 "
+                             f"\u201c{r.bot_bin_stated:.1%}\u201d rained {r.bot_bin_observed:.1%} \u00b7 skill {r.bss:.2f}"})
+    claims.append({"id": "overconfident", "scope": "Bucharest",
+                   "claim": "The forecast is overconfident at both ends: its surest \u201cyes\u201d and surest \u201cno\u201d are both too sure.",
+                   "source": "robustness", "challenges": ch})
+
+    # 2 and 3. The served number against the raw ensemble (sec_served).
+    sg = pd.read_parquet(PROCESSED / "significance_headline.parquet")
+    sg = sg[sg.model == "gfs_seamless"]
+    def row(stat, lead=1, mode="prorata"):
+        return sg[(sg.statistic == stat) & (sg.lead_days == lead) & (sg.boundary_mode == mode)].iloc[0]
+    def st_sign(r, want_neg):
+        if r.ci_lo <= 0 <= r.ci_hi:
+            return "unresolved"
+        return "held" if (r.estimate < 0) == want_neg else "reversed"
+    b1 = row("brier_diff")
+    ch = [{"what": "baseline: day total \u2265 threshold, lead 1", "status": st_sign(b1, True), "sig": _sig(b1)},
+          {"what": "boundary rule: snap instead of pro-rata", "status": st_sign(row("brier_diff", 1, "snap"), True),
+           "sig": _sig(row("brier_diff", 1, "snap"))},
+          {"what": "event: rain at any point in the day", "status": st_sign(row("brier_diff_anystep"), True),
+           "sig": _sig(row("brier_diff_anystep"))}]
+    tr = pd.read_parquet(PROCESSED / "truth_rescore.parquet")
+    ch.append({"what": "truth: a different gauge nearby", "status": "held" if not tr.sign_flips.any() else "weakened",
+               "detail": f"sign flips at {int(tr.sign_flips.sum())} of {len(tr)} alternative gauges "
+                         f"in {tr.city.nunique()} cities"})
+    claims.append({"id": "served-accuracy", "scope": f"{int(b1.n_cities)} cities",
+                   "claim": "The number the app shows is more accurate than the raw ensemble it could have been built from.",
+                   "source": "significance_headline", "stat": "Brier difference, served \u2212 ensemble (lower = served better)",
+                   "challenges": ch})
+    ch = [{"what": f"lead {d} day{'s' if d > 1 else ''}", "status": st_sign(row("value_diff_a05", d), True),
+           "sig": _sig(row("value_diff_a05", d))} for d in sorted(sg.lead_days.unique())]
+    ch.insert(1, {"what": "boundary rule: snap", "status": st_sign(row("value_diff_a05", 1, "snap"), True),
+                  "sig": _sig(row("value_diff_a05", 1, "snap"))})
+    a50 = row("value_diff_a50")
+    ch.append({"what": "a costly action instead (1 in 2)", "status": "limit",
+               "sig": _sig(a50), "detail": "the harm is confined to cheap actions: here the served number is ahead"})
+    claims.append({"id": "cheap-harm", "scope": f"{int(b1.n_cities)} cities",
+                   "claim": "For someone acting on cheap precautions (1 in 20), the number the app shows is worse than the raw ensemble.",
+                   "source": "significance_headline", "stat": "Value difference, served \u2212 ensemble (negative = served worse)",
+                   "challenges": ch})
+
+    # 4. Low forecasts under-state rain, worldwide (sec_world wb_html).
+    wb = pd.read_parquet(PROCESSED / "cities_wet_bias.parquet")
+    out = wb[~wb.eu]
+    claims.append({"id": "low-end", "scope": f"{len(wb)} cities",
+                   "claim": "Low rain chances are too low: on \u201cunlikely\u201d days it rains more often than stated.",
+                   "source": "cities_wet_bias", "challenges": [
+                       {"what": "all cities", "status": "held",
+                        "detail": f"{int((wb.low_gap > 0).sum())} of {len(wb)} \u00b7 {int((wb.low_lo > 0).sum())} with the interval above zero"},
+                       {"what": "outside Europe (a different model answers)", "status": "held",
+                        "detail": f"{int((out.low_gap > 0).sum())} of {len(out)} \u00b7 {int((out.low_lo > 0).sum())} significant"},
+                       {"what": "the other end: high chances too high", "status": "held",
+                        "detail": f"{int((wb.high_gap < 0).sum())} of {len(wb)} \u00b7 {int((wb.high_hi < 0).sum())} significant"}]})
+
+    # 5. What drives skill: the capitals result, replicated (sec_world rep_html).
+    cd = pd.read_parquet(PROCESSED / "capitals_drivers.parquet")
+    wd = pd.read_parquet(PROCESSED / "cities_drivers.parquet")
+    j = cd.merge(wd, on=["target", "driver"], suffixes=("_c", "_w"))
+    pretty = {"base_rate": "how often it rains", "continentality_c": "continentality", "prcp_km": "gauge distance"}
+    ch = []
+    for r in j.itertuples():
+        sc, sw = r.p_perm_c < 0.05, r.p_perm_w < 0.05
+        ch.append({"what": f"{r.target} vs {pretty.get(r.driver, r.driver)}",
+                   "status": "held" if sc == sw else ("new" if sw else "failed"),
+                   "detail": f"{int(r.n_c)} capitals r {r.corr_c:+.2f} (p {r.p_perm_c:.3f}) \u2192 "
+                             f"{int(r.n_w)} cities r {r.corr_w:+.2f} (p {r.p_perm_w:.3f})"})
+    claims.append({"id": "drivers", "scope": f"{int(j.n_c.iloc[0])} \u2192 {int(j.n_w.iloc[0])} cities",
+                   "claim": "What the capitals suggested drives forecast skill, re-tested on every city.",
+                   "source": "capitals_drivers, cities_drivers", "challenges": ch})
+
+    # League table: every city, the columns a professional sorts by.
+    m = pd.read_parquet(PROCESSED / "cities_metrics.parquet").set_index("city")
+    league = []
+    for slug, name, cc, *_ in idx:
+        r = m.loc[name]
+        league.append([slug, name, cc, _r(r.bss, 3), _r(r.bss_lo, 3), _r(r.bss_hi, 3),
+                       _r(r.rank_lo, 0), _r(r.rank_hi, 0), int(r.n), _r(r.ess, 0),
+                       _r(r.base_rate, 3), _r(r.reliability, 4), _r(r.resolution, 4),
+                       _r(r.prcp_km, 1)])
+    league.sort(key=lambda x: -x[3])
+    methods = [
+        ["Rain event", f"day total \u2265 {_const('src/config.py', 'RAIN_THRESHOLD_MM'):g} mm at the gauge; 0.1 and 1.0 mm as checks"],
+        ["Gauge", f"within {_const('src/probe_capitals.py', 'MAX_STATION_KM'):g} km and "
+                  f"{_const('src/probe_capitals.py', 'MAX_ELEV_DIFF_M'):g} m of the forecast point's elevation"],
+        ["Cities", f"population \u2265 {int(_const('src/probe_cities.py', 'MIN_POPULATION')):,}; cities sharing a gauge counted once"],
+        ["Score", "Brier skill score against the city's own rain rate (climatology)"],
+        ["Intervals", f"block bootstrap, {int(_const('src/config.py', 'BOOTSTRAP_BLOCK_DAYS'))}-day blocks, "
+                      f"{int(_const('src/capitals.py', 'N_BOOT_CITY'))} replicates per city"],
+        ["Rank range", f"{int(_const('src/league.py', 'N_BOOT_LEAGUE'))} joint resamples of every city's score"],
+        ["Served vs ensemble", f"{int(_const('src/config.py', 'GEFS_MEMBERS'))} GEFS members, "
+                               f"{int(b1.n):,} city-days, {int(b1.n_boot)} bootstrap draws in "
+                               f"{int(b1.block_days)}-day blocks"],
+        ["Reliability bins", f"{int(_const('src/config.py', 'N_PROB_BINS'))} equal-count bins"],
+    ]
+    return {"claims": claims,
+            "league_cols": ["slug", "name", "cc", "bss", "bss_lo", "bss_hi", "rank_lo", "rank_hi",
+                            "n", "ess", "base_rate", "reliability", "resolution", "gauge_km"],
+            "league": league, "methods": methods,
+            "glossary": [[e["id"], e["term"], e.get("full", ""), e["plain"], e["care"]] for e in GLOSSARY]}
+
+
 STAR_MAG_LIMIT = 7.5     # past the naked-eye limit, so the Milky Way shows by density
 
 
@@ -258,7 +385,7 @@ def main() -> None:
     data = {"cities": idx, "default": DEFAULT_CITY,
             "umbrella_world": umb["world"], "coverage": coverage(),
             "event": f"day total \u2265 {thr} mm at the gauge",
-            "as_of": max(lasts), "tiers": tiers()}
+            "as_of": max(lasts), "tiers": tiers(), "evidence": evidence(idx)}
     (PROTO / "data.json").write_text(json.dumps(data, separators=(",", ":")))
     stage_assets()
     n_stars = stars(data["as_of"])
