@@ -247,9 +247,14 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .pr-n { font-size: 11px; color: var(--faint); }
 
 /* ── Umbrella ──────────────────────────────────────────── */
-.chapter#umbrella { justify-content: center; }
+.chapter#umbrella { justify-content: center; padding-top: 84px; padding-bottom: 24px; }
+#umbrella .card { padding: 22px 28px 18px; }
+#umbrella .kicker { margin-bottom: 8px; }
+#umbrella h2 { font-size: clamp(22px, 2.3vw, 30px); }
+#umbrella .lede { margin: 8px 0 14px; font-size: 15px; }
+#umbrella .note { margin-top: 4px; }
 .umb > * { min-width: 0; }
-.umb { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.umb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 28px; align-items: start; }
 .umb-ctl label { display: block; font-size: 16px; color: var(--ink); margin-bottom: 8px; }
 .umb-ratio { display: inline-block; min-width: 2.6em; color: var(--accent); font: 700 22px var(--mono); text-shadow: 0 0 18px rgba(var(--accent-rgb), .6); }
 input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: none; cursor: pointer; }
@@ -260,21 +265,31 @@ input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; backgr
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%;
   background: #fff; border: 4px solid var(--accent); box-shadow: 0 0 16px rgba(var(--accent-rgb), .8); }
 input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--accent); }
-.umb-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.umb-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .umb-ex button { font: 500 12.5px var(--sans); color: var(--muted); background: var(--glass-2); border: 1px solid var(--edge);
   border-radius: 99px; padding: 5px 12px; cursor: pointer; }
 .umb-ex button span { font: 400 11px var(--mono); color: var(--faint); margin-left: 4px; }
 .umb-ex button:hover, .umb-ex button[aria-pressed="true"] { color: var(--ink-strong); border-color: rgba(var(--accent-rgb), .6); background: rgba(var(--accent-rgb), .1); }
-.umb-verdict { margin: 0 0 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(var(--tc), .45);
-  background: rgba(var(--tc), .08); display: grid; gap: 6px; min-height: 5.2em; }
+.umb-verdict { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(var(--tc), .45);
+  background: rgba(var(--tc), .08); display: grid; gap: 2px; }
 .umb-verdict.t0 { --tc: var(--t0); } .umb-verdict.t4 { --tc: var(--t4); }
-.umb-verdict b { color: rgb(var(--tc)); font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
-.umb-verdict span { font-size: 15px; line-height: 1.5; color: var(--ink-2, #b9c2cc); text-wrap: pretty; }
+.umb-verdict b { color: rgb(var(--tc)); font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
+.umb-verdict span { font-size: 14px; line-height: 1.4; color: var(--ink-2, #b9c2cc); text-wrap: pretty; }
 .umb-verdict em { font-style: normal; font-family: var(--mono); color: rgb(var(--tc)); font-weight: 600; }
-.umb-days { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; font-size: 14px; line-height: 1.45; }
+.umb-days { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 4px 12px; font-size: 13.5px; line-height: 1.4; }
 .umb-days .dl { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .6; padding-top: 2px; }
-.umb-days .dl.umb-tip { color: var(--accent); opacity: 1; }
+.umb-days .dl.you { color: var(--accent); opacity: 1; }
+.umb-days .dl.worse { color: rgb(var(--t0)); opacity: 1; }
 .umb-days b { font-family: var(--mono); font-weight: 600; }
+.umb-days-head { grid-column: 1 / 3; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.umb-days-head.umb-cost { grid-column: 3; }
+.umb-cost { text-align: right; font: 600 14px var(--mono); color: var(--ink); }
+.umb-cost.you { color: var(--accent); }
+.umb-cost.worse { color: rgb(var(--t0)); }
+.umb-days-head.umb-cost { font: 400 11px var(--sans); letter-spacing: .08em; color: var(--faint); cursor: help; }
+.umb-days-note { grid-column: 1 / -1; font-size: 11.5px; color: var(--faint); }
+.umb-rule { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.umb-rule b { color: var(--ink-strong); font-weight: 600; }
 
 /* Five ways of deciding, one bar each: shorter bar = cheaper. */
 .umb-bars { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--edge); }
@@ -295,15 +310,14 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 #umb-rows li.r-app.worse .r-cost { color: rgb(var(--t0)); }
 #umb-rows li.r-best .r-bar i { background: repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 6px, transparent 6px 9px); }
 #umb-rows li.r-perfect .r-bar i { background: rgba(var(--t3), .7); }
-.umb-chart-head { margin: 26px 0 0; font-size: 13px; }
+.umb-chart-head { margin: 14px 0 0; font-size: 13px; }
 .umb-chart-head b { color: var(--ink-strong); font-weight: 600; }
-.umb-chart { width: 100%; height: auto; margin-top: 10px; margin-bottom: 14px; overflow: visible; }
+.umb-chart { width: 100%; height: auto; margin-top: 4px; margin-bottom: 12px; overflow: visible; }
 .umb-chart .ax { stroke: rgba(255, 255, 255, .1); }
 .umb-chart .zero { stroke: rgba(255, 255, 255, .35); stroke-dasharray: 3 4; }
 .umb-chart .neg-zone { fill: rgba(255, 111, 97, .06); }
 .umb-chart text { fill: var(--faint); font: 400 10.5px var(--mono); }
 .umb-chart .l-follow { fill: none; stroke: var(--accent); stroke-width: 2.5; filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), .6)); }
-.umb-chart .l-best { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: .7; }
 .umb-chart .l-world { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: .6; }
 .umb-chart .cursor { stroke: rgba(255, 255, 255, .5); }
 .umb-chart .dot { fill: #fff; stroke: var(--accent); stroke-width: 3; }
@@ -425,6 +439,47 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 .g p { margin: 0 0 8px; font-size: 13.5px; color: var(--ink); }
 .g .g-care { color: var(--muted); padding-bottom: 6px; }
 .g-care .mono { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: rgb(var(--t2)); margin-right: 6px; }
+
+/* contact: a signature under the evidence, not a sales block. Three columns
+   so the card has no dead space: the portrait, the text at a readable
+   measure, and the links filling the right. */
+.ev.contact { display: grid; grid-template-columns: 205px minmax(0, 1fr) 230px; gap: 22px; align-items: start;
+  padding-block: 22px; }
+/* Square portrait level with the heading, faded out at the bottom into the
+   glass. A fixed shape, so a taller card at mid widths can't stretch it. */
+.contact-pic { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; object-position: 50% 0;
+  margin-top: 44px;   /* top of the head lines up with "Get in touch" */
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 98%);
+  mask-image: linear-gradient(180deg, #000 55%, transparent 98%); }
+.ev.contact .ev-head { margin-bottom: 6px; }
+.contact-who { margin: 0 0 8px; font-size: 16px; color: var(--ink-strong); }
+.contact-who .dim { font-size: 13.5px; }
+.contact-say { margin: 0 0 8px; font-size: 14.5px; color: var(--ink); text-wrap: pretty; }
+.contact-cv { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 3px; font-size: 14px; color: var(--ink); }
+.contact-cv li { position: relative; padding-left: 18px; }
+@media (min-width: 1201px) { .contact-cv li { white-space: nowrap; } }   /* one line each on desktop */
+.contact-cv li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), .7); }
+.contact-cta { align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  padding-left: 24px; border-left: 1px solid var(--edge); }
+.contact-cta .kicker { margin: 0; }
+.contact-ask { margin: 0 0 4px; font-size: 15px; line-height: 1.4; color: var(--ink-strong); }
+.contact-cta > .btn { text-align: center; padding: 10px 12px; }
+.contact-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.contact-links .btn { display: block; text-align: center; text-decoration: none; white-space: nowrap; padding-inline: 6px; }
+.contact-cta a.btn { text-decoration: none; }
+.btn.primary { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { color: var(--accent-ink); filter: brightness(1.1); }
+@media (max-width: 1060px) and (min-width: 861px) {
+  .ev.contact { grid-template-columns: 150px minmax(0, 1fr) 200px; gap: 22px; }
+}
+@media (max-width: 860px) {
+  /* The photo stands beside the heading and name; everything else gets the full width. */
+  .ev.contact { display: block; }
+  .contact-pic { float: left; width: 96px; height: 104px; margin: -4px 14px 4px -4px; border-radius: 10px; }
+  .contact-body > .ev-head, .contact-who { display: flow-root; }   /* keep the name block beside the photo, not wrapping under it */
+  .contact-cta { clear: both; padding: 16px 0 0; margin-top: 14px; border-left: 0; border-top: 1px solid var(--edge); }
+}
 
 /* ── Tooltip ───────────────────────────────────────────── */
 .tip { position: fixed; z-index: 50; max-width: 300px; padding: 12px 14px; border-radius: 12px; pointer-events: none;

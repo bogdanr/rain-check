@@ -117,16 +117,22 @@ def umbrella_all() -> dict:
     Besides the value curves, each city carries the plain day counts behind
     them - how many days you would have protected yourself and how many rainy
     days you would have been caught out - for the textbook rule (act when the
-    app's chance is at or above your cost ratio) and for the best cut-off.
-    The counts are recomputed from the daily series and checked against the
-    stored curve, so the page's "caught out 25 times" is the same arithmetic
-    as the value it plots.
+    forecast's chance is at or above your cost ratio). The counts are
+    recomputed from the daily series and checked against the stored curve,
+    so the page's "caught out 25 times" is the same arithmetic as the saving
+    it plots.
     """
     sys.path.insert(0, str(ROOT / "src"))
     from metrics import contingency_rates, value_curve
     d = pd.read_parquet(PROCESSED / "decision_value_curves.parquet")
-    w = d[d.source == "served_world"]
-    med = w.groupby("alpha")[["v_calibrated"]].median().reset_index()
+    w = d[d.source == "served_world"].copy()
+    # The page's score: the share of your bother that following the forecast
+    # saves against the best no-forecast habit, (habit - follow) / habit.
+    # Per day, habit = min(a, s) and perfect = a*s (src/metrics.py _value), so
+    # this is V * (habit - perfect) / habit - V rescaled with no "perfect" end.
+    hab = np.minimum(w.alpha, w.base_rate)
+    w["save"] = w.v_calibrated * (hab - w.alpha * w.base_rate) / hab
+    med = w.groupby("alpha")[["v_calibrated", "save"]].median().reset_index()
     grid = [_r(a, 2) for a in med.alpha]
     series = _served_series()
     per = {}
@@ -144,14 +150,18 @@ def umbrella_all() -> dict:
             h, f, m, _ = contingency_rates(p, e, np.asarray(thr, float))
             return ([int(round(v)) for v in (h + f) * n], [int(round(v)) for v in m * n])
         acted, missed = counts(c.alpha.to_numpy())
-        b_acted, b_missed = counts(c.envelope_threshold.to_numpy())
+        # The saving must be the page's own sum: (habit - acted - missed/a) / habit.
+        a_ = c.alpha.to_numpy()
+        habit = np.where(a_ * n <= e.sum(), n, e.sum() / a_)
+        sums = (habit - (np.array(acted) + np.array(missed) / a_)) / habit
+        if not np.allclose(sums, c.save, atol=0.01, equal_nan=True):
+            raise SystemExit(f"{name}: day counts do not reproduce the saving curve")
         per[name] = {"follow": [_r(v, 3) for v in c.v_calibrated],
-                     "best": [_r(v, 3) for v in c.v_envelope],
-                     "trigger": [_r(v, 2) for v in c.envelope_threshold],
+                     "save": [_r(v, 3) for v in c.save],
                      "n": n, "rainy": int(e.sum()),
-                     "acted": acted, "missed": missed,
-                     "b_acted": b_acted, "b_missed": b_missed}
+                     "acted": acted, "missed": missed}
     return {"world": {"alpha": grid, "follow": [_r(v, 3) for v in med.v_calibrated],
+                      "save": [_r(v, 3) for v in med.save],
                       "n": int(w.city.nunique())},
             "cities": per}
 
@@ -374,6 +384,8 @@ def stage_assets() -> None:
     a.mkdir(parents=True, exist_ok=True)
     for f in ("relief-elev.webp", "relief-biome.webp", "land.geo.json"):
         shutil.copy2(ROOT / "src" / "web" / "geo" / f, a / f)
+    for f in ("favicon.svg", "portrait.webp"):   # tab icon; contact-card photo
+        shutil.copy2(ROOT / "src" / "web" / f, a / f)
     for rel in ("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
                 "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",
                 "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2"):

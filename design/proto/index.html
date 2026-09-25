@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Atlas Noir prototype · How good is the Bucharest weather forecast?</title>
+<title>How good is the Bucharest weather forecast?</title>
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="proto.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="proto.css?v=2026-09-25b">
 </head>
 <body>
 <a class="skip" href="#hero">Skip to the report</a>
@@ -92,17 +93,18 @@
 <section id="umbrella" class="chapter" data-stage="dim">
   <div class="card wide rise">
     <p class="kicker">Chapter 2 · Is it useful to you?</p>
-    <h2>How cheap is your umbrella?</h2>
-    <p class="lede">A good score doesn't mean the app helps with <em>your</em> decision. Tell it how bad
-      getting caught in the rain is for you, and see what following the app would really have done in
-      <span data-k="name"></span> over the last <span data-k="umb_n"></span> days.</p>
+    <h2>Umbrella or not: does following the forecast pay off?</h2>
+    <p class="lede">The forecast is Open-Meteo’s daily chance of rain for <span data-k="name"></span>, the
+      number a weather app shows you. Say how much you mind getting wet; we replay the last
+      <span data-k="umb_n"></span> days.</p>
 
     <div class="umb">
       <div class="umb-ctl">
-        <label for="alpha">Getting caught is <b class="umb-ratio" id="umb-ratio"></b> as bad as protecting yourself</label>
+        <label for="alpha">Getting wet is <b class="umb-ratio" id="umb-ratio"></b> worse than protecting yourself</label>
         <input type="range" id="alpha" min="0" max="98" step="1" value="4"
                aria-describedby="umb-say">
         <div class="umb-ex" id="umb-ex"></div>
+        <p class="umb-rule" id="umb-rule"></p>
       </div>
       <div class="umb-out" aria-live="polite">
         <p class="umb-verdict" id="umb-say"></p>
@@ -112,12 +114,11 @@
     <p class="umb-none" id="umb-none" hidden>The decision-value curves were not computed for
       <b id="umb-none-name"></b>, so there is nothing honest to show here. Pick another city, or
       scroll on.</p>
-    <p class="umb-chart-head"><b>How much the app helps, for every kind of decision.</b>
-      <span class="dim">Higher is better. 100% = as good as knowing the future · 0% = no help at all ·
-      in the red = it makes things worse.</span></p>
-    <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 212" role="img"
-         aria-label="Value of following the forecast against the cost-loss ratio"></svg>
-    <p class="note mono">Relative economic value · source <code>served_world</code> in decision_value_curves ·
+    <p class="umb-chart-head"><b>Bother saved, across the slider.</b>
+      <span class="dim">The dot is you · 0% = no better than not checking · in the red = worse.</span></p>
+    <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 168" role="img"
+         aria-label="Share of bother saved by following the forecast, against how much worse getting wet is"></svg>
+    <p class="note mono">Saving = relative economic value rescaled to the no-forecast habit · source <code>served_world</code> in decision_value_curves ·
       <span data-k="name"></span> <span data-k="umb_n"></span> days · world median over
       <span data-k="umb_world"></span> cities · event: <span data-k="event"></span></p>
   </div>
@@ -154,6 +155,7 @@
     <nav class="ev-tabs" aria-label="Evidence sections">
       <a href="#ev-claims">Claims</a><a href="#ev-league">League table</a>
       <a href="#ev-methods">Methods</a><a href="#ev-gloss">Glossary</a>
+      <a href="#contact">Contact</a>
     </nav>
 
     <section class="ev" id="ev-claims" aria-labelledby="ev-claims-h">
@@ -196,6 +198,37 @@
       </section>
     </div>
 
+    <section class="ev contact" id="contact" aria-labelledby="contact-h">
+      <img class="contact-pic" src="assets/portrait.webp" width="380" height="363" loading="lazy"
+           decoding="async" alt="Bogdan Rădulescu">
+      <div class="contact-body">
+        <header class="ev-head"><h3 id="contact-h">Get in touch</h3></header>
+        <p class="contact-who"><b>Bogdan Rădulescu</b> <span class="dim">· Principal Architect, Cloud,
+          Infrastructure &amp; Security · Bucharest</span></p>
+        <p class="contact-say">This report is a side project. My day job: platforms that stay fast and
+          reliable under heavy traffic.</p>
+        <ul class="contact-cv">
+          <li>16 years scaling a high-traffic online game to ~200 cloud instances</li>
+          <li>PCI DSS payments, auctions for 9 national regulators, a global VPN fleet</li>
+          <li>AWS, Kubernetes, private cloud, and private AI inference in Rust</li>
+          <li>20 years of open source, Linux kernel patches included</li>
+        </ul>
+        <p class="contact-say">I also take on research like this: does a forecast, a model or a vendor’s
+          claim hold up against real data?</p>
+      </div>
+      <aside class="contact-cta" aria-label="Contact links">
+        <p class="kicker">Let’s talk</p>
+        <p class="contact-ask">A platform to scale, or a question worth measuring?</p>
+        <a class="btn primary" href="mailto:bogdan@nimblex.org">bogdan@nimblex.org</a>
+        <ul class="contact-links">
+          <li><a class="btn" href="https://www.linkedin.com/in/bogdanr" rel="me noopener">LinkedIn</a></li>
+          <li><a class="btn" href="https://github.com/bogdanr" rel="me noopener">GitHub</a></li>
+          <li><a class="btn" href="https://bogdan.nimblex.net/cv/" rel="me noopener">CV</a></li>
+          <li><a class="btn" href="https://github.com/bogdanr/rain-check" rel="noopener">Report code</a></li>
+        </ul>
+      </aside>
+    </section>
+
     <p class="note mono">Sky: every star to magnitude 7.5 at its real position and colour, from the
       HYG Database v4.1 (astronexus, CC BY-SA 4.0).</p>
   </div>
@@ -216,7 +249,9 @@
     <p class="pal-foot mono"><span>&uarr;&darr; move</span><span>enter open</span><span>or click any dot on the globe</span></p>
   </div>
 </dialog>
-<script src="stage.js"></script>
-<script src="proto.js"></script>
+<!-- Bump ?v= whenever the JS/CSS or the data shape changes, so a cached
+     old script never runs against new data.json / cities/*.json. -->
+<script src="stage.js?v=2026-09-25b"></script>
+<script src="proto.js?v=2026-09-25b"></script>
 </body>
 </html>
