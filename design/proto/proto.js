@@ -302,9 +302,21 @@
     var E = D.evidence;
     // Claims: one card each; the challenges fold open under a summary strip.
     var box = $('#claims'), tot = {};
-    E.claims.forEach(function (c, ci) {
+    // Two groups, so a single-city study never reads as a result for the selected city.
+    var GROUPS = [['all', 'Across all cities', 'The same whichever city you pick.'],
+                  ['case', 'Case study', 'Tests that need extra data (other rain sources, other gauges), run for one city only.']];
+    var gbox = {};
+    GROUPS.forEach(function (g) {
+      if (!E.claims.some(function (c) { return (c.group || 'all') === g[0]; })) return;
+      var h = document.createElement('h4'); h.className = 'cl-group';
+      h.innerHTML = esc(g[1]) + ' <span class="dim">' + esc(g[2]) + '</span>';
+      var wrap = document.createElement('div'); wrap.className = 'claims-g';
+      box.appendChild(h); box.appendChild(wrap); gbox[g[0]] = wrap;
+    });
+    var first = true;
+    E.claims.slice().sort(function (a, b) { return (a.group === 'case') - (b.group === 'case'); }).forEach(function (c) {
       var n = {}; c.challenges.forEach(function (x) { n[x.status] = (n[x.status] || 0) + 1; tot[x.status] = (tot[x.status] || 0) + 1; });
-      var d = document.createElement('details'); d.className = 'claim'; if (ci === 0) d.open = true;
+      var d = document.createElement('details'); d.className = 'claim'; if (first) { d.open = true; first = false; }
       var dots = c.challenges.map(function (x) { return '<i class="st ' + stClass(x.status) + '" title="' + esc(x.what + ': ' + ST[x.status]) + '"></i>'; }).join('');
       var tally = Object.keys(n).map(function (k) { return n[k] + ' ' + ST[k]; }).join(' \u00b7 ');
       // Intervals of all 'sig' challenges share one axis per claim, with 0 marked.
@@ -326,10 +338,11 @@
         '<span class="cl-text">' + esc(c.claim) + '</span>' +
         '<span class="cl-dots" aria-label="' + esc(tally) + '">' + dots + '</span>' +
         '<span class="cl-tally mono">' + esc(tally) + '</span><span class="cl-chev" aria-hidden="true"></span></summary>' +
+        (c.case_city ? '<p class="cl-case" data-case="' + esc(c.case_city) + '" hidden></p>' : '') +
         (c.stat ? '<p class="cl-stat mono">' + esc(c.stat) + ' \u00b7 95% interval, bar axis includes 0</p>' : '') +
         '<ul class="ch">' + rows + '</ul>' +
         '<p class="cl-src mono">source <code>' + esc(c.source) + '</code></p>';
-      box.appendChild(d);
+      gbox[c.group || 'all'].appendChild(d);
     });
     var nch = E.claims.reduce(function (s, c) { return s + c.challenges.length; }, 0);
     $('#ev-claims-sum').textContent = E.claims.length + ' claims \u00b7 ' + nch + ' challenges \u00b7 ' +
@@ -382,7 +395,17 @@
       $('#lg-n').textContent = list.length + ' of ' + rows.length + ' cities \u00b7 sorted by ' +
         (COLS.filter(function (c) { return c[0] === sortK; })[0] || [0, sortK])[1].toLowerCase() + ' \u00b7 source cities_metrics \u00b7 event: ' + D.event;
     }
-    evidence.redraw = draw;
+    // Case-study note follows the selected city.
+    function caseNote() {
+      $$('.cl-case', box).forEach(function (p) {
+        var other = S.h && S.h.name !== p.dataset.case;
+        p.hidden = !other;
+        if (other) p.innerHTML = 'This test was run for <b>' + esc(p.dataset.case) + '</b> only, not for ' + esc(S.h.name) +
+          '. ' + esc(S.h.name) + '\u2019s own score and range are in the verdict card and the league table below.';
+      });
+    }
+    evidence.redraw = function () { draw(); caseNote(); };
+    caseNote();
     function open(tr) { if (tr && tr.dataset.slug && tr.dataset.slug !== S.h.slug) { select(tr.dataset.slug); scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); } }
     tbody.addEventListener('click', function (e) { open(e.target.closest('tr')); });
     tbody.addEventListener('keydown', function (e) { if (e.key === 'Enter') open(e.target.closest('tr')); });

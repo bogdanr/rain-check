@@ -208,7 +208,9 @@ def evidence(idx: list[list]) -> dict:
         ch.append({"what": r.variant, "status": "held" if held else "flipped",
                    "detail": f"\u201c{r.top_bin_stated:.0%}\u201d rained {r.top_bin_observed:.0%} \u00b7 "
                              f"\u201c{r.bot_bin_stated:.1%}\u201d rained {r.bot_bin_observed:.1%} \u00b7 skill {r.bss:.2f}"})
-    claims.append({"id": "overconfident", "scope": "Bucharest",
+    # robustness.parquet has no city column: the study was run for the case-study
+    # city only (src/config.py CITIES), so the claim is labelled as such.
+    claims.append({"id": "overconfident", "scope": "Bucharest only", "group": "case", "case_city": "Bucharest",
                    "claim": "The forecast is overconfident at both ends: its surest \u201cyes\u201d and surest \u201cno\u201d are both too sure.",
                    "source": "robustness", "challenges": ch})
 
@@ -231,7 +233,7 @@ def evidence(idx: list[list]) -> dict:
     ch.append({"what": "truth: a different gauge nearby", "status": "held" if not tr.sign_flips.any() else "weakened",
                "detail": f"sign flips at {int(tr.sign_flips.sum())} of {len(tr)} alternative gauges "
                          f"in {tr.city.nunique()} cities"})
-    claims.append({"id": "served-accuracy", "scope": f"{int(b1.n_cities)} cities",
+    claims.append({"id": "served-accuracy", "group": "all", "scope": f"{int(b1.n_cities)} cities",
                    "claim": "The number the app shows is more accurate than the raw ensemble it could have been built from.",
                    "source": "significance_headline", "stat": "Brier difference, served \u2212 ensemble (lower = served better)",
                    "challenges": ch})
@@ -242,7 +244,7 @@ def evidence(idx: list[list]) -> dict:
     a50 = row("value_diff_a50")
     ch.append({"what": "a costly action instead (1 in 2)", "status": "limit",
                "sig": _sig(a50), "detail": "the harm is confined to cheap actions: here the served number is ahead"})
-    claims.append({"id": "cheap-harm", "scope": f"{int(b1.n_cities)} cities",
+    claims.append({"id": "cheap-harm", "group": "all", "scope": f"{int(b1.n_cities)} cities",
                    "claim": "For someone acting on cheap precautions (1 in 20), the number the app shows is worse than the raw ensemble.",
                    "source": "significance_headline", "stat": "Value difference, served \u2212 ensemble (negative = served worse)",
                    "challenges": ch})
@@ -250,7 +252,7 @@ def evidence(idx: list[list]) -> dict:
     # 4. Low forecasts under-state rain, worldwide (sec_world wb_html).
     wb = pd.read_parquet(PROCESSED / "cities_wet_bias.parquet")
     out = wb[~wb.eu]
-    claims.append({"id": "low-end", "scope": f"{len(wb)} cities",
+    claims.append({"id": "low-end", "group": "all", "scope": f"{len(wb)} cities",
                    "claim": "Low rain chances are too low: on \u201cunlikely\u201d days it rains more often than stated.",
                    "source": "cities_wet_bias", "challenges": [
                        {"what": "all cities", "status": "held",
@@ -272,7 +274,7 @@ def evidence(idx: list[list]) -> dict:
                    "status": "held" if sc == sw else ("new" if sw else "failed"),
                    "detail": f"{int(r.n_c)} capitals r {r.corr_c:+.2f} (p {r.p_perm_c:.3f}) \u2192 "
                              f"{int(r.n_w)} cities r {r.corr_w:+.2f} (p {r.p_perm_w:.3f})"})
-    claims.append({"id": "drivers", "scope": f"{int(j.n_c.iloc[0])} \u2192 {int(j.n_w.iloc[0])} cities",
+    claims.append({"id": "drivers", "group": "all", "scope": f"{int(j.n_c.iloc[0])} \u2192 {int(j.n_w.iloc[0])} cities",
                    "claim": "What the capitals suggested drives forecast skill, re-tested on every city.",
                    "source": "capitals_drivers, cities_drivers", "challenges": ch})
 
