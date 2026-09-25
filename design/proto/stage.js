@@ -160,134 +160,73 @@
 
   function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
-  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-
-  /* The sky: painted once per size into a 2D canvas, never per frame.
-   * Stars follow a steep magnitude law (most faint, a few bright) and real
-   * colour temperatures (O/B blue-white to K/M orange). A faint Milky Way
-   * band with a dust lane crosses the field. Seeded, so every load and every
-   * screenshot shows the same sky. Pure decoration: it never carries data
-   * and sits under glass cards, so it cannot touch text contrast. */
-  var STAR_COL = [[155, 176, 255], [170, 191, 255], [202, 215, 255], [236, 240, 255],
-                  [248, 247, 255], [255, 244, 234], [255, 222, 180], [255, 204, 140]];
-  var STAR_W = [4, 6, 10, 14, 16, 10, 6, 3];
-  function starColour(rnd) {
-    var s = 0, i, r = rnd() * 69;
-    for (i = 0; i < STAR_W.length; i++) { s += STAR_W[i]; if (r < s) return STAR_COL[i]; }
-    return STAR_COL[4];
-  }
-
-  function paintSky(cv) {
-    var dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
-    if (!W || !H) return;
-    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-    var g = cv.getContext('2d'), rnd = mulberry(20260925), i;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, W, H);
-    var D = Math.max(W, H);
-    // The band: a gentle arc from lower left to upper right.
-    function band(t) { return [W * (-0.1 + 1.2 * t), H * (0.92 - 0.86 * t) + Math.sin(t * 3.1) * H * 0.07]; }
-    function blob(x, y, r, rgb, al) {
-      var gr = g.createRadialGradient(x, y, 0, x, y, r);
-      gr.addColorStop(0, 'rgba(' + rgb + ',' + al + ')'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
-      g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
-    }
-    g.globalCompositeOperation = 'lighter';
-    // Milky Way glow: many soft overlapping clouds along the spine, a bright
-    // core near the middle, blue-white with violet and a warm core tint.
-    for (i = 0; i < 70; i++) {
-      var t = rnd(), p = band(t), k = rnd(), core = Math.exp(-Math.pow((t - 0.55) / 0.22, 2));
-      blob(p[0] + (rnd() - .5) * D * .08, p[1] + (rnd() - .5) * D * .08, (0.05 + rnd() * 0.13) * D,
-           k < 0.55 ? '90,140,255' : k < 0.82 ? '160,110,255' : '255,180,130',
-           (0.022 + rnd() * 0.03 + core * 0.035).toFixed(3));
-    }
-    // Two faint nebulae well away from the band, for colour.
-    blob(W * 0.12, H * 0.2, D * 0.2, '40,190,255', 0.05); blob(W * 0.16, H * 0.24, D * 0.1, '120,90,255', 0.05);
-    blob(W * 0.9, H * 0.82, D * 0.18, '255,80,160', 0.035); blob(W * 0.86, H * 0.78, D * 0.08, '255,140,120', 0.04);
-    // Dust lane: carve a darker, broken streak just off the band's spine.
-    g.globalCompositeOperation = 'destination-out';
-    for (i = 0; i < 60; i++) {
-      var tt = rnd(), q = band(tt);
-      blob(q[0] + D * 0.01, q[1] + D * 0.016, (0.012 + rnd() * 0.035) * D, '0,0,0', (0.3 + rnd() * 0.35).toFixed(2));
-    }
-    g.globalCompositeOperation = 'lighter';
-    function star(x, y, m) {
-      // m in 0..1 is brightness. Even the faintest star is a visible dot
-      // (0.55 px radius, 35% alpha); the brightest carry a halo and spikes.
-      var c = starColour(rnd), r = 0.55 + m * m * 1.9, al = Math.min(1, 0.35 + m * 0.75);
-      if (m > 0.6) blob(x, y, r * 6, c.join(','), (al * 0.28).toFixed(3));
-      g.fillStyle = 'rgba(' + c.join(',') + ',' + al.toFixed(3) + ')';
-      g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
-      if (m > 0.9) {                            // the brightest few get diffraction spikes
-        var L = r * 11;
-        [[1, 0], [0, 1]].forEach(function (d) {
-          var gr = g.createLinearGradient(x - d[0] * L, y - d[1] * L, x + d[0] * L, y + d[1] * L);
-          gr.addColorStop(0, 'rgba(' + c + ',0)'); gr.addColorStop(.5, 'rgba(' + c + ',' + (al * .7).toFixed(2) + ')');
-          gr.addColorStop(1, 'rgba(' + c + ',0)');
-          g.strokeStyle = gr; g.lineWidth = 0.9; g.beginPath();
-          g.moveTo(x - d[0] * L, y - d[1] * L); g.lineTo(x + d[0] * L, y + d[1] * L); g.stroke();
-        });
-      }
-    }
-    var nField = Math.round(W * H / 1500), nBand = Math.round(W * H / 450);
-    for (i = 0; i < nField; i++) star(rnd() * W, rnd() * H, Math.pow(rnd(), 2.6));
-    for (i = 0; i < nBand; i++) {                // band stars: dense, gaussian across the spine
-      var b = band(rnd()), gs = (rnd() + rnd() + rnd() - 1.5) * D * 0.055;
-      star(b[0] + gs * 0.45, b[1] + gs, Math.pow(rnd(), 3.5) * 0.85);
-    }
-    g.globalCompositeOperation = 'source-over';
-  }
-
-  /* A handful of twinkling stars and a rare meteor, as DOM nodes animated by
-   * CSS on the compositor, so the expensive globe never redraws for them. */
-  function liveSky(host) {
-    var rnd = mulberry(7), i, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    for (i = 0; i < 60; i++) {
-      var s = document.createElement('i'), c = starColour(rnd);
-      s.className = 'tw';
-      s.style.cssText = 'left:' + (rnd() * 100).toFixed(2) + '%;top:' + (rnd() * 100).toFixed(2) + '%;' +
-        '--c:rgb(' + c + ');--s:' + (1.8 + rnd() * 2.2).toFixed(1) + 'px;' +
-        'animation-duration:' + (2.8 + rnd() * 4.5).toFixed(2) + 's;animation-delay:-' + (rnd() * 7).toFixed(2) + 's';
-      host.appendChild(s);
-    }
-    if (reduce) return;
-    (function meteor() {
-      setTimeout(function () {
-        if (!document.hidden) {
-          var m = document.createElement('b');
-          m.className = 'meteor';
-          m.style.left = (15 + Math.random() * 70) + '%';
-          m.style.top = (5 + Math.random() * 40) + '%';
-          m.style.setProperty('--a', (18 + Math.random() * 22).toFixed(0) + 'deg');
-          host.appendChild(m);
-          m.addEventListener('animationend', function () { m.remove(); });
-        }
-        meteor();
-      }, 5000 + Math.random() * 10000);
-    })();
-  }
+  /* The sky is the real one: catalogue stars (HYG v4.1, to magnitude 7,
+   * packed by export.py) at the ground longitude they stood over at 00:00
+   * UTC on the data date. They go through the same camera rotation as the
+   * globe and a pinhole projection behind it, so orbiting the Earth turns
+   * the sky with it. Size and brightness follow magnitude; colour is the
+   * star's own B-V tint. Nothing is drawn that is not a real star. */
+  var SVS = [
+    '#version 300 es',
+    'in vec2 aPos; in vec3 aCol; in float aMag;',
+    'uniform float uLon0, uLat0, uF, uDpr, uFade;',
+    'uniform vec2 uRes;',
+    'out vec3 vCol; out float vA; out float vPx; out float vGlow; out float vDpr;',
+    'void main(){',
+    '  float lon = aPos.x * 3.14159265, lat = aPos.y * 1.5707963, dl = lon - uLon0;',
+    '  float sl = sin(uLat0), cl = cos(uLat0);',
+    '  vec3 d = vec3(cos(lat) * sin(dl), cl * sin(lat) - sl * cos(lat) * cos(dl), sl * sin(lat) + cl * cos(lat) * cos(dl));',
+    // Only the half of the sky behind the Earth, seen from the camera.
+    '  if (d.z > -0.05){ gl_Position = vec4(2.0, 2.0, 0.0, 1.0); gl_PointSize = 0.0; return; }',
+    '  vec2 s = d.xy / -d.z * uF;',
+    '  gl_Position = vec4(s / (uRes * 0.5), 0.0, 1.0);',
+    '  float m = aMag * 9.0 - 1.5;',
+    '  float flux = pow(10.0, -0.4 * (m - 3.0));',             // 1 at magnitude 3
+    // Faint stars are a whisper (their density is what draws the Milky Way);
+    // the brightest few hundred carry the picture.
+    '  vA = clamp(0.07 + 0.8 * sqrt(flux), 0.0, 1.0) * uFade;',
+    // Only stars brighter than about magnitude 3 carry a soft glow; its
+    // radius grows with flux. The sprite is sized to hold it, never spikes.
+    '  vGlow = clamp(sqrt(flux) - 1.0, 0.0, 3.0);',
+    '  vDpr = uDpr;',
+    '  vPx = (4.0 + 6.0 * vGlow) * uDpr;',
+    '  gl_PointSize = vPx;',
+    '  vCol = aCol;',
+    '}'
+  ].join('\n');
+  var SFS = [
+    '#version 300 es',
+    'precision mediump float;',
+    'in vec3 vCol; in float vA; in float vPx; in float vGlow; in float vDpr; out vec4 o;',
+    'void main(){',
+    // Distance from the star centre in CSS pixels, so the core is about one
+    // pixel wide whatever the sprite size.
+    '  float d = length(gl_PointCoord - 0.5) * vPx / vDpr;',
+    '  float core = exp(-d * d / (1.3 + 0.5 * min(vGlow, 1.0)));',
+    '  float gs = 1.0 + 2.2 * vGlow;',
+    '  float glow = vGlow > 0.0 ? 0.3 * exp(-d * d / (gs * gs)) : 0.0;',
+    '  float a = min(1.0, vA * (core + glow));',
+    '  o = vec4(vCol * a, a);',
+    '}'
+  ].join('\n');
 
   function Stage(canvas, svg, opts) {
     this.c = canvas; this.svg = svg; this.opts = opts;
     this.cam = { lon: 26, lat: 30, k: 0.4, cx: 0.68, cy: 0.52, dim: 0 };
     this.from = null; this.to = null; this.t0 = 0; this.dur = 900;
     this.spin = 0; this.dirty = true; this.markers = [];
-    this.sky = opts.sky || null;
-    if (this.sky) {
-      var skyCv = this.sky.querySelector('canvas'), rt = 0;
-      paintSky(skyCv); liveSky(this.sky);
-      addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { paintSky(skyCv); }, 150); });
-    }
     var gl = this.gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true });
     if (!gl) { this.failed = true; return; }
-    this.prog = this._program();
+    this.prog = this._program(VS, FS);
+    this.vaoGlobe = gl.createVertexArray();
+    gl.bindVertexArray(this.vaoGlobe);
     var buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     var loc = gl.getAttribLocation(this.prog, 'p');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
     this.u = {};
     var self = this;
     ['uElev', 'uBio', 'uRes', 'uCtr', 'uTex', 'uR', 'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp',
@@ -298,13 +237,14 @@
     gl.uniform3f(this.u.uDisp, 100 / RE, 20 * Math.sqrt(TOP_M) / RE, 20 * TOP_M / RE);
     this.hasTex = 0;
     this._loadTextures();
+    this._loadStars();
     this.readTheme();
     this._bindDrag();
     canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); self.failed = true; self.opts.onFail && self.opts.onFail(); });
     requestAnimationFrame(function f(now) { self._frame(now); requestAnimationFrame(f); });
   }
 
-  Stage.prototype._program = function () {
+  Stage.prototype._program = function (vs, fs) {
     var gl = this.gl;
     function sh(type, src) {
       var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
@@ -312,12 +252,35 @@
       return s;
     }
     var p = gl.createProgram();
-    gl.attachShader(p, sh(gl.VERTEX_SHADER, VS));
-    gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS));
+    gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
     gl.useProgram(p);
     return p;
+  };
+
+  /* 8 bytes a star: int16 lon/pi, int16 lat/(pi/2), rgb, magnitude byte. */
+  Stage.prototype._loadStars = function () {
+    var gl = this.gl, self = this;
+    if (!this.opts.stars) return;
+    fetch(this.opts.stars).then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+      var p = self.sprog = self._program(SVS, SFS);
+      self.su = {};
+      ['uLon0', 'uLat0', 'uF', 'uDpr', 'uFade', 'uRes'].forEach(function (n) { self.su[n] = gl.getUniformLocation(p, n); });
+      self.vaoStars = gl.createVertexArray();
+      gl.bindVertexArray(self.vaoStars);
+      var b = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, b);
+      gl.bufferData(gl.ARRAY_BUFFER, ab, gl.STATIC_DRAW);
+      function at(name, n, type, off) {
+        var l = gl.getAttribLocation(p, name); gl.enableVertexAttribArray(l);
+        gl.vertexAttribPointer(l, n, type, true, 8, off);
+      }
+      at('aPos', 2, gl.SHORT, 0); at('aCol', 3, gl.UNSIGNED_BYTE, 4); at('aMag', 1, gl.UNSIGNED_BYTE, 7);
+      gl.bindVertexArray(null);
+      self.nStars = ab.byteLength / 8; self.dirty = true;
+    }).catch(function () { /* no stars: space stays black */ });
   };
 
   Stage.prototype._loadTextures = function () {
@@ -473,17 +436,6 @@
     this.dirty = false;
     this._draw();
     this._drawMarkers();
-    this._parallax();
-  };
-
-  /* The sky drifts a little with the camera (bounded, so a spinning globe
-   * rocks it gently instead of scrolling it away) and dims with the stage. */
-  Stage.prototype._parallax = function () {
-    if (!this.sky) return;
-    var c = this.cam, s = 1 + (c.k - 0.45) * 0.05;
-    var dx = -Math.sin(c.lon * DEG) * innerWidth * 0.022, dy = c.lat / 90 * innerHeight * 0.03;
-    this.sky.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')';
-    this.sky.style.opacity = (1 - c.dim * 0.7).toFixed(3);
   };
 
   Stage.prototype._draw = function () {
@@ -493,6 +445,21 @@
     if (this.c.width !== w || this.c.height !== h) { this.c.width = w; this.c.height = h; }
     gl.viewport(0, 0, w, h);
     var c = this.cam, u = this.u, R = this._radius() * dpr;
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // premultiplied
+    // Stars first; the globe (opaque where it covers, glow elsewhere) on top.
+    if (this.nStars) {
+      var su = this.su;
+      gl.useProgram(this.sprog); gl.bindVertexArray(this.vaoStars);
+      gl.uniform1f(su.uLon0, c.lon * DEG); gl.uniform1f(su.uLat0, c.lat * DEG);
+      // A 100-degree field across the wider side of the window: wide enough
+      // that the frame holds a real night's worth of stars, not a keyhole.
+      gl.uniform1f(su.uF, Math.max(w, h) / 2 / Math.tan(50 * DEG));
+      gl.uniform1f(su.uDpr, dpr); gl.uniform1f(su.uFade, 1 - c.dim * 0.75);
+      gl.uniform2f(su.uRes, w, h);
+      gl.drawArrays(gl.POINTS, 0, this.nStars);
+    }
+    gl.useProgram(this.prog); gl.bindVertexArray(this.vaoGlobe);
     gl.uniform2f(u.uRes, w, h);
     gl.uniform2f(u.uCtr, c.cx * w, h - c.cy * h);
     gl.uniform1f(u.uR, R);

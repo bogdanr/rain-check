@@ -340,7 +340,7 @@
     if (!window.WebGL2RenderingContext) { document.body.classList.add('nogl'); return null; }
     var C = D.coverage;
     var st = new AtlasStage($('#stage'), $('#marks'), {
-      elev: 'assets/relief-elev.webp', biome: 'assets/relief-biome.webp', dragTarget: $('#stage-hit'), sky: $('#sky'),
+      elev: 'assets/relief-elev.webp', biome: 'assets/relief-biome.webp', dragTarget: $('#stage-hit'), stars: 'assets/stars.bin',
       onFail: function () { document.body.classList.add('nogl'); },
       onPick: function (m) { if (m.slug !== S.h.slug) select(m.slug); },
       onHover: globeTip

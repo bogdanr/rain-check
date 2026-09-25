@@ -9,6 +9,7 @@ Reads:   dist/data/cities-index.*.json, dist/data/cities/<slug>.*.json
          data/processed/decision_value_curves.parquet
          data/processed/country_coverage.parquet
          data/raw/cities15000.txt            (capital coordinates only)
+         data/raw/hygdata_v41.csv            (star catalogue, HYG v4.1, CC BY-SA 4.0)
 Writes:  design/proto/data.json              (index, world numbers, tiers)
          design/proto/cities/<slug>.json     (one per city, loaded on demand)
          design/proto/assets/                (all git-ignored)
@@ -24,8 +25,10 @@ import json
 import re
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -135,6 +138,43 @@ def tiers() -> list[list]:
             for hi, label, _frag, tone in _TIERS]
 
 
+STAR_MAG_LIMIT = 7.5     # past the naked-eye limit, so the Milky Way shows by density
+
+
+def _bv_rgb(bv: np.ndarray) -> np.ndarray:
+    """B-V colour index -> sRGB, via Ballesteros' temperature and a blackbody
+    fit, then pulled 55% toward white: real star colour is a tint, not paint."""
+    bv = np.clip(np.nan_to_num(bv, nan=0.6), -0.4, 2.0)
+    t = 4600 * (1 / (0.92 * bv + 1.7) + 1 / (0.92 * bv + 0.62)) / 100
+    r = np.where(t <= 66, 255, 329.7 * (t - 60).clip(1e-6) ** -0.1332)
+    g = np.where(t <= 66, 99.47 * np.log(t) - 161.1, 288.1 * (t - 60).clip(1e-6) ** -0.0755)
+    b = np.where(t >= 66, 255, np.where(t <= 19, 0, 138.5 * np.log((t - 10).clip(1e-6)) - 305.0))
+    rgb = np.stack([r, g, b], 1).clip(0, 255)
+    return rgb + (255 - rgb) * 0.55
+
+
+def stars(as_of: str) -> int:
+    """The real sky for the stage: every catalogue star to STAR_MAG_LIMIT.
+
+    Right ascension is turned into the longitude the star stands over at
+    00:00 UTC on the data date (Greenwich mean sidereal time), so the sky
+    behind the globe is the sky that was really there. Packed as 8 bytes a
+    star: int16 lon/pi, int16 lat/(pi/2), uint8 r, g, b, magnitude.
+    """
+    d = pd.read_csv(ROOT / "data" / "raw" / "hygdata_v41.csv", usecols=["id", "ra", "dec", "mag", "ci"])
+    d = d[(d.id > 0) & (d.mag <= STAR_MAG_LIMIT)].sort_values("mag")
+    jd = date.fromisoformat(as_of).toordinal() + 1721424.5       # 00:00 UTC
+    gmst = (280.46061837 + 360.98564736629 * (jd - 2451545.0)) % 360
+    lon = (d.ra.to_numpy() * 15 - gmst + 180) % 360 - 180
+    q = np.empty(len(d), dtype=[("lon", "<i2"), ("lat", "<i2"), ("rgb", "u1", 3), ("mag", "u1")])
+    q["lon"] = np.round(lon / 180 * 32767)
+    q["lat"] = np.round(d.dec.to_numpy() / 90 * 32767)
+    q["rgb"] = np.round(_bv_rgb(d.ci.to_numpy()))
+    q["mag"] = np.round((d.mag.to_numpy().clip(-1.5, 7.5) + 1.5) / 9.0 * 255)
+    (PROTO / "assets" / "stars.bin").write_bytes(q.tobytes())
+    return len(d)
+
+
 def stage_assets() -> None:
     a = PROTO / "assets"
     a.mkdir(parents=True, exist_ok=True)
@@ -171,9 +211,10 @@ def main() -> None:
             "as_of": max(lasts), "tiers": tiers()}
     (PROTO / "data.json").write_text(json.dumps(data, separators=(",", ":")))
     stage_assets()
+    n_stars = stars(data["as_of"])
     print(f"wrote {PROTO / 'data.json'} and {len(idx)} city files "
           f"({no_curve} without decision curves), "
-          f"{len(data['coverage']['countries'])} countries")
+          f"{len(data['coverage']['countries'])} countries, {n_stars} stars")
 
 
 if __name__ == "__main__":
