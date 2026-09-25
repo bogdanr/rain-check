@@ -223,7 +223,7 @@
   function makeStage(D, h, C) {
     if (!window.WebGL2RenderingContext) { document.body.classList.add('nogl'); return null; }
     var st = new AtlasStage($('#stage'), $('#marks'), {
-      elev: 'assets/relief-elev.webp', biome: 'assets/relief-biome.webp', dragTarget: $('#stage-hit'),
+      elev: 'assets/relief-elev.webp', biome: 'assets/relief-biome.webp', dragTarget: $('#stage-hit'), sky: $('#sky'),
       onFail: function () { document.body.classList.add('nogl'); }
     });
     if (st.failed) { document.body.classList.add('nogl'); return null; }
@@ -240,7 +240,9 @@
     st.shots = function () {
       var m = innerWidth <= 860;
       return {
-        city:         m ? { lon: h.lon, lat: h.lat - 8, k: .46, cx: .5, cy: .30, dim: .1 } : { lon: h.lon - 6, lat: h.lat - 10, k: .47, cx: .70, cy: .54, dim: 0 },
+        // First view: 8% smaller than before so the whole disc, south pole and
+        // displaced relief included, sits inside the viewport with a margin.
+        city:         m ? { lon: h.lon, lat: h.lat - 8, k: .425, cx: .5, cy: .30, dim: .1 } : { lon: h.lon - 6, lat: h.lat - 10, k: .43, cx: .70, cy: .525, dim: 0 },
         'city-close': m ? { lon: h.lon, lat: h.lat, k: .8, cx: .5, cy: .34, dim: .1 }  : { lon: h.lon + 4, lat: h.lat - 2, k: .82, cx: .33, cy: .56, dim: 0, dur: 1500 },
         dim:          { lon: h.lon + 35, lat: 22, k: m ? .6 : .62, cx: .5, cy: .56, dim: .74, spin: .03 },
         world:        m ? { lon: 20, lat: 12, k: .44, cx: .5, cy: .30, dim: .05, spin: .02 } : { lon: 22, lat: 14, k: .45, cx: .32, cy: .54, dim: 0, spin: .02, dur: 1500 },

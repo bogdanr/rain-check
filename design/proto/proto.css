@@ -52,6 +52,24 @@ body {
 /* ── Stage ─────────────────────────────────────────────── */
 #stage, #marks, #stage-hit, .vignette { position: fixed; inset: 0; width: 100vw; height: 100vh; }
 #stage { z-index: 0; display: block; }
+/* The sky sits under the (transparent) globe canvas. Oversized a little so
+   its parallax drift never shows an edge. */
+#sky { position: fixed; z-index: 0; inset: -4vh -4vw; pointer-events: none; will-change: transform, opacity;
+  background: radial-gradient(90% 70% at 20% 85%, rgba(40, 70, 150, .10), transparent 60%),
+              radial-gradient(70% 60% at 85% 10%, rgba(90, 60, 160, .07), transparent 60%), var(--ground); }
+#sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#sky .tw { position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c); opacity: .15; animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: .12; transform: scale(.7); } 50% { opacity: .95; transform: scale(1.15); } }
+#sky .meteor { position: absolute; width: 180px; height: 1.5px; border-radius: 1px; transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(200, 230, 255, .9));
+  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .8)); opacity: 0;
+  animation: meteor 1.1s cubic-bezier(.3, .1, .6, 1) forwards; }
+@keyframes meteor {
+  0% { opacity: 0; transform: rotate(var(--a)) translateX(0) scaleX(.3); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(320px) scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { #sky .tw { animation: none; opacity: .6; } }
 #marks { z-index: 1; pointer-events: none; overflow: visible; }
 #stage-hit { z-index: 1; cursor: grab; }
 #stage-hit.grabbing { cursor: grabbing; }

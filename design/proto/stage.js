@@ -59,14 +59,14 @@
     'void main(){',
     '  vec2 q = (gl_FragCoord.xy - uCtr) / uR;',
     '  float rho2 = dot(q, q), rho = sqrt(rho2);',
-    // Space: stars and a thin atmosphere hugging the limb.
+    // Space is transparent: the star sky is its own layer underneath. Only the
+    // thin atmosphere is drawn here, as premultiplied light with alpha 0, so
+    // it adds to the stars instead of covering them.
     '  float a = max(rho - 1.0, 0.0);',
     '  float halo = exp(-a * 70.0) * 0.28 + exp(-a * 14.0) * 0.045;',
-    '  vec2 sp = floor(gl_FragCoord.xy / 2.0);',
-    '  float star = step(0.9975, hash(sp)) * hash(sp + 7.0) * 0.55 * step(1.0, rho);',
-    '  vec3 bg = cGround + cAtmo * halo * (1.0 - uDim * 0.5) + vec3(star);',
+    '  vec3 bg = cAtmo * halo * (1.0 - uDim * 0.5);',
     '  float top = uHasTex > 0.5 ? uDisp.z : 0.0, RM = 1.0 + top;',
-    '  if (rho2 >= RM * RM){ o = vec4(bg, 1.0); return; }',
+    '  if (rho2 >= RM * RM){ o = vec4(bg, 0.0); return; }',
     // March the view ray (orthographic, along -z) through the relief shell.
     '  float zT = sqrt(RM * RM - rho2);',
     '  float zB = rho2 < 1.0 ? sqrt(1.0 - rho2) : -zT;',
@@ -94,7 +94,7 @@
     // A near miss is partial coverage: antialiasing for the silhouette.
     '    if (cov < 1.0) cov = 1.0 - smoothstep(0.0, 1.2 / uR, best);',
     '  }',
-    '  if (cov <= 0.0){ o = vec4(bg, 1.0); return; }',
+    '  if (cov <= 0.0){ o = vec4(bg, 0.0); return; }',
     '  float lat; vec2 uv = uvOf(n, lat);',
     '  vec3 col;',
     '  float sph = max(dot(n, normalize(vec3(-0.42, 0.46, 0.78))), 0.0);',
@@ -142,7 +142,7 @@
     '  }',
     '  col += cAtmo * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0) * 0.22;',  // thin limb haze
     '  col = mix(col, cGround, uDim);',                       // stage dims behind reading
-    '  o = vec4(mix(bg, col, cov), 1.0);',
+    '  o = vec4(col * cov + bg * (1.0 - cov), cov);',
     '}'
   ].join('\n');
 
@@ -160,12 +160,118 @@
 
   function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* The sky: painted once per size into a 2D canvas, never per frame.
+   * Stars follow a steep magnitude law (most faint, a few bright) and real
+   * colour temperatures (O/B blue-white to K/M orange). A faint Milky Way
+   * band with a dust lane crosses the field. Seeded, so every load and every
+   * screenshot shows the same sky. Pure decoration: it never carries data
+   * and sits under glass cards, so it cannot touch text contrast. */
+  var STAR_COL = [[155, 176, 255], [170, 191, 255], [202, 215, 255], [236, 240, 255],
+                  [248, 247, 255], [255, 244, 234], [255, 222, 180], [255, 204, 140]];
+  var STAR_W = [4, 6, 10, 14, 16, 10, 6, 3];
+  function starColour(rnd) {
+    var s = 0, i, r = rnd() * 69;
+    for (i = 0; i < STAR_W.length; i++) { s += STAR_W[i]; if (r < s) return STAR_COL[i]; }
+    return STAR_COL[4];
+  }
+
+  function paintSky(cv) {
+    var dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
+    if (!W || !H) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    var g = cv.getContext('2d'), rnd = mulberry(20260925), i;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    var D = Math.max(W, H);
+    // The band: a gentle arc from lower left to upper right.
+    function band(t) { return [W * (-0.1 + 1.2 * t), H * (0.92 - 0.86 * t) + Math.sin(t * 3.1) * H * 0.07]; }
+    function blob(x, y, r, rgb, al) {
+      var gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, 'rgba(' + rgb + ',' + al + ')'); gr.addColorStop(1, 'rgba(' + rgb + ',0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+    }
+    g.globalCompositeOperation = 'lighter';
+    for (i = 0; i < 34; i++) {
+      var t = rnd(), p = band(t), k = rnd();
+      blob(p[0] + (rnd() - .5) * D * .06, p[1] + (rnd() - .5) * D * .06, (0.08 + rnd() * 0.16) * D,
+           k < 0.62 ? '80,130,255' : k < 0.85 ? '150,100,255' : '255,160,110', (0.012 + rnd() * 0.02).toFixed(3));
+    }
+    // Dust lane: carve a darker streak just off the band's spine.
+    g.globalCompositeOperation = 'destination-out';
+    for (i = 0; i < 40; i++) {
+      var tt = rnd(), q = band(tt);
+      blob(q[0] + D * 0.012, q[1] + D * 0.018, (0.02 + rnd() * 0.04) * D, '0,0,0', (0.25 + rnd() * 0.3).toFixed(2));
+    }
+    g.globalCompositeOperation = 'lighter';
+    function star(x, y, m) {
+      var c = starColour(rnd), r = 0.3 + m * m * 1.5, al = 0.18 + m * 0.8;
+      if (m > 0.8) blob(x, y, r * 5, c.join(','), (al * 0.22).toFixed(3));
+      g.fillStyle = 'rgba(' + c.join(',') + ',' + al.toFixed(3) + ')';
+      g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+      if (m > 0.955) {                          // the brightest few get faint spikes
+        var L = r * 9;
+        [[1, 0], [0, 1]].forEach(function (d) {
+          var gr = g.createLinearGradient(x - d[0] * L, y - d[1] * L, x + d[0] * L, y + d[1] * L);
+          gr.addColorStop(0, 'rgba(' + c + ',0)'); gr.addColorStop(.5, 'rgba(' + c + ',' + (al * .5).toFixed(2) + ')');
+          gr.addColorStop(1, 'rgba(' + c + ',0)');
+          g.strokeStyle = gr; g.lineWidth = 0.7; g.beginPath();
+          g.moveTo(x - d[0] * L, y - d[1] * L); g.lineTo(x + d[0] * L, y + d[1] * L); g.stroke();
+        });
+      }
+    }
+    var nField = Math.round(W * H / 1100), nBand = Math.round(W * H / 700);
+    for (i = 0; i < nField; i++) star(rnd() * W, rnd() * H, Math.pow(rnd(), 3.2));
+    for (i = 0; i < nBand; i++) {                // band stars: dense, faint, gaussian across the spine
+      var b = band(rnd()), gs = (rnd() + rnd() + rnd() - 1.5) * D * 0.06;
+      star(b[0] + gs * 0.45, b[1] + gs, Math.pow(rnd(), 4.5) * 0.8);
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  /* A handful of twinkling stars and a rare meteor, as DOM nodes animated by
+   * CSS on the compositor, so the expensive globe never redraws for them. */
+  function liveSky(host) {
+    var rnd = mulberry(7), i, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for (i = 0; i < 38; i++) {
+      var s = document.createElement('i'), c = starColour(rnd);
+      s.className = 'tw';
+      s.style.cssText = 'left:' + (rnd() * 100).toFixed(2) + '%;top:' + (rnd() * 100).toFixed(2) + '%;' +
+        '--c:rgb(' + c + ');--s:' + (1.4 + rnd() * 1.8).toFixed(1) + 'px;' +
+        'animation-duration:' + (2.8 + rnd() * 4.5).toFixed(2) + 's;animation-delay:-' + (rnd() * 7).toFixed(2) + 's';
+      host.appendChild(s);
+    }
+    if (reduce) return;
+    (function meteor() {
+      setTimeout(function () {
+        if (!document.hidden) {
+          var m = document.createElement('b');
+          m.className = 'meteor';
+          m.style.left = (15 + Math.random() * 70) + '%';
+          m.style.top = (5 + Math.random() * 40) + '%';
+          m.style.setProperty('--a', (18 + Math.random() * 22).toFixed(0) + 'deg');
+          host.appendChild(m);
+          m.addEventListener('animationend', function () { m.remove(); });
+        }
+        meteor();
+      }, 7000 + Math.random() * 14000);
+    })();
+  }
+
   function Stage(canvas, svg, opts) {
     this.c = canvas; this.svg = svg; this.opts = opts;
     this.cam = { lon: 26, lat: 30, k: 0.4, cx: 0.68, cy: 0.52, dim: 0 };
     this.from = null; this.to = null; this.t0 = 0; this.dur = 900;
     this.spin = 0; this.dirty = true; this.markers = [];
-    var gl = this.gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
+    this.sky = opts.sky || null;
+    if (this.sky) {
+      var skyCv = this.sky.querySelector('canvas'), rt = 0;
+      paintSky(skyCv); liveSky(this.sky);
+      addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { paintSky(skyCv); }, 150); });
+    }
+    var gl = this.gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true });
     if (!gl) { this.failed = true; return; }
     this.prog = this._program();
     var buf = gl.createBuffer();
@@ -319,6 +425,17 @@
     this.dirty = false;
     this._draw();
     this._drawMarkers();
+    this._parallax();
+  };
+
+  /* The sky drifts a little with the camera (bounded, so a spinning globe
+   * rocks it gently instead of scrolling it away) and dims with the stage. */
+  Stage.prototype._parallax = function () {
+    if (!this.sky) return;
+    var c = this.cam, s = 1 + (c.k - 0.45) * 0.05;
+    var dx = -Math.sin(c.lon * DEG) * innerWidth * 0.022, dy = c.lat / 90 * innerHeight * 0.03;
+    this.sky.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')';
+    this.sky.style.opacity = (1 - c.dim * 0.7).toFixed(3);
   };
 
   Stage.prototype._draw = function () {
