@@ -93,30 +93,29 @@
   <div class="card wide rise">
     <p class="kicker">Chapter 2 · Is it useful to you?</p>
     <h2>How cheap is your umbrella?</h2>
-    <p class="lede">A good average can hide a bad deal. Slide to how much acting costs you
-      compared with what bad weather would cost you, and follow the app's number the textbook
-      way: act when the chance it shows is higher than that ratio.</p>
+    <p class="lede">A good score doesn't mean the app helps with <em>your</em> decision. Tell it how bad
+      getting caught in the rain is for you, and see what following the app would really have done in
+      <span data-k="name"></span> over the last <span data-k="umb_n"></span> days.</p>
 
     <div class="umb">
       <div class="umb-ctl">
-        <label for="alpha" class="mono dim">cost of acting ÷ cost of getting caught</label>
+        <label for="alpha">Getting caught is <b class="umb-ratio" id="umb-ratio"></b> as bad as protecting yourself</label>
         <input type="range" id="alpha" min="0" max="98" step="1" value="4"
                aria-describedby="umb-say">
-        <div class="umb-ticks mono"><span>cheap · umbrella</span><span>costly · cancel the event</span></div>
-        <div class="umb-examples" id="umb-ex"></div>
+        <div class="umb-ex" id="umb-ex"></div>
       </div>
-      <div class="umb-out">
-        <div class="umb-val">
-          <span class="huge tnum" id="umb-v"></span>
-          <span class="dim" id="umb-vlab">of the value a perfect forecast would give you</span>
-        </div>
-        <p class="umb-say" id="umb-say" aria-live="polite"></p>
+      <div class="umb-out" aria-live="polite">
+        <p class="umb-verdict" id="umb-say"></p>
+        <p class="umb-days" id="umb-days"></p>
       </div>
     </div>
     <p class="umb-none" id="umb-none" hidden>The decision-value curves were not computed for
       <b id="umb-none-name"></b>, so there is nothing honest to show here. Pick another city, or
       scroll on.</p>
-    <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 190" role="img"
+    <p class="umb-chart-head"><b>How much the app helps, for every kind of decision.</b>
+      <span class="dim">Higher is better. 100% = as good as knowing the future · 0% = no help at all ·
+      in the red = it makes things worse.</span></p>
+    <svg class="umb-chart" id="umb-chart" viewBox="0 0 860 212" role="img"
          aria-label="Value of following the forecast against the cost-loss ratio"></svg>
     <p class="note mono">Relative economic value · source <code>served_world</code> in decision_value_curves ·
       <span data-k="name"></span> <span data-k="umb_n"></span> days · world median over

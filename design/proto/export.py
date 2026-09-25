@@ -79,21 +79,63 @@ def hero(slug: str) -> dict:
     }
 
 
+def _served_series() -> dict:
+    """The exact (probability, event) days each served_world value curve was
+    computed from, rebuilt the way decision_metrics.build_table builds them."""
+    sys.path.insert(0, str(ROOT / "src"))
+    from config import RAIN_THRESHOLD_MM
+    d = pd.read_parquet(PROCESSED / "cities_pop.parquet")
+    d["local_date"] = pd.to_datetime(d.local_date)
+    d = d.sort_values(["city", "local_date"])
+    out = {}
+    for city, g in d.groupby("city"):
+        g = g.dropna(subset=["forecast_prob", "obs_precip_mm"])
+        g = g.drop_duplicates(subset="local_date").sort_values("local_date")
+        out[city] = (g.forecast_prob.to_numpy(float),
+                     (g.obs_precip_mm.to_numpy(float) >= RAIN_THRESHOLD_MM).astype(float))
+    return out
+
+
 def umbrella_all() -> dict:
-    """World median curve plus one curve set per city, on one shared grid."""
+    """World median curve plus one curve set per city, on one shared grid.
+
+    Besides the value curves, each city carries the plain day counts behind
+    them - how many days you would have protected yourself and how many rainy
+    days you would have been caught out - for the textbook rule (act when the
+    app's chance is at or above your cost ratio) and for the best cut-off.
+    The counts are recomputed from the daily series and checked against the
+    stored curve, so the page's "caught out 25 times" is the same arithmetic
+    as the value it plots.
+    """
+    sys.path.insert(0, str(ROOT / "src"))
+    from metrics import contingency_rates, value_curve
     d = pd.read_parquet(PROCESSED / "decision_value_curves.parquet")
     w = d[d.source == "served_world"]
     med = w.groupby("alpha")[["v_calibrated"]].median().reset_index()
     grid = [_r(a, 2) for a in med.alpha]
+    series = _served_series()
     per = {}
     for name, c in w.groupby("city"):
         c = c.sort_values("alpha")
         if [_r(a, 2) for a in c.alpha] != grid:
             raise SystemExit(f"{name}: decision curve is not on the shared alpha grid")
+        p, e = series[name]
+        n = len(p)
+        check = value_curve(p, e)
+        if n != int(c.n.iloc[0]) or not np.allclose(check.v_calibrated, c.v_calibrated, equal_nan=True):
+            raise SystemExit(f"{name}: rebuilt daily series does not reproduce its value curve")
+
+        def counts(thr):
+            h, f, m, _ = contingency_rates(p, e, np.asarray(thr, float))
+            return ([int(round(v)) for v in (h + f) * n], [int(round(v)) for v in m * n])
+        acted, missed = counts(c.alpha.to_numpy())
+        b_acted, b_missed = counts(c.envelope_threshold.to_numpy())
         per[name] = {"follow": [_r(v, 3) for v in c.v_calibrated],
                      "best": [_r(v, 3) for v in c.v_envelope],
                      "trigger": [_r(v, 2) for v in c.envelope_threshold],
-                     "n": int(c.n.iloc[0])}
+                     "n": n, "rainy": int(e.sum()),
+                     "acted": acted, "missed": missed,
+                     "b_acted": b_acted, "b_missed": b_missed}
     return {"world": {"alpha": grid, "follow": [_r(v, 3) for v in med.v_calibrated],
                       "n": int(w.city.nunique())},
             "cities": per}

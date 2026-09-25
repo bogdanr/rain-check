@@ -98,7 +98,8 @@
     promise(h);
     umbrella(c.umbrella ? {
       alpha: W.alpha, follow: c.umbrella.follow, best: c.umbrella.best, trigger: c.umbrella.trigger,
-      world_follow: W.follow
+      world_follow: W.follow, n: c.umbrella.n, rainy: c.umbrella.rainy,
+      acted: c.umbrella.acted, missed: c.umbrella.missed, b_acted: c.umbrella.b_acted, b_missed: c.umbrella.b_missed
     } : null, h.name);
     if (stage) stage.setCity(h, first);
   }
@@ -200,17 +201,25 @@
   }
 
   /* ── How cheap is your umbrella? ──────────────── */
+  // Everything is counted on the city's real days, in one currency: the cost
+  // of getting caught in the rain once. Protecting yourself costs `a` of that
+  // (the slider shows 1/a: "getting caught is N x as bad"). A way of deciding
+  // costs a x days protected + rainy days caught out. These are the same
+  // sums the value curve is built from (src/metrics.py _value).
   function umbrella(U, name) {
     var inp = $('#alpha'), svg = $('#umb-chart'), NS = 'http://www.w3.org/2000/svg', exBox = $('#umb-ex');
     var none = !U;
     $('#umb-none').hidden = !none;
-    $$('.umb, #umb-chart, #umbrella .note').forEach(function (e) { e.hidden = none; });
+    $$('.umb, .umb-chart-head, #umb-chart, #umbrella .note').forEach(function (e) { e.hidden = none; });
     svg.textContent = ''; exBox.textContent = '';
     if (none) { $('#umb-none-name').textContent = name; return; }
     var keep = +inp.value, first = !inp._init; inp._init = true;
-    var W = 860, H = 190, L = 44, R = 12, T = 12, B = 30;
+    var W = 860, H = 212, L = 44, R = 12, T = 36, B = 30;   // T leaves a row for the legend
     var ymax = Math.ceil(Math.max.apply(null, U.best.concat(U.follow)) * 10) / 10, ymin = -1;
-    function X(a) { return L + a * (W - L - R); }
+    // Log axis: the everyday choices (umbrella 20x, picnic 4x) sit at the cheap
+    // end, which a linear axis squeezes into the first few pixels.
+    var LA0 = Math.log(U.alpha[0]), LA1 = Math.log(U.alpha[U.alpha.length - 1]);
+    function X(a) { return L + (Math.log(a) - LA0) / (LA1 - LA0) * (W - L - R); }
     function Y(v) { return T + (ymax - Math.max(ymin, Math.min(ymax, v))) / (ymax - ymin) * (H - T - B); }
     function el(n, a, txt) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]);
       if (txt != null) e.textContent = txt; svg.appendChild(e); return e; }
@@ -219,49 +228,63 @@
     [ymin, -0.5, 0, 0.5].forEach(function (v) { if (v > ymax) return;
       el('line', { class: v === 0 ? 'zero' : 'ax', x1: L, x2: W - R, y1: Y(v), y2: Y(v) });
       el('text', { x: L - 8, y: Y(v) + 4, 'text-anchor': 'end' }, minus(Math.round(v * 100)) + '%'); });
-    [0, .2, .4, .6, .8, 1].forEach(function (a) { el('text', { x: X(a), y: H - 8, 'text-anchor': 'middle' }, a.toFixed(1)); });
-    el('text', { x: X(0.3), y: Y(ymin) - 8 }, 'below 0%: worse than ignoring the forecast (clipped at \u2212100%)');
+    // x axis in the slider's own words: how many times worse getting caught is
+    [[0.01, '100\u00d7'], [0.02, '50\u00d7'], [0.05, '20\u00d7'], [0.1, '10\u00d7'], [0.25, '4\u00d7'], [0.5, '2\u00d7'], [0.99, '1\u00d7']].forEach(function (t) {
+      el('text', { x: X(t[0]), y: H - 8, 'text-anchor': t[0] > .9 ? 'end' : t[0] < .011 ? 'start' : 'middle' }, t[1]); });
+    el('text', { x: L, y: H + 8 }, '\u2190 getting caught is much worse');
+    el('text', { x: W - R, y: H + 8, 'text-anchor': 'end' }, 'protecting costs almost as much \u2192');
+    el('text', { x: X(0.12), y: Y(ymin) - 8 }, 'below 0%: worse than the best habit without a forecast');
     el('path', { class: 'l-world', d: path(U.world_follow) });
     el('path', { class: 'l-best', d: path(U.best) });
     el('path', { class: 'l-follow', d: path(U.follow) });
     var cur = el('line', { class: 'cursor', y1: T, y2: H - B });
     var dot = el('circle', { class: 'dot', r: 6 });
-    var lg = el('g', { class: 'lg', transform: 'translate(' + (W - R - 250) + ',' + (T + 6) + ')' });
-    [['l-follow', 'follow the app (' + name + ')'], ['l-best', 'same forecast, best trigger'], ['l-world', 'follow the app, world median']]
-      .forEach(function (r, i) { var g = document.createElementNS(NS, 'g'); g.setAttribute('transform', 'translate(0,' + i * 16 + ')');
+    var lg = el('g', { class: 'lg', transform: 'translate(' + L + ',12)' });
+    [['l-follow', 'follow the app (' + name + ')'], ['l-best', 'same app, better cut-off'], ['l-world', 'follow the app, world median']]
+      .forEach(function (r, i) { var g = document.createElementNS(NS, 'g'); g.setAttribute('transform', 'translate(' + [0, 250, 470][i] + ',0)');
         var ln = document.createElementNS(NS, 'line'); ln.setAttribute('class', r[0]); ln.setAttribute('x2', 22); ln.setAttribute('y1', -4); ln.setAttribute('y2', -4);
         var tx = document.createElementNS(NS, 'text'); tx.setAttribute('x', 30); tx.textContent = r[1];
         g.appendChild(ln); g.appendChild(tx); lg.appendChild(g); });
 
-    var ex = [['carry an umbrella', 0.05], ['move a picnic indoors', 0.25], ['cancel an outdoor event', 0.6]];
-    var exLab = document.createElement('span'); exLab.className = 'mono dim'; exLab.style.fontSize = '11px';
-    exLab.style.alignSelf = 'center'; exLab.textContent = 'for example'; exBox.appendChild(exLab);
+    // Everyday examples, each named by its trade-off so the number means something.
+    var ex = [['\u2602\ufe0e Umbrella', '20\u00d7', 0.05], ['Picnic indoors', '4\u00d7', 0.25], ['Cancel an event', '1.7\u00d7', 0.6]];
     ex.forEach(function (e) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = e[0]; b.dataset.a = e[1];
-      b.addEventListener('click', function () { inp.value = idx(e[1]); upd(); });
+      var b = document.createElement('button'); b.type = 'button'; b.dataset.a = e[2];
+      b.innerHTML = esc(e[0]) + ' <span>' + esc(e[1]) + '</span>';
+      b.addEventListener('click', function () { inp.value = idx(e[2]); upd(); });
       exBox.appendChild(b);
     });
     function idx(a) { var best = 0; U.alpha.forEach(function (x, i) { if (Math.abs(x - a) < Math.abs(U.alpha[best] - a)) best = i; }); return best; }
-    inp.max = U.alpha.length - 1; inp.value = first ? idx(0.05) : keep;   // a new city keeps your ratio
+    inp.max = U.alpha.length - 1; inp.value = first ? idx(0.05) : keep;   // a new city keeps your setting
 
+    function times(x) { var r = 1 / x; return (r >= 10 ? Math.round(r) : r.toFixed(1).replace(/\.0$/, '')) + '\u00d7'; }
+    function n0(v) { return Math.round(v).toLocaleString('en'); }
+    // Plain verdict: only the sign is judged (0 = the best no-forecast habit);
+    // the percentage carries the size, so no invented bands.
+    function verdict(f) {
+      return f < 0 ? ['t0', 'Following the app makes things worse', 'A fixed habit would serve you better.']
+                   : ['t4', 'Following the app helps', ''];
+    }
     function upd() {
-      var i = +inp.value, a = U.alpha[i], f = U.follow[i], b = U.best[i], w = U.world_follow[i], trig = U.trigger[i];
+      var i = +inp.value, a = U.alpha[i], f = U.follow[i];
       inp.style.setProperty('--p', (i / (U.alpha.length - 1) * 100) + '%');
-      inp.setAttribute('aria-valuetext', 'ratio ' + a.toFixed(2) + ', following the app gives ' + pct(f));
+      $('#umb-ratio').textContent = times(a);
       $$('button', exBox).forEach(function (x) { x.setAttribute('aria-pressed', Math.abs(+x.dataset.a - a) < 0.006); });
-      var v = $('#umb-v'); v.textContent = minus(pct(f)); v.classList.toggle('neg', f < 0);
-      var s;
-      if (f < 0) {
-        s = 'Acting whenever the app shows more than <b>' + pct(a) + '</b> leaves you <b>worse off than ignoring the forecast</b> and just going by how often it usually rains.';
-      } else if (b - f > 0.05) {
-        s = 'Following the app\u2019s number gets you <b>' + pct(f) + '</b> of the possible value.';
-      } else {
-        s = 'Here the app\u2019s number works as printed: <b>' + pct(f) + '</b> of what a perfect forecast would give.';
-      }
-      if (b <= 0) s += ' At this ratio no trigger helps: the usual rain rate is as good as this forecast.';
-      else if (b - f > 0.05 && trig != null) s += ' Acting above <b>' + pct(trig) + '</b> instead, the same forecast would give <b>' + pct(b) + '</b>.';
-      s += ' <span class="dim">World median: ' + minus(pct(w)) + '.</span>';
-      $('#umb-say').innerHTML = s;
+      // The best fixed habit without a forecast: always protect if that is cheaper, else never.
+      var always = a * U.n <= U.rainy;
+      var v = verdict(f);
+      $('#umb-say').className = 'umb-verdict ' + v[0];
+      $('#umb-say').innerHTML = '<b>' + v[1] + '</b><span>' + (v[2] ? v[2] + ' ' : '') +
+        'Following the app gets you <em>' + minus(pct(Math.max(f, -9.99))) + '</em> of what knowing the weather in advance would.</span>';
+      var d = '<span class="dl">With the app</span><span>protect on <b>' + n0(U.acted[i]) + '</b> days \u00b7 caught in the rain <b>' + n0(U.missed[i]) + '</b> times</span>' +
+        '<span class="dl">Without it</span><span>' + (always
+          ? 'protect every day (<b>' + n0(U.n) + '</b>) \u00b7 never caught'
+          : 'never protect \u00b7 caught in the rain <b>' + n0(U.rainy) + '</b> times') + '</span>';
+      if (U.trigger[i] != null && U.follow[i] < U.best[i] - 0.05)
+        d += '<span class="dl umb-tip">Tip</span><span>act when the app says <b>' + pct(U.trigger[i]) + '</b> or more, not ' + pct(a) +
+          ': caught <b>' + n0(U.b_missed[i]) + '</b> times, protect on <b>' + n0(U.b_acted[i]) + '</b> days</span>';
+      $('#umb-days').innerHTML = d;
+      inp.setAttribute('aria-valuetext', 'getting caught is ' + times(a) + ' as bad; ' + v[1]);
       cur.setAttribute('x1', X(a)); cur.setAttribute('x2', X(a));
       dot.setAttribute('cx', X(a)); dot.setAttribute('cy', Y(f));
     }
