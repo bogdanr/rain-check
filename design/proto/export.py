@@ -46,6 +46,21 @@ def _one(pattern: str) -> Path:
     return Path(hits[0])
 
 
+# Display-only renames. The source name stays the key for every data lookup
+# (cities_metrics, decision curves); only what the reader sees changes.
+DISPLAY_NAME = {"'s-Hertogenbosch": "Hertogenbosch"}
+
+
+def show(name: str) -> str:
+    return DISPLAY_NAME.get(name, name)
+
+
+def _show_text(text: str) -> str:
+    for src, dst in DISPLAY_NAME.items():
+        text = text.replace(src, dst).replace(src.replace("'", "&#x27;"), dst)
+    return text
+
+
 def _r(v, k=4):
     return None if v is None or v != v else round(float(v), k)
 
@@ -65,14 +80,14 @@ def hero(slug: str) -> dict:
     lead = re.sub(r"<[^>]+>", "", re.search(r'<p class="lead">(.*?)</p>', ans, re.S).group(1))
     span = re.search(r"(\d{4}-\d\d-\d\d) to\s+(\d{4}-\d\d-\d\d)", ans)
     return {
-        "slug": slug, "name": p["name"], "country": p["country"],
+        "slug": slug, "key": p["name"], "name": show(p["name"]), "country": p["country"],
         "lat": p["lat"], "lon": p["lon"],
         "bss": _r(p["bss"]), "bss_lo": _r(p["bss_lo"]), "bss_hi": _r(p["bss_hi"]),
         "rank": p["rank"], "rank_lo": _r(p["rank_lo"], 0), "rank_hi": _r(p["rank_hi"], 0),
         "n_cities": p["n_cities"], "n": p["n"], "base_rate": _r(p["base_rate"]),
         "station": p.get("station"), "station_km": p.get("prcp_km"),
         "first": span.group(1), "last": span.group(2),
-        "lead": " ".join(lead.split()),
+        "lead": _show_text(" ".join(lead.split())),
         "bins": [{"said": _r(b["mean"]), "rained": _r(b["obs"]), "n": b["n"],
                   "lo": _r(b["lo"]), "hi": _r(b["hi"]), "sig": b["sig"]}
                  for b in p["pop_map"]],
@@ -283,7 +298,7 @@ def evidence(idx: list[list]) -> dict:
     league = []
     for slug, name, cc, *_ in idx:
         r = m.loc[name]
-        league.append([slug, name, cc, _r(r.bss, 3), _r(r.bss_lo, 3), _r(r.bss_hi, 3),
+        league.append([slug, show(name), cc, _r(r.bss, 3), _r(r.bss_lo, 3), _r(r.bss_hi, 3),
                        _r(r.rank_lo, 0), _r(r.rank_hi, 0), int(r.n), _r(r.ess, 0),
                        _r(r.base_rate, 3), _r(r.reliability, 4), _r(r.resolution, 4),
                        _r(r.prcp_km, 1)])
@@ -379,7 +394,7 @@ def main() -> None:
     lasts, no_curve = [], 0
     for slug, *_ in idx:
         h = hero(slug)
-        u = umb["cities"].get(h["name"])
+        u = umb["cities"].get(h.pop("key"))
         no_curve += u is None
         (out / f"{slug}.json").write_text(
             json.dumps({"hero": h, "umbrella": u}, separators=(",", ":")))
@@ -388,6 +403,7 @@ def main() -> None:
             "umbrella_world": umb["world"], "coverage": coverage(),
             "event": f"day total \u2265 {thr} mm at the gauge",
             "as_of": max(lasts), "tiers": tiers(), "evidence": evidence(idx)}
+    data["cities"] = [[r[0], show(r[1])] + r[2:] for r in idx]
     (PROTO / "data.json").write_text(json.dumps(data, separators=(",", ":")))
     stage_assets()
     n_stars = stars(data["as_of"])
