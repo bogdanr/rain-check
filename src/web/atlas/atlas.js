@@ -499,9 +499,20 @@
       tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
       tip.style.top = (r.bottom + 10) + 'px';
     }
-    function hide() { tip.hidden = true; }
-    document.addEventListener('pointerover', function (e) { if (e.target.closest('[data-tip]')) show(e); });
-    document.addEventListener('pointerout', function (e) { if (e.target.closest('[data-tip]')) hide(); });
+    function hide() { tip.hidden = true; tip.classList.remove('tip-text'); }
+    /* Plain-text tooltips (the sky legend's sources): the page's own tip,
+     * so they can be styled, which the browser's title tooltip cannot. */
+    function showText(t) {
+      tip.textContent = t.dataset.tt; tip.classList.add('tip-text'); tip.hidden = false;
+      var r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+      tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
+      tip.style.top = (r.top - h - 8 >= 8 ? r.top - h - 8 : r.bottom + 8) + 'px';
+    }
+    document.addEventListener('pointerover', function (e) {
+      var tt = e.target.closest && e.target.closest('[data-tt]');
+      if (tt) showText(tt); else if (e.target.closest('[data-tip]')) show(e);
+    });
+    document.addEventListener('pointerout', function (e) { if (e.target.closest('[data-tip],[data-tt]')) hide(); });
     document.addEventListener('focusin', show); document.addEventListener('focusout', hide);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
   }
@@ -628,12 +639,138 @@
       try { localStorage.setItem('rc-sky', SKY.on ? 'on' : 'off'); } catch (e) { /* private mode */ }
       skyApply();
     });
-    if (stage && stage.tier !== 'flat') AtlasSky.noise3d(function (d, N) { stage.setNoise(d, N); });
+    if (stage && window.AtlasBolts) SKY.bolt = new AtlasBolts($('#bolts'), stage);
+    if (stage && window.AtlasSats && CFG.sats) SKY.sat = new AtlasSats($('#sats'), stage, { hit: $('#stage-hit'), tip: $('#tip'), now: now });
+    if (stage) skyLayers();
     skyApply();
     // The Sun and Moon move a pixel every few minutes; the satellites publish
-    // every 30 min (rain) and 3 h (cloud). A hidden tab does neither.
+    // every 30 min (rain), 3 h (cloud) and 5 min (lightning). A hidden tab
+    // does none of it.
     if (!NOWQ) setInterval(function () { if (!document.hidden) skyTick(); }, 60000);
-    if (!NOWQ) setInterval(function () { if (!document.hidden && SKY.on) weather(true); }, 30 * 60000);
+    if (!NOWQ) setInterval(function () { if (!document.hidden && SKY.on) weather(true); }, 10 * 60000);
+    if (!NOWQ) setInterval(function () { if (!document.hidden && SKY.on && SKY.bolts) lightning(true); }, 5 * 60000);
+  }
+
+  /* Weather layers: clouds, rain and lightning, each switchable and
+   * remembered. How the clouds are drawn (volume or flat) is the device's
+   * call, not the reader's. Lightning is remembered under its own key so a
+   * choice saved before it existed does not switch it off. The satellites
+   * have no switch of their own: they follow the live sky. */
+  function skyLayers() {
+    var saved = null, savedB = null;
+    try { saved = localStorage.getItem('rc-sky-layers'); savedB = localStorage.getItem('rc-sky-bolts'); } catch (e) { /* private mode */ }
+    SKY.clouds = !saved || saved.indexOf('clouds') >= 0;
+    SKY.rain = !saved || saved.indexOf('rain') >= 0;
+    SKY.bolts = !!SKY.bolt && savedB !== 'off';
+    if (!SKY.bolt) $('#sky-bolts').hidden = true;
+    function apply() {
+      $('#sky-clouds').setAttribute('aria-pressed', SKY.clouds);
+      $('#sky-rain').setAttribute('aria-pressed', SKY.rain);
+      $('#sky-bolts').setAttribute('aria-pressed', SKY.bolts);
+      stage.setLayers(SKY.clouds, SKY.rain);
+      if (SKY.clouds) skyNoise();
+      boltClouds();
+      boltsApply();
+      satsApply();
+      skyLegend();
+      if (S.h) overCity(S.h);
+    }
+    [['#sky-clouds', 'clouds'], ['#sky-rain', 'rain'], ['#sky-bolts', 'bolts']].forEach(function (b) {
+      $(b[0]).addEventListener('click', function () {
+        SKY[b[1]] = !SKY[b[1]];
+        try {
+          localStorage.setItem('rc-sky-layers', [SKY.clouds ? 'clouds' : '', SKY.rain ? 'rain' : ''].join(','));
+          localStorage.setItem('rc-sky-bolts', SKY.bolts ? 'on' : 'off');
+        } catch (e) { /* private mode */ }
+        apply();
+      });
+    });
+    apply();
+  }
+
+  /* The lightning layer follows the live sky and its own switch; the frames
+   * are fetched only once somebody wants to see them. */
+  function boltsApply() {
+    if (!SKY.bolt) return;
+    SKY.bolt.show(SKY.bolts, SKY.on);
+    if (SKY.on && SKY.bolts) lightning(false);
+  }
+
+  function lightning(refresh) {
+    if (!SKY.bolt || SKY.bLoading || (SKY.b && !refresh)) return;
+    SKY.bLoading = true;
+    AtlasSky.bolts(CFG.wx).then(function (b) {
+      SKY.bLoading = false; SKY.b = b; SKY.bErr = null;
+      SKY.bolt.setData(b);
+      SKY.bolt.setStale(now() - b.t > BOLT_STALE);
+      skyLegend();
+      if (S.h) overCity(S.h);
+    }, function (e) {
+      SKY.bLoading = false; SKY.bErr = String(e && e.message || e);
+      skyLegend();
+    });
+  }
+  // Frames come every 5 minutes; an hour without one means the feed stalled.
+  var BOLT_STALE = 3600000;
+
+  /* Satellites: drawn from the roster the site was built with, then from
+   * CelesTrak's current elements. CelesTrak updates them every two hours and
+   * asks clients not to fetch more often, so the reply is kept that long in
+   * localStorage. With ?now= (review, tests) the built copy is used as is,
+   * so the positions are the same on every run. */
+  var SAT_TTL = 2 * 3600000;
+  function satsApply() {
+    if (!SKY.sat) return;
+    SKY.sat.show(true, SKY.on);
+    if (SKY.on) satellites();
+  }
+
+  function satellites() {
+    if (SKY.sLoading || SKY.sData) return;
+    SKY.sLoading = true;
+    fetch(CFG.sats).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (d) {
+      SKY.sData = d; SKY.sLoading = false;
+      SKY.sat.setData(d.sats, 'baked');
+      skyLegend();
+      if (!NOWQ) satsLive(d);
+    }, function (e) {
+      SKY.sLoading = false; SKY.sErr = String(e && e.message || e);
+      skyLegend();
+    });
+  }
+
+  function satsLive(d) {
+    var want = {}, cache = null;
+    d.sats.forEach(function (s) { want[s.id] = true; });
+    function use(omm) {
+      var n = 0;
+      var sats = d.sats.map(function (s) {
+        var o = omm[s.id];
+        if (!o || !(Date.parse(String(o.EPOCH).slice(0, 23) + 'Z') > Date.parse(String(s.omm.EPOCH).slice(0, 23) + 'Z'))) return s;
+        n++;
+        return Object.assign({}, s, { omm: o });
+      });
+      if (n) { SKY.sat.setData(sats, 'live'); skyLegend(); }
+    }
+    try { cache = JSON.parse(localStorage.getItem('rc-sats-omm') || 'null'); } catch (e) { /* private mode */ }
+    if (cache && cache.omm && Date.now() - cache.at < SAT_TTL) return use(cache.omm);
+    Promise.all((CFG.satsLive || []).map(function (u) {
+      return fetch(u).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    })).then(function (lists) {
+      var omm = {};
+      lists.forEach(function (l) {
+        (Array.isArray(l) ? l : []).forEach(function (o) { if (want[o.NORAD_CAT_ID] && o.EPOCH && o.MEAN_MOTION) omm[o.NORAD_CAT_ID] = o; });
+      });
+      if (!Object.keys(omm).length) return;
+      try { localStorage.setItem('rc-sats-omm', JSON.stringify({ at: Date.now(), omm: omm })); } catch (e) { /* private mode */ }
+      use(omm);
+    });
+  }
+  // The volume's 3-D noise, fetched once and only when a volume tier is in use.
+  function skyNoise() {
+    if (!stage || stage.tier === 'flat' || SKY.noise) return;
+    SKY.noise = true;
+    AtlasSky.noise3d(function (d, N) { stage.setNoise(d, N); });
   }
 
   function skyApply() {
@@ -641,6 +778,8 @@
     document.body.classList.toggle('sky-off', !SKY.on);
     if (stage) stage.setLive(SKY.on);
     if (SKY.on) { skyTick(); weather(false); }
+    boltsApply();
+    satsApply();
     skyLegend();
     if (S.h) overCity(S.h);
   }
@@ -653,6 +792,7 @@
       moonK: b.moonLit, rot: (b.gmst - AtlasSky.gmst(CFG.starsEpoch)) * DEG
     });
     SKY.bodies = b;
+    if (SKY.bolt) SKY.bolt.setSun(AtlasSky.vec(b.sun.lon, b.sun.lat));
     skyLegend();
   }
 
@@ -663,12 +803,20 @@
       SKY.loading = false;
       if (!wx.ir && !wx.rain) { SKY.err = wx.errors.join('; '); skyLegend(); return; }
       // A refresh that finds nothing newer keeps what is on screen.
-      if (SKY.wx && SKY.wx.ir && wx.ir && wx.ir.t === SKY.wx.ir.t && (!wx.rain || (SKY.wx.rain && wx.rain.t === SKY.wx.rain.t))) return;
+      var o = SKY.wx;
+      if (o && o.ir && wx.ir && wx.ir.t === o.ir.t && wx.ir.tf === o.ir.tf &&
+          (!wx.rain || (o.rain && wx.rain.t === o.rain.t && wx.rain.tf === o.rain.tf))) return;
       SKY.wx = wx; SKY.err = wx.errors.length ? wx.errors.join('; ') : null;
       if (stage) stage.setWeather(wx);
+      boltClouds();
       skyLegend();
       if (S.h) overCity(S.h);
     });
+  }
+
+  // Lightning lights the cloud it is in: the layer needs to know where cloud is.
+  function boltClouds() {
+    if (SKY.bolt) SKY.bolt.setClouds(SKY.wx && SKY.clouds !== false ? function (lon, lat) { return AtlasSky.at(SKY.wx, lon, lat).cloud; } : null);
   }
 
   function ago(t) {
@@ -683,10 +831,58 @@
     var wx = SKY.wx, b = SKY.bodies, parts = [];
     if (!SKY.on) { box.innerHTML = 'Off. The globe shows the report\u2019s fixed light.'; return; }
     if (!stage) { box.innerHTML = 'Needs WebGL 2, which this browser does not offer.'; return; }
-    if (wx && wx.ir) parts.push('<span title="EUMETSAT IR 10.8 \u00b5m world cloud mosaic. Cover and height are read from how cold the cloud tops look; heights are exaggerated about 20\u00d7 so they show at globe scale.">' +
-      'Clouds: EUMETSAT infrared \u00b7 ' + utc(wx.ir.t) + ' (' + ago(wx.ir.t) + ')</span>');
-    if (wx && wx.rain) parts.push('<span title="NASA GPM IMERG half-hourly precipitation estimate (early run), from satellite microwave and infrared.">' +
-      'Rain: NASA IMERG \u00b7 ' + utc(wx.rain.t) + ' (' + ago(wx.rain.t) + ')</span>');
+    // One short line per source; the detail lives in the tooltip.
+    function line(label, title, src, t, off, extra) {
+      return '<span data-tt="' + title + '"><b>' + label + '</b> ' + src + ' \u00b7 ' + utc(t) + ' \u00b7 ' + ago(t) +
+        (off ? ' \u00b7 off' : extra || '') + '</span>';
+    }
+    /* Over Europe, Africa and the Atlantic, clouds, rain and lightning all
+     * come from Meteosat, minutes apart: one line for all three, aged by the
+     * oldest of them, and one short line for the world sources elsewhere.
+     * The full account of each source lives in the tooltips. */
+    var bo = SKY.b, flat = stage.tier === 'flat';
+    var mIr = wx && wx.ir && wx.ir.tf, mRain = wx && wx.rain && wx.rain.tf, mBolt = SKY.bolt && bo;
+    if (mIr) {
+      var names = [], offs = [], ts = [];
+      function add(name, t, off) { names.push(name); ts.push(t); if (off) offs.push(name); }
+      add('clouds', wx.ir.tf, SKY.clouds === false);
+      if (mRain) add('rain', wx.rain.tf, SKY.rain === false);
+      if (mBolt) add('lightning', bo.t, !SKY.bolts);
+      var oldest = Math.min.apply(null, ts);
+      var tip = 'Over Europe, Africa and the Atlantic, from the same satellite, Meteosat (MTG) at 0\u00b0: ' +
+        'clouds from its 10.5 \u00b5m infrared image, every 10 minutes (cover and height read from how cold the cloud tops look; heights exaggerated about 20\u00d7). ' +
+        (mRain ? 'Rain from H SAF h40b, that infrared calibrated by microwave satellite passes, for the same moment as the clouds; drawn into the clouds, darker where heavier, and only where there is cloud. ' : '') +
+        (mBolt ? 'Lightning from the Lightning Imager, last ' + bo.frames.length * 5 + ' minutes, flashing inside the clouds where it counted flashes, and only where there is cloud. ' : '') +
+        'The age shown is the oldest of them' + (flat ? '. This device gets the flat cloud layer.' : '.');
+      parts.push('<span data-tt="' + tip + '"><b>Meteosat</b> ' + names.join(', ') + ' \u00b7 ' + ago(oldest) +
+        (offs.length ? ' \u00b7 ' + offs.join(', ') + ' off' : '') +
+        (mBolt && now() - bo.t > BOLT_STALE ? ' \u00b7 <b>stale</b>' : '') + (flat ? ' \u00b7 flat' : '') + '</span>');
+      var el = ['clouds ' + ago(wx.ir.t)];
+      if (wx.rain) el.push('rain ' + ago(wx.rain.t));
+      parts.push('<span data-tt="Outside Meteosat\u2019s view (the Americas, Asia, the Pacific): clouds from the EUMETSAT IR 10.8 \u00b5m world mosaic (every 3 hours, ' +
+        utc(wx.ir.t) + '), rain from NASA GPM IMERG (half-hourly, early run' + (wx.rain ? ', ' + utc(wx.rain.t) : '') + '). No lightning data there."><b>Elsewhere</b> ' + el.join(' \u00b7 ') + '</span>');
+    }
+    // Without the Meteosat frames: one line per world source.
+    if (!mIr && wx && wx.ir)
+      parts.push(line('Clouds', 'EUMETSAT IR 10.8 \u00b5m world cloud mosaic, every 3 hours. Cover and height are read from how cold the cloud tops look; heights are exaggerated about 20\u00d7 so they show at globe scale.' +
+        (flat ? ' This device gets the flat cloud layer.' : ''),
+        'EUMETSAT', wx.ir.t, SKY.clouds === false, flat ? ' \u00b7 flat' : ''));
+    if (!mIr && wx && wx.rain)
+      parts.push(line('Rain', 'NASA GPM IMERG half-hourly estimate (early run). Rain is only drawn where there is cloud: it darkens and greys the cloud; heavier rain is darker.',
+        'IMERG', wx.rain.t, SKY.rain === false));
+    if (!mIr && mBolt) parts.push(line('Lightning', 'EUMETSAT Meteosat Lightning Imager, accumulated flash area, last ' + bo.frames.length * 5 + ' minutes: the storms flash inside their clouds where the satellite counted flashes, more often where it counted more. It sees 70\u00b0 either way of 0\u00b0 (faint dashed edge); outside it, no data.',
+      'Meteosat LI', bo.t, !SKY.bolts, now() - bo.t > BOLT_STALE ? ' \u00b7 <b>stale</b>' : ''));
+    else if (SKY.bolt && SKY.bolts && SKY.bErr && !SKY.bLoading) parts.push('Lightning unavailable right now.');
+    var sat = SKY.sat;
+    if (sat && sat.list.length) {
+      var nS = sat.list.length, fr = sat.fresh(), geo = sat.list.filter(function (x) { return x.kind === 'geo'; }).length;
+      parts.push(line('Satellites', nS + ' of the weather satellites this sky comes from, where they are now: ' + geo + ' geostationary (on the outer ring) and ' + (nS - geo) +
+        ' in low polar orbits. Each is drawn where it really is: checked against SGP4, the standard orbit model, the positions agree to within about 15 km, under a pixel at globe scale. Polar orbits are to scale, 400 to 840 km up; the geostationary ring is really 35,786 km up, 6.6 Earth radii from the centre, and is drawn about ' +
+        Math.round(6.61 / sat.GEO_R) + '\u00d7 closer. Orbits from CelesTrak mean elements' + (sat.src === 'baked' ? ', as the site was built' : '') + '; the time shown is the oldest in use. Hover one for its orbit and what it carries.',
+        'CelesTrak', sat.oldest(), false,
+        (fr < nS ? ' \u00b7 ' + (nS - fr) + ' orbit only, data too old' : ' \u00b7 true positions') +
+        '<i class="sat-key geo"></i><span class="sky-key">ring, not to scale</span><i class="sat-key leo"></i><span class="sky-key">polar</span>'));
+    } else if (sat && SKY.sErr && !SKY.sLoading) parts.push('Satellites unavailable right now.');
     if (!wx && SKY.loading) parts.push('Loading the latest satellite images\u2026');
     if (!wx && !SKY.loading && SKY.err) parts.push('Satellite images unavailable right now.');
     // Cloud frames arrive every 3 h and rain every 30 min; well past that,
@@ -695,8 +891,7 @@
                wx && wx.rain && now() - wx.rain.t > 9 * 3600000 ? 'rain' : ''].filter(Boolean);
     if (old.length) parts.push('<b>Stale:</b> the ' + old.join(' and ') + ' shown ' + (old.length > 1 ? 'are' : 'is') +
       ' over 9 h old; the satellite service has not published since.');
-    if (b) parts.push('Sun and Moon at ' + utc(now()) + (NOWQ ? ' (fixed)' : '') + ' \u00b7 Moon ' + Math.round(b.moonLit * 100) + '% lit');
-    if (stage.tier === 'flat') parts.push('Flat clouds on this device');
+    if (b) parts.push('<b>Sun &amp; Moon</b> ' + utc(now()) + (NOWQ ? ' (fixed)' : '') + ' \u00b7 Moon ' + Math.round(b.moonLit * 100) + '% lit');
     box.innerHTML = parts.join('<br>');
   }
 
@@ -807,11 +1002,19 @@
 
   /* What the satellites show over the city right now, in plain words. */
   function overCity(h) {
-    var el = $('#now-sat'), wx = SKY.wx;
-    if (!wx || !SKY.on) { el.textContent = ''; return; }
-    var o = AtlasSky.at(wx, h.lon, h.lat), s = [];
-    if (o.cloud != null) s.push(o.cloud > 0.6 ? 'thick cloud' : o.cloud > 0.25 ? 'some cloud' : 'mostly clear skies');
-    if (o.rain) s.push((o.snow ? 'snow' : 'rain') + ' about ' + (o.rain < 1 ? o.rain.toFixed(1) : Math.round(o.rain)) + ' mm/h');
+    var el = $('#now-sat'), wx = SKY.wx, bo = SKY.b;
+    if (!SKY.on || (!wx && !bo)) { el.textContent = ''; return; }
+    var s = [];
+    if (wx) {
+      var o = AtlasSky.at(wx, h.lon, h.lat);
+      if (o.cloud != null) s.push(o.cloud > 0.6 ? 'thick cloud' : o.cloud > 0.25 ? 'some cloud' : 'mostly clear skies');
+      if (o.rain) s.push((o.snow ? 'snow' : 'rain') + ' about ' + (o.rain < 1 ? o.rain.toFixed(1) : Math.round(o.rain)) + ' mm/h');
+    }
+    // Lightning within 50 km in the frames held (the last 15 minutes).
+    if (bo && SKY.bolts && now() - bo.t <= BOLT_STALE) {
+      var ln = AtlasSky.boltsNear(bo, h.lon, h.lat, 50);
+      if (ln.cells) s.push('lightning ' + (ln.km < 5 ? 'overhead' : Math.round(ln.km) + ' km away') + ' in the last ' + bo.frames.length * 5 + ' min');
+    }
     el.textContent = s.length ? 'Satellites over ' + h.name + ' now: ' + s.join(', ') + '.' : '';
   }
 

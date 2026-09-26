@@ -36,6 +36,13 @@
   var VS = '#version 300 es\n' +
     'in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
 
+  /* Rain is not painted as a radar map. It is weather inside the cloud:
+   * the IMERG channel ((step + 1) / 110, step i = 0.1 * 10^(i/40) mm/h, so
+   * 0.37 is 1 mm/h and 0.74 is 10 mm/h) thickens the cloud where it rains
+   * and greys and darkens it with intensity, the way a rain cloud looks from
+   * above; the volume also hangs shafts under it. With clouds switched off,
+   * rain shows as the same grey veil on its own. */
+
   var FS = [
     '#version 300 es',
     'precision highp float;',
@@ -47,7 +54,7 @@
     'uniform vec3 uDisp;',                      // per metre, per root-metre, tallest (radius fractions)
     // Live sky. uLive 0 = the fixed studio light of the report; 1 = the real Sun.
     'uniform vec3 uSun, uMoon;',                // view-space directions
-    'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights;',
+    'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights, uRainOn;',
     'out vec4 o;',
     'const float PI = 3.14159265;',
     'float metres(float c){',
@@ -130,7 +137,7 @@
     '  float day = uLive > 0.5 ? smoothstep(-0.12, 0.10, mu) : 1.0;',
     '  float sunBase = 1.0 - uLight.w * 0.72;',
     '  vec3 hv = normalize(S + vec3(0.0, 0.0, 1.0));',
-    '  float wet = uWx > 0.5 ? textureLod(uRain, uv, 0.0).r * uHasRain : 0.0;',
+    '  float wet = textureLod(uRain, uv, 0.0).r * uRainOn;',
     '  float here = uWx > 0.5 ? cover(uv, 0.0) : 0.0;',
     '  if (uHasTex < 0.5){',
     '    col = mix(cAbyss, cShelf, 0.35) * (0.55 + 0.45 * sph);',
@@ -188,15 +195,22 @@
     '    vec3 dusk = mix(vec3(1.0, 0.52, 0.30), vec3(1.0), smoothstep(0.0, 0.28, mu));',
     '    col *= mix(night + moon, dusk, day);',
     // The flat cloud layer: satellite cover, lit by the same Sun and Moon.
+    // Where it rains there is cloud, greyer and darker the heavier the rain.
+    '    float rw = smoothstep(0.08, 0.75, wet);',
+    '    vec3 lit = (0.55 + 0.75 * sph) * mix(night * 1.6 + moon * 1.8, dusk, day);',
     '    if (uWx > 0.5 && uFlat > 0.0){',
-    '      float c = here * uFlat;',
-    '      vec3 cc = vec3(0.93, 0.95, 1.0) * (0.55 + 0.75 * sph) * mix(night * 1.6 + moon * 1.8, dusk, day);',
+    '      float c = max(here, smoothstep(0.02, 0.3, wet) * 0.8) * uFlat;',
+    '      vec3 cc = mix(vec3(0.93, 0.95, 1.0), vec3(0.40, 0.44, 0.52), rw) * lit;',
     '      col = mix(col, cc, c * 0.9);',
+    '    } else if (uWx < 0.5 && wet > 0.0){',
+    '      col = mix(col, mix(vec3(0.62, 0.66, 0.74), vec3(0.36, 0.40, 0.48), rw) * lit, smoothstep(0.02, 0.4, wet) * 0.6);',
     '    }',
-    // City lights on the night side, dimmed where cloud covers them.
+    // City lights on the night side: the lit cores plus a soft glow from a
+    // coarse mip, so towns read as well as megacities. Cloud dims them but
+    // does not black them out; thin cloud glows over a city.
     '    if (uHasLights > 0.5){',
-    '      float li = texture(uLights, uv).r;',
-    '      col += vec3(1.0, 0.72, 0.42) * li * li * 1.15 * (1.0 - day) * (1.0 - 0.75 * here);',
+    '      float li = texture(uLights, uv).r, lg = textureLod(uLights, uv, 3.0).r;',
+    '      col += vec3(1.0, 0.72, 0.42) * (pow(li, 1.1) * 2.6 + lg * 0.9) * (1.0 - day) * (1.0 - 0.4 * here);',
     '    }',
     '    float rim = pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0);',
     '    col += (cAtmo * (0.12 + 0.88 * day) + vec3(1.0, 0.5, 0.2) * exp(-mu * mu * 30.0) * 0.6) * rim * 0.22;',
@@ -223,7 +237,7 @@
     'uniform sampler2D uWxA, uWxB, uRain, uLights;',
     'uniform sampler3D uNoise;',
     'uniform vec2 uCtr, uJit;',
-    'uniform float uR, uMix, uFrame, uT, uHasRain, uHasLights, uMoonK, uThin;',
+    'uniform float uR, uMix, uFrame, uT, uHasRain, uHasLights, uMoonK, uThin, uRainOn;',
     'uniform mat3 uW2V;',
     'uniform vec3 uSun, uMoon, uCity;',
     'uniform int uSteps, uLSteps;',
@@ -320,9 +334,9 @@
     '      float od = SIG * tl;',
     '      float Ts = max(exp(-od), exp(-od * 0.25) * 0.3);',   // a cheap multiple-scattering floor
     '      float wetC = textureLod(uRain, uv, 0.0).r * uHasRain;',
-    '      float alb = mix(1.0, 0.42, smoothstep(0.1, 0.6, wetC) * (1.0 - hf));',   // dark, heavy storm bases
+    '      float alb = mix(1.0, 0.38, smoothstep(0.08, 0.75, wetC) * (1.0 - 0.6 * hf));',   // grey rain cloud, dark storm bases
     '      vec3 glow = vec3(0.0);',
-    '      if (uHasLights > 0.5 && day < 0.95) glow = vec3(1.0, 0.62, 0.32) * textureLod(uLights, uv, 4.0).r * 1.4 * (1.0 - hf) * (1.0 - day);',
+    '      if (uHasLights > 0.5 && day < 0.95) glow = vec3(1.0, 0.62, 0.32) * textureLod(uLights, uv, 4.0).r * 2.2 * (1.0 - hf) * (1.0 - day);',
     '      vec3 Li = (sunC * Ts * ph * sunVis * 1.55 + skyA * (0.45 + 0.55 * hf) + moonL * (0.6 + 0.4 * hf) + glow) * alb;',
     '      float Tr = exp(-SIG * dn * ds);',
     '      L += T * Li * (1.0 - Tr); T *= Tr;',
@@ -496,7 +510,7 @@
     gl.bindVertexArray(null);
     this.u = this._uniforms(this.prog, ['uElev', 'uBio', 'uWxA', 'uWxB', 'uRain', 'uLights', 'uRes', 'uCtr', 'uTex', 'uR',
       'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp', 'uSun', 'uMoon', 'uLive', 'uMoonK', 'uWx', 'uFlat', 'uMix',
-      'uHasRain', 'uHasLights', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand']);
+      'uHasRain', 'uHasLights', 'uRainOn', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand']);
     gl.useProgram(this.prog);
     [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS]]
       .forEach(function (s) { gl.uniform1i(this.u[s[0]], s[1]); }, this);
@@ -504,6 +518,7 @@
     var RE = 6371000, TOP_M = 8500;
     gl.uniform3f(this.u.uDisp, 100 / RE, 20 * Math.sqrt(TOP_M) / RE, 20 * TOP_M / RE);
     this.hasTex = 0;
+    this.pinned = false; this.showClouds = true; this.showRain = true;
     this.tier = this._detectTier();
     this._loadTextures();
     this._loadStars();
@@ -538,10 +553,16 @@
   };
 
   /* Software renderers get the flat layer; phones and small screens the
-   * lighter volume. ?sky=high|mid|flat|off overrides, for review. */
+   * lighter volume. ?sky=high|mid|flat|off overrides, for review, and pins
+   * the tier so the frame-time adaptation leaves it alone. */
   Stage.prototype._detectTier = function () {
     var q = new URLSearchParams(location.search).get('sky');
-    if (q && (q in TIERS || q === 'off')) return q === 'off' ? 'flat' : q;
+    if (q && (q in TIERS || q === 'off')) { this.pinned = true; return q === 'off' ? 'flat' : q; }
+    return this._deviceTier();
+  };
+
+  /* What this device gets when nobody has chosen. */
+  Stage.prototype._deviceTier = function () {
     var gl = this.gl, ext = gl.getExtension('WEBGL_debug_renderer_info');
     var r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
     if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(r)) return 'flat';
@@ -697,8 +718,16 @@
   /* The quality tier in use; a slow device steps down by itself. */
   Stage.prototype.setTier = function (t) {
     if (!(t in TIERS)) return;
+    // A driver that could not compile the volume only ever has the flat layer.
+    if (t !== 'flat' && this.cprog === null) t = 'flat';
     this.tier = t; this.acc = 0; this.dirty = true; this._dts = [];
     this.opts.onTier && this.opts.onTier(t);
+  };
+
+  /* Which weather layers the reader wants: clouds and rain, each on or off. */
+  Stage.prototype.setLayers = function (clouds, rain) {
+    this.showClouds = !!clouds; this.showRain = !!rain;
+    this.acc = 0; this.dirty = true;
   };
 
   Stage.prototype._volProgram = function () {
@@ -706,7 +735,7 @@
     try {
       this.cprog = this._program(VS, CFS);
       var cu = this.cu = this._uniforms(this.cprog, ['uWxA', 'uWxB', 'uRain', 'uLights', 'uNoise', 'uCtr', 'uJit', 'uR', 'uMix',
-        'uFrame', 'uT', 'uHasRain', 'uHasLights', 'uMoonK', 'uThin', 'uW2V', 'uSun', 'uMoon', 'uCity', 'uSteps', 'uLSteps']);
+        'uFrame', 'uT', 'uHasRain', 'uHasLights', 'uMoonK', 'uThin', 'uW2V', 'uSun', 'uMoon', 'uCity', 'uSteps', 'uLSteps', 'uRainOn']);
       var gl = this.gl;
       [['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uNoise', U_NOISE]]
         .forEach(function (s) { gl.uniform1i(cu[s[0]], s[1]); });
@@ -859,8 +888,15 @@
       this.cam.lon += this.spin; this.dirty = true; moving = true;
     }
     if (now - this._lastMove < 160) moving = true;
+    /* The two IR frames cross-fade. This is not camera motion: treated as
+     * motion, the volume re-seeded its jitter and noise every frame at the
+     * low 'move' resolution and shimmered until the fade ended (and the
+     * frame-time adaptation could step the tier down meanwhile). Instead each
+     * step restarts the still frame's accumulation from one fixed sample, so
+     * the pattern holds steady while the clouds morph. */
     if (this.mix < 1 && this.live) {
-      this.mix = Math.min(1, (now - this.mixT0) / MIX_MS); this.dirty = true; moving = true;
+      this.mix = Math.min(1, (now - this.mixT0) / MIX_MS); this.dirty = true;
+      if (!moving) this.acc = 0;
     }
     var q = TIERS[this.tier];
     var refine = this._volOn && q && !moving && this.acc < q.acc;
@@ -876,7 +912,7 @@
       if (this._dts.length >= 40) {
         var mean = this._dts.reduce(function (a, b) { return a + b; }, 0) / this._dts.length;
         this._dts = [];
-        if (mean > 50 && !new URLSearchParams(location.search).get('sky')) this.setTier(this.tier === 'high' ? 'mid' : 'flat');
+        if (mean > 50 && !this.pinned) this.setTier(this.tier === 'high' ? 'mid' : 'flat');
       }
     }
     this._prev = now;
@@ -921,7 +957,8 @@
       this.moonPx = [(w / 2 + mx) / dpr, (h / 2 - my) / dpr];
     }
     // How much of the volume to show: none behind reading or docked.
-    var q = TIERS[this.tier], wx = live && this.hasWx;
+    var q = TIERS[this.tier], wx = live && this.hasWx && this.showClouds;
+    var rainOn = live && this.hasRain && this.showRain;
     var volW = wx && q && this.hasNoise && this._volProgram()
       ? Math.max(0, Math.min(1, (0.55 - c.dim) / 0.2)) * Math.max(0, Math.min(1, (c.k - 0.14) / 0.08)) : 0;
     this._volOn = volW > 0;
@@ -941,6 +978,7 @@
     gl.uniform1f(u.uMix, this.mix);
     gl.uniform1f(u.uHasRain, this.hasRain ? 1 : 0);
     gl.uniform1f(u.uHasLights, this.hasLights ? 1 : 0);
+    gl.uniform1f(u.uRainOn, rainOn ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!live || !this.kprog) return;
 
@@ -966,7 +1004,8 @@
       gl.uniform1f(cu.uMix, this.mix);
       gl.uniform1f(cu.uFrame, moving ? (now / 16.7) % 64 : this.acc);
       gl.uniform1f(cu.uT, moving ? now / 1000 : this._tStill || 0);
-      gl.uniform1f(cu.uHasRain, this.hasRain ? 1 : 0);
+      gl.uniform1f(cu.uHasRain, rainOn ? 1 : 0);
+      gl.uniform1f(cu.uRainOn, rainOn ? 1 : 0);
       gl.uniform1f(cu.uHasLights, this.hasLights ? 1 : 0);
       gl.uniform1i(cu.uSteps, q.steps); gl.uniform1i(cu.uLSteps, q.lsteps);
       gl.drawArrays(gl.TRIANGLES, 0, 3);

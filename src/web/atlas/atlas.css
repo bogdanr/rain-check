@@ -1,12 +1,14 @@
 /* Atlas Noir - tokens, stage, chapters.
  * Ported from the design prototype (design/proto/proto.css). Font URLs are
- * placeholders the build (src/atlas.py) swaps for hashed asset URLs.     */
+ * url("font:<file>") placeholders the build (src/atlas.py) swaps for hashed
+ * asset URLs. Keep them quoted strings: an unquoted url({...}) breaks CSS
+ * parsers (tree-sitter reported ~6000 errors for this file).              */
 
-@font-face { font-family: "Inter"; src: url({FONT:inter-latin-wght-normal.woff2}) format("woff2");
+@font-face { font-family: "Inter"; src: url("font:inter-latin-wght-normal.woff2") format("woff2");
   font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; src: url({FONT:jetbrains-mono-latin-400-normal.woff2}) format("woff2");
+@font-face { font-family: "JetBrains Mono"; src: url("font:jetbrains-mono-latin-400-normal.woff2") format("woff2");
   font-weight: 400; font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; src: url({FONT:jetbrains-mono-latin-700-normal.woff2}) format("woff2");
+@font-face { font-family: "JetBrains Mono"; src: url("font:jetbrains-mono-latin-700-normal.woff2") format("woff2");
   font-weight: 700; font-display: swap; }
 
 :root {
@@ -29,6 +31,8 @@
   --r-forest: #2c6339; --r-desert: #9c845a; --r-rock: #695e50; --r-ice: #e6eef8;
   --r-shore: rgba(96, 190, 255, .5); --r-atmo: rgba(86, 182, 255, 1);
   --relief-ambient: .40; --relief-contrast: .88; --relief-sea-ambient: .78; --relief-sun: .46;
+  /* Weather satellites (sats.js): geostationary ring, low polar orbits */
+  --sat-geo: #c3a6ff; --sat-leo: #9ef0d0;
   /* Type and motion */
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -55,12 +59,15 @@ body {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 
 /* ── Stage ─────────────────────────────────────────────── */
-#stage, #marks, #stage-hit, .vignette { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+#stage, #bolts, #sats, #marks, #stage-hit, .vignette { position: fixed; inset: 0; width: 100vw; height: 100vh; }
 #stage { z-index: 0; display: block; }
+#bolts, #sats { z-index: 0; pointer-events: none; display: block; }
+.sky-off #bolts, .nogl #bolts, .sky-off #sats, .nogl #sats { display: none; }
 #marks { z-index: 1; pointer-events: none; overflow: visible; }
 #stage-hit { z-index: 1; cursor: grab; }
 #stage-hit.grabbing { cursor: grabbing; }
 #stage-hit.pick { cursor: pointer; }
+#stage-hit.sat:not(.pick):not(.grabbing) { cursor: help; }
 .mk.city circle { transition: r .2s; }
 .loading .card, .loading .dense-in { opacity: .6; transition: opacity .2s; }
 .vignette { z-index: 1; pointer-events: none;
@@ -123,7 +130,7 @@ main { position: relative; z-index: 2; pointer-events: none; }
   pointer-events: auto; width: min(520px, 100%);
   background: var(--glass); border: 1px solid var(--edge); border-radius: var(--r);
   padding: 30px 32px; position: relative;
-  backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
   box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 .card::before { /* hairline light along the top edge */
@@ -229,40 +236,53 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .huge.neg { color: var(--bad); text-shadow: 0 0 40px rgba(255, 111, 97, .35); }
 
 /* ── Right now: live forecast + the live sky's key ─────── */
-.now-card { width: 312px; padding: 18px 20px 14px; font-size: 13.5px; line-height: 1.45; }
-.now-card .kicker { margin-bottom: 10px; font-size: 10.5px; }
-.now-main { display: flex; align-items: center; gap: 14px; }
-.now-temp { font: 600 44px/1 var(--sans); letter-spacing: -.03em; color: var(--ink-strong); }
+.now-card { width: 312px; padding: 14px 18px 12px; font-size: 13px; line-height: 1.4; }
+.now-card .kicker { margin-bottom: 8px; font-size: 10.5px; }
+.now-main { display: flex; align-items: center; gap: 12px; }
+.now-temp { font: 600 36px/1 var(--sans); letter-spacing: -.03em; color: var(--ink-strong); }
 .now-cond { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .now-cond b { color: var(--ink-strong); font-weight: 600; font-size: 15px; }
 .now-cond .mono { font-size: 11px; }
-.now-said { margin: 12px 0 8px; color: var(--ink); text-wrap: pretty; }
+.now-said { margin: 10px 0 6px; color: var(--ink); text-wrap: pretty; }
 .now-pop { color: var(--ink-strong); }
 .now-meant { display: block; margin-top: 4px; color: var(--muted); }
 .now-meant b { color: var(--ink); font-weight: 600; }
 .now-meant.off b:last-of-type { color: var(--warn); }
-.now-hours { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 34px; margin: 4px 0 16px; }
+.now-hours { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 22px; margin: 2px 0 14px; }
 .now-hours span { position: relative; display: flex; align-items: flex-end; background: rgba(var(--accent-rgb), .06); border-radius: 2px; }
 .now-hours i { display: block; width: 100%; border-radius: 2px; background: linear-gradient(0deg, rgba(var(--accent-rgb), .55), rgba(var(--accent-rgb), .95)); }
 .now-hours em { position: absolute; top: 100%; left: 0; font: 400 9.5px var(--mono); color: var(--faint); font-style: normal; margin-top: 2px; }
-.now-tom { margin: 0 0 4px; font-size: 12.5px; }
-.now-sat { margin: 0; font-size: 12.5px; color: var(--ink); }
+.now-tom { margin: 0 0 2px; font-size: 12px; }
+.now-sat { margin: 0; font-size: 12px; color: var(--ink); }
 .now-sat:empty, .now-tom:empty, .now-hours:empty { display: none; }
 .now-card.pending .now-said, .now-card.pending .now-hours, .now-card.pending .now-tom { opacity: .4; }
 .now-card.fail .now-main, .now-card.fail .now-hours, .now-card.fail .now-tom { display: none; }
 .now-card.fail .now-said { color: var(--muted); }
-.now-sky { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--edge); }
-.sky-toggle { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 99px; cursor: pointer;
-  font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+/* Controls on one row, the legend under them at full width: side by side the
+   legend was squeezed into a column a few words wide and made the card tall. */
+.now-sky { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--edge); }
+.sky-toggle { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 99px; cursor: pointer;
+  font: 600 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
   background: transparent; border: 1px solid var(--edge-2); }
 .sky-toggle i { width: 22px; height: 12px; border-radius: 6px; background: var(--faint); position: relative; transition: background .2s; }
 .sky-toggle i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
 .sky-toggle[aria-pressed="true"] { color: var(--ink-strong); border-color: rgba(var(--accent-rgb), .6); }
 .sky-toggle[aria-pressed="true"] i { background: var(--accent); }
 .sky-toggle[aria-pressed="true"] i::after { transform: translateX(10px); }
-.sky-src { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--muted); min-width: 0; }
+.sky-ctl { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.sky-layers { display: flex; gap: 4px; }
+.sky-q { font: 600 10.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  background: transparent; border: 1px solid var(--edge-2); border-radius: 99px; padding: 3px 7px; cursor: pointer; }
+.sky-q[aria-pressed="true"] { color: var(--ink-strong); border-color: rgba(var(--accent-rgb), .6); }
+.sky-q[aria-pressed="false"] { text-decoration: line-through; opacity: .7; }
+.sky-off .sky-layers, .nogl .sky-layers { display: none; }
+.sat-key { display: inline-block; width: 8px; height: 8px; margin: 0 4px 0 6px; border-radius: 50%; vertical-align: middle; }
+.sat-key.geo { background: var(--sat-geo); box-shadow: 0 0 6px var(--sat-geo); }
+.sat-key.leo { background: var(--sat-leo); box-shadow: 0 0 6px var(--sat-leo); }
+.sky-src { margin: 0; font-size: 10px; line-height: 1.45; color: var(--muted); min-width: 0; }
+.sky-src b { color: var(--ink); font-weight: 600; }
 .sky-src span { cursor: help; }
-.now-cred { margin: 10px 0 0; font-size: 10px; color: var(--faint); }
+.now-cred { margin: 6px 0 0; font-size: 10px; color: var(--faint); }
 .now-cred a { color: var(--muted); }
 @media (min-width: 861px) {
   /* Bottom right of the opening screen, clear of the verdict card; it
@@ -279,12 +299,20 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .seg button[aria-selected="true"] { background: rgba(var(--accent-rgb), .16); color: var(--ink-strong);
   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .45); }
 .seg button .warnmark { color: var(--warn); margin-left: 3px; }
-.promise { display: grid; grid-template-columns: 1fr 150px; gap: 22px; margin-top: 20px; align-items: start; }
-.grid-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(11px, 1fr)); gap: 3px; align-content: start; min-height: 150px; }
+/* 2x2: the grid beside "It said", the verdict beside "It rained" - no column runs longer than its neighbour. */
+.promise { display: grid; grid-template-columns: minmax(0, 1fr) 150px; grid-template-areas: "grid said" "foot got";
+  gap: 14px 22px; margin-top: 20px; align-items: start; }
+.promise-read { display: contents; }
+.grid-days { grid-area: grid; }
+.pr-said { grid-area: said; }
+.pr-got { grid-area: got; }
+.promise-foot { grid-area: foot; align-self: end; display: flex; flex-direction: column; gap: 4px; }
+.promise-foot p { margin: 0; }
+.grid-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(11px, 1fr)); gap: 3px; align-content: start; }
 .grid-days i { aspect-ratio: 1; border-radius: 2.5px; background: rgba(255, 255, 255, .07);
   transition: background .5s var(--ease), box-shadow .5s var(--ease); transition-delay: var(--d, 0ms); }
 .grid-days i.wet { background: var(--accent); box-shadow: 0 0 6px rgba(var(--accent-rgb), .7); }
-.promise-read p { margin: 0 0 12px; }
+.promise-read p { margin: 0; }
 .promise-read .dim { display: block; font: 400 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .big { font: 600 38px/1 var(--sans); letter-spacing: -.03em; color: var(--ink-strong); }
 .pr-verdict { font-size: 14px; line-height: 1.45; color: var(--ink); }
@@ -528,10 +556,20 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 
 /* ── Tooltip ───────────────────────────────────────────── */
 .tip { position: fixed; z-index: 50; max-width: 300px; padding: 12px 14px; border-radius: 12px; pointer-events: none;
-  background: rgba(8, 14, 24, .92); border: 1px solid var(--edge-2); box-shadow: 0 20px 50px rgba(0, 0, 0, .6);
-  font: 400 12.5px/1.5 var(--sans); color: var(--ink); backdrop-filter: blur(12px); }
+  background: rgba(8, 14, 24, .78); border: 1px solid var(--edge-2); box-shadow: 0 20px 50px rgba(0, 0, 0, .6);
+  font: 400 12.5px/1.5 var(--sans); color: var(--ink);
+  backdrop-filter: blur(10px) saturate(1.3); -webkit-backdrop-filter: blur(10px) saturate(1.3); }
+/* Plain-text tooltips (sky legend sources): just slightly frosted. */
+.tip.tip-text { max-width: 340px; padding: 9px 12px; font-size: 12px; line-height: 1.45;
+  background: rgba(8, 14, 24, .6);
+  backdrop-filter: blur(6px) saturate(1.1); -webkit-backdrop-filter: blur(6px) saturate(1.1); }
+/* A satellite's tooltip wears the cards' glass. */
+.tip[data-sat] { background: var(--glass); border-color: var(--edge);
+  backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .05); }
 .tip dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 8px 0 0; font: 400 11.5px var(--mono); }
 .tip dt { color: var(--faint); } .tip dd { margin: 0; }
+.tip .sat-why { margin: 8px 0 6px; color: var(--ink); }
 
 /* ── City palette (native <dialog>: focus trap, Esc and top layer for free) ─ */
 .palette { width: min(560px, calc(100vw - 24px)); max-height: min(560px, calc(100vh - 120px)); margin: 90px auto auto;
@@ -568,7 +606,8 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   #hero { padding-top: 58vh; } /* the globe shows first; the verdict slides up over it */
   .chapter + .chapter { min-height: 150vh; }
   .card { padding: 22px 20px; border-radius: 16px; }
-  .umb, .promise { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .umb { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .promise { grid-template-columns: 1fr 1fr; grid-template-areas: "grid grid" "said got" "foot foot"; gap: 16px; }
   #umb-rows li { grid-template-columns: 1fr 56px; gap: 4px 10px; }
   #umb-rows .r-bar { grid-column: 1 / -1; grid-row: 2; }
   .umb-bars-head span:last-child { display: none; }
@@ -607,7 +646,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 .dir li a:hover { color: var(--accent); }
 .dir li .mono { font-size: 11px; color: var(--muted); margin-left: 6px; }
 @media print {
-  #stage, #marks, #stage-hit, .vignette, .bar, .palette, .tip { display: none !important; }
+  #stage, #bolts, #sats, #marks, #stage-hit, .vignette, .bar, .palette, .tip { display: none !important; }
   :root { --ground: #fff; --ink: #111; --ink-strong: #000; --muted: #444; --faint: #666;
           --glass: transparent; --glass-2: #eee; --edge: #bbb; --edge-2: #999; }
   .hl { color: #000; background: none; }

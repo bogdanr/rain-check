@@ -206,6 +206,33 @@
     return lin < root ? lin : root;
   }
 
+  /* The height gradient at a point, with every tap clamped to [lo, hi].
+   *
+   * A central difference at each of the four texels around the sample, then
+   * bilinear between them, so the slope is a continuous field rather than a
+   * constant per cell (see the shader for why that matters). The clamp is what
+   * lets land and sea each read the slope of their *own* surface on a pixel the
+   * coast crosses: land sees the sea as flat ground at sea level, the sea sees
+   * the land as the shoreline at zero. Writes [d/du, d/dv] into `out`.
+   */
+  var SLOPE = new Float64Array(2);
+  // Top-level and monomorphic, so the JIT inlines it into the loop below.
+  function clampH(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
+  function slopeAt(h, lo, hi, r0, r1, rm, rp, um, u0, u1, up, au, av, out) {
+    var a0 = clampH(h[r0 + um], lo, hi), a1 = clampH(h[r0 + u0], lo, hi),
+        a2 = clampH(h[r0 + u1], lo, hi), a3 = clampH(h[r0 + up], lo, hi),
+        b0 = clampH(h[r1 + um], lo, hi), b1 = clampH(h[r1 + u0], lo, hi),
+        b2 = clampH(h[r1 + u1], lo, hi), b3 = clampH(h[r1 + up], lo, hi),
+        m0 = clampH(h[rm + u0], lo, hi), m1 = clampH(h[rm + u1], lo, hi),
+        p0 = clampH(h[rp + u0], lo, hi), p1 = clampH(h[rp + u1], lo, hi);
+    var gx00 = a2 - a0, gx10 = a3 - a1, gx01 = b2 - b0, gx11 = b3 - b1;
+    var gy00 = b1 - m0, gy10 = b2 - m1, gy01 = p0 - a1, gy11 = p1 - a2;
+    out[0] = ((gx00 + (gx10 - gx00) * au) * (1 - av) +
+              (gx01 + (gx11 - gx01) * au) * av) * 0.5;
+    out[1] = ((gy00 + (gy10 - gy00) * au) * (1 - av) +
+              (gy01 + (gy11 - gy01) * au) * av) * 0.5;
+  }
+
   /* Grazing visibility: how much of its light a slope loses as it turns away
    * from the viewer, and where that starts to apply.
    *
@@ -1168,11 +1195,14 @@
   };
 
   Globe.prototype.render = function () {
-    var t0 = performance.now();
+    var t0 = performance.now(), hires = !!this._hires;
     this.projection.rotate(this.rotation).scale(this.baseScale * this.zoom);
     this._drawBase();
     this._drawMarkers();
     this.stats.ms = performance.now() - t0;
+    // Measured here rather than inside the shader, so the adaptation reads
+    // the frame that just finished instead of the one before it.
+    if (this.relief) this._scheduleRefine(this.stats.ms, hires);
   };
 
   Globe.prototype._drawBase = function () {
@@ -1478,7 +1508,11 @@
     var R = this.relief, pal = this.relPal;
     var s = this.size, ctx = this.ctx;
 
-    var n = Math.max(64, Math.round(s * this._detail));
+    // Buffer pixels per CSS pixel: the adaptive figure while the view moves,
+    // and the screen's own density for the settled frame. At CSS resolution
+    // a 2x screen got every shader pixel stretched over four, which is why
+    // the coast used to look soft and stepped at once.
+    var n = Math.max(64, Math.round(s * (this._hires ? this._hiresRatio() : this._detail)));
     var buf = this._reliefBuffer(n);
     var out = buf.img.data;
     var step = s / n;
@@ -1723,14 +1757,22 @@
          * shallows, which is what it is, instead of an alpine peak in the
          * Adriatic.
          */
-        var isLand;
+        /* `cov` is how much of this pixel is land, 0..1 - a coverage, not a
+         * vote. It used to be thresholded at a half (`isLand = landness >
+         * 0.5`), which threw away the antialiasing the mask had just done
+         * and turned every coast into a staircase of whole pixels, blurred
+         * but not removed by the upscale to device resolution. Now the few
+         * pixels the coast actually crosses are shaded as both materials and
+         * mixed by coverage; every other pixel still takes exactly one path.
+         */
+        var cov;
         if (fringe) {
           // Nothing but land is ever displaced, and the mask stops at the
           // circle, so out here the raster is the only witness there is.
-          isLand = true;
+          cov = 1;
           if (hm < 1) hm = 1;
         } else if (!mask) {
-          isLand = hm > 0;
+          cov = hm > 12 ? 1 : hm < -12 ? 0 : (hm + 12) * (1 / 24);
         } else {
           /* Which witness to believe, and why it has to be a fade.
            *
@@ -1773,15 +1815,18 @@
           var tg = (maskQk / vz - MASK_FADE_Q0) * MASK_FADE_K;
           if (tg > t) t = tg;
           if (t < 0) t = 0; else if (t > 1) t = 1;
-          var landness = lm + (lr - lm) * (t * t * (3 - 2 * t));
-          isLand = landness > 0.5;
-          // Pull the height to the near side of sea level rather than
-          // choosing the material against it, so a pixel the two sources
-          // still disagree about is lowland or shallows - which is what it
-          // is - instead of an alpine peak in the Adriatic.
-          if (isLand) { if (hm < 0) hm = 0; }
-          else if (hm > 0) hm = -20;
+          cov = lm + (lr - lm) * (t * t * (3 - 2 * t));
         }
+        // Below one step of an 8-bit channel the mix cannot be seen, and
+        // snapping keeps the open ocean and the interior on a single path.
+        if (cov < 0.004) cov = 0; else if (cov > 0.996) cov = 1;
+
+        // Each material sees the height pulled to its own side of sea level
+        // rather than being chosen against it, so a pixel the two sources
+        // disagree about is lowland or shallows - which is what it is -
+        // instead of an alpine peak in the Adriatic.
+        var hLand = hm < 0 ? 0 : hm;
+        var hSea = hm > 0 ? -20 : hm;
 
         // The same four corners of the blurred field: the landform under the
         // landscape.
@@ -1811,46 +1856,42 @@
         var rm = (v0 - 1 < 0 ? 0 : v0 - 1) * W;
         var rp = (v1 + 1 >= H ? H - 1 : v1 + 1) * W;
 
-        var gx00 = h[r0 + u1] - h[r0 + um], gx10 = h[r0 + up] - h[r0 + u0],
-            gx01 = h[r1 + u1] - h[r1 + um], gx11 = h[r1 + up] - h[r1 + u0];
-        var gy00 = h[r1 + u0] - h[rm + u0], gy10 = h[r1 + u1] - h[rm + u1],
-            gy01 = h[rp + u0] - h[r0 + u0], gy11 = h[rp + u1] - h[r0 + u1];
-        var du = ((gx00 + (gx10 - gx00) * au) * (1 - av) +
-                  (gx01 + (gx11 - gx01) * au) * av) * 0.5;
-        var dv = ((gy00 + (gy10 - gy00) * au) * (1 - av) +
-                  (gy01 + (gy11 - gy01) * au) * av) * 0.5;
-
-        var px00 = hMac[r0 + u1] - hMac[r0 + um],
-            px10 = hMac[r0 + up] - hMac[r0 + u0],
-            px01 = hMac[r1 + u1] - hMac[r1 + um],
-            px11 = hMac[r1 + up] - hMac[r1 + u0];
-        var py00 = hMac[r1 + u0] - hMac[rm + u0],
-            py10 = hMac[r1 + u1] - hMac[rm + u1],
-            py01 = hMac[rp + u0] - hMac[r0 + u0],
-            py11 = hMac[rp + u1] - hMac[r0 + u1];
-        var mdu = ((px00 + (px10 - px00) * au) * (1 - av) +
-                   (px01 + (px11 - px01) * au) * av) * 0.5;
-        var mdv = ((py00 + (py10 - py00) * au) * (1 - av) +
-                   (py01 + (py11 - py01) * au) * av) * 0.5;
+        // The blurred field's gradient, unclamped (the bounds are the Int16
+        // range, so nothing is ever cut).
+        slopeAt(hMac, -32768, 32767, r0, r1, rm, rp, um, u0, u1, up, au, av, SLOPE);
+        var mdu = SLOPE[0], mdv = SLOPE[1];
 
         // Metres per texel. Columns narrow towards the poles, and without the
         // cosine the Arctic would be covered in vertical cliffs. The floor
         // stops the last row or two from dividing by nothing.
         var cosLat = Math.sqrt(wx * wx + wy * wy);
         if (cosLat < 0.06) cosLat = 0.06;
-        var k = (isLand ? EXAG : SEA_EXAG);
-        var sx_ = du * k / (dxBase * cosLat);
-        var sy_ = -dv * k / dyBase;
+        var invDx = 1 / (dxBase * cosLat), invDy = 1 / dyBase;
 
-        // Hillshade in the tangent frame: normal (-dh/de, -dh/dn, 1).
-        var nlen = Math.sqrt(sx_ * sx_ + sy_ * sy_ + 1);
-        var hill = (-sx_ * ltx - sy_ * lty + ltz) / nlen;
-        if (hill < 0) hill = 0;
+        /* The land material's lighting, wherever any of the pixel is land.
+         *
+         * Its slope comes from heights clamped at sea level. Taken raw, a
+         * coastal land pixel differenced itself against ocean texels four
+         * kilometres down, read a cliff, lit it at fourteen-fold exaggeration
+         * and painted it as bare rock: every coast facing away from the light
+         * wore a dark crescent - south-east Sri Lanka most of all. The land
+         * never actually falls into the sea like that; the grid only says so
+         * because a 26 km texel straddles the shore. Inland, where no tap is
+         * below sea level, the clamp changes nothing.
+         */
+        var hill = 0, nlen = 1;
+        if (cov > 0) {
+          slopeAt(h, 0, 32767, r0, r1, rm, rp, um, u0, u1, up, au, av, SLOPE);
+          var sx_ = SLOPE[0] * EXAG * invDx, sy_ = -SLOPE[1] * EXAG * invDy;
 
-        // The landform's own shade, from the blurred field. On land the two are
-        // blended; at sea there is nothing at this scale worth lighting, and
-        // mixing it in only made the abyssal plains undulate.
-        if (isLand) {
+          // Hillshade in the tangent frame: normal (-dh/de, -dh/dn, 1).
+          nlen = Math.sqrt(sx_ * sx_ + sy_ * sy_ + 1);
+          hill = (-sx_ * ltx - sy_ * lty + ltz) / nlen;
+          if (hill < 0) hill = 0;
+
+          // The landform's own shade, from the blurred field. On land the two
+          // are blended; at sea there is nothing at this scale worth lighting,
+          // and mixing it in only made the abyssal plains undulate.
           var mx_ = mdu * (EXAG_MACRO / (dxBase * cosLat));
           var my_ = -mdv * (EXAG_MACRO / dyBase);
           var mlen = Math.sqrt(mx_ * mx_ + my_ * my_ + 1);
@@ -1863,7 +1904,7 @@
           // lifts summits out of the light and sinks valleys into shadow, and
           // it is the term that makes the relief look carved rather than
           // printed.
-          var prom = (hm - hmac) * (1 / PROMINENCE_M);
+          var prom = (hLand - hmac) * (1 / PROMINENCE_M);
           if (prom > 1) prom = 1; else if (prom < -1) prom = -1;
           hill *= 1 + PROMINENCE_GAIN * prom;
           if (hill < 0) hill = 0;
@@ -1879,7 +1920,7 @@
          * it is the term that puts a dark far side on every range along the
          * edge instead of a uniform smear.
          */
-        if (isLand && rho2 > grazeLo2) {
+        if (cov > 0 && rho2 > grazeLo2) {
           var tvx = fx - vz * wx, tvy = fy - vz * wy, tvz = fz - vz * wz;
           var invCos = 1 / cosLat;
           var te = (wx * tvy - wy * tvx) * invCos;
@@ -1924,8 +1965,12 @@
         var coast = (bio[b00 + 2] * w00 + bio[b10 + 2] * w10 +
                      bio[b01 + 2] * w01 + bio[b11 + 2] * w11) * (1 / 255);
 
+        // Land colour (lr_, lg_, lb_) and sea colour (sr_, sg_, sb_), each
+        // already shaded; only the materials the pixel covers are computed.
+        var lr_ = 0, lg_ = 0, lb_ = 0, sr_ = 0, sg_ = 0, sb_ = 0;
         var cr, cg, cb, shade;
-        if (isLand) {
+        if (cov > 0) {
+          hm = hLand;
           // How steep the ground is, as a number between 0 (flat) and ~1
           // (cliff). `nlen` is already sqrt(slope^2 + 1), so this is free.
           var steep = 1 - 1 / nlen;
@@ -1968,8 +2013,24 @@
           cg += (ice[1] - cg) * sn;
           cb += (ice[2] - cb) * sn;
           shade = (ambient + contrast * hill) * (sunBase + sun * sph);
-        } else {
-          var di = (-hm * depthIdx) | 0;
+          lr_ = cr * shade; lg_ = cg * shade; lb_ = cb * shade;
+        }
+        if (cov < 1) {
+          /* The sea's own relief, from heights clamped at sea level.
+           *
+           * Unclamped, a shallow-water pixel beside a coast differenced
+           * itself against the land behind it - hundreds of metres up where
+           * the seabed has tens - and the shelf picked up a lit or shadowed
+           * rim following the shore, the dark halo round Sri Lanka among
+           * them. Clamped, the land reads as the shoreline at zero and the
+           * sea is shaded by the shape of the seabed alone.
+           */
+          slopeAt(h, -32768, 0, r0, r1, rm, rp, um, u0, u1, up, au, av, SLOPE);
+          var ssx = SLOPE[0] * SEA_EXAG * invDx, ssy = -SLOPE[1] * SEA_EXAG * invDy;
+          var shill = (-ssx * ltx - ssy * lty + ltz) / Math.sqrt(ssx * ssx + ssy * ssy + 1);
+          if (shill < 0) shill = 0;
+
+          var di = (-hSea * depthIdx) | 0;
           var dep = depthByM[di > 256 ? 256 : di];
           cr = shelf[0] + (abyss[0] - shelf[0]) * dep;
           cg = shelf[1] + (abyss[1] - shelf[1]) * dep;
@@ -1984,7 +2045,7 @@
           // Water keeps far more ambient light than land. Shading it as hard
           // as the continents turns whole oceans black on the unlit side, and
           // a navigation control may not have an unreadable half.
-          shade = (seaAmbient + seaContrast * hill) * (sunBase + sun * sph * 0.7);
+          shade = (seaAmbient + seaContrast * shill) * (sunBase + sun * sph * 0.7);
 
           // Specular highlight, Blinn-Phong. Five squarings instead of a
           // pow(): this runs on every water pixel of every frame.
@@ -1995,23 +2056,27 @@
               shade += sp * spec;
             }
           }
+          cr *= shade; cg *= shade; cb *= shade;
+
+          // The shoreline, lit like a filament. This is the one purely
+          // graphic flourish in the shader, and it is registered to the
+          // terrain rather than to the 110 m coastline vector, so it cannot
+          // drift off the coast when the globe is zoomed in. It belongs to
+          // the water, so it is mixed in with the water's share of the pixel.
+          if (coast > 0.9) {
+            var e = (coast - 0.9) * 10;
+            e = e * e * shoreGain;
+            cr += shore[0] * e; cg += shore[1] * e; cb += shore[2] * e;
+          }
+          sr_ = cr; sg_ = cg; sb_ = cb;
         }
 
-        cr *= shade; cg *= shade; cb *= shade;
-
-        // The shoreline, lit like a filament. This is the one purely graphic
-        // flourish in the shader, and it is registered to the terrain rather
-        // than to the 110 m coastline vector, so it cannot drift off the coast
-        // when the globe is zoomed in.
-        if (!isLand && coast > 0.9) {
-          var e = (coast - 0.9) * 10;
-          e = e * e * shoreGain;
-          cr += shore[0] * e; cg += shore[1] * e; cb += shore[2] * e;
-        }
-
-        out[i] = cr;
-        out[i + 1] = cg;
-        out[i + 2] = cb;
+        // Coverage-weighted mix. On all but the pixels the coast crosses one
+        // weight is exactly zero, and this is a copy.
+        var ic = 1 - cov;
+        out[i] = lr_ * cov + sr_ * ic;
+        out[i + 1] = lg_ * cov + sg_ * ic;
+        out[i + 2] = lb_ * cov + sb_ * ic;
         out[i + 3] = alpha;
       }
     }
@@ -2021,7 +2086,24 @@
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(buf.canvas, 0, 0, s, s);
     this.stats.relief = true;
-    this._scheduleRefine();
+  };
+
+  /* How dense the settled frame may be.
+   *
+   * The screen's pixel ratio (capped at 2, like the canvas), unless this
+   * machine's CSS-resolution frames say that would stall the page: the cost
+   * goes with the square of the ratio, and one frame the reader cannot
+   * interrupt should not run much past HIRES_BUDGET_MS.
+   */
+  var HIRES_BUDGET_MS = 160;
+  Globe.prototype._hiresRatio = function () {
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    var ms = this._msFull;
+    if (ms > 0) {
+      var fit = Math.sqrt(HIRES_BUDGET_MS / ms);
+      if (fit < dpr) dpr = fit;
+    }
+    return dpr < 1 ? 1 : dpr;
   };
 
   /* Rasterise the vector coastline into a land/sea mask at buffer resolution.
@@ -2076,29 +2158,54 @@
 
   /* Adapt the resolution to what this machine can actually deliver.
    *
-   * The measurement is the previous frame's own render time, so the globe
-   * tunes itself to the device it is on rather than to a user-agent guess.
-   * When the view stops changing, one full-detail frame is scheduled: the
-   * detail is only ever missing while something is moving, which is exactly
-   * when nobody can see it.
+   * The measurement is the frame's own render time, so the globe tunes itself
+   * to the device it is on rather than to a user-agent guess. When the view
+   * stops changing, one settled frame at the screen's own density follows:
+   * the detail is only ever missing while something is moving, which is
+   * exactly when nobody can see it.
+   *
+   * The settled frame is debounced - every moving frame pushes it back - so
+   * it lands once, after the last frame of a drag, zoom or fly-to, whatever
+   * started the motion. It used to be scheduled only when the adaptive detail
+   * had dropped below 1, so a fast machine never got one at all and a 2x
+   * screen was left looking at a CSS-resolution planet stretched to fit.
    */
-  Globe.prototype._scheduleRefine = function () {
-    var self = this, ms = this.stats.ms;
+  var REFINE_MS = 130;
+  Globe.prototype._scheduleRefine = function (ms, wasHires) {
+    // The settled frame is slow by construction and must not be read as
+    // evidence that the machine is slow.
+    if (wasHires) return;
 
     if (ms > 26 && this._detail > 0.4) this._detail = Math.max(0.4, this._detail * 0.7);
     else if (ms < 9 && this._detail < 1) this._detail = Math.min(1, this._detail * 1.25);
 
-    if (this._detail >= 1 || this._refine) return;
+    // What a frame at one buffer pixel per CSS pixel costs here, scaled from
+    // whatever detail this one ran at. Feeds the settled frame's budget.
+    var d = this._lastDetail || 1;
+    this._msFull = ms / (d * d);
+    this._lastDetail = this._detail;
+
+    if (this._refine) clearTimeout(this._refine);
+    this._refine = null;
+    if (d >= this._hiresRatio()) return;          // already as sharp as it gets
+    var self = this;
     this._refine = setTimeout(function () {
       self._refine = null;
-      var was = self._detail;
-      self._detail = 1;
-      self.render();
-      // Keep the adaptive figure the drag will use next time: the full-detail
-      // frame is slow by construction and must not be read as evidence that
-      // the machine is slow.
-      self._detail = was;
-    }, 130);
+      self.renderSettled();
+    }, REFINE_MS);
+  };
+
+  /* Draw the settled, full-density frame now.
+   *
+   * Public so the verification harness can ask for exactly what a reader
+   * sees once the globe comes to rest, without racing a pending animation
+   * frame or refine timer that would repaint underneath it.
+   */
+  Globe.prototype.renderSettled = function () {
+    if (this._frame) { cancelAnimationFrame(this._frame); this._frame = null; }
+    if (this._refine) { clearTimeout(this._refine); this._refine = null; }
+    this._hires = true;
+    try { this.render(); } finally { this._hires = false; }
   };
 
   /* -- instrument overlay -------------------------------------------------

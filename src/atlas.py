@@ -47,6 +47,10 @@ REPO = "https://github.com/bogdanr/rain-check"
 # the reader's browser fetches them directly: no job of ours republishes
 # imagery, and none of it ever enters the audit (sky.js documents the reading).
 EUMETSAT = "https://view.eumetsat.int/geoserver/mumi"
+# Meteosat Third Generation, 0 degree: the Lightning Imager's accumulated flash
+# area, a 5-minute product over the disk's +-70 degree box (lon and lat).
+MTG = "https://view.eumetsat.int/geoserver/mtg_fd"
+BOLT_BOX = [-70, -70, 70, 70]
 GIBS = "https://gibs.earthdata.nasa.gov"
 IMERG = "IMERG_Precipitation_Rate_30min"
 WX = {
@@ -57,7 +61,28 @@ WX = {
     "rainDomain": f"{GIBS}/wmts/epsg4326/best/1.0.0/{IMERG}/default/2km/all/{{range}}.xml",
     "rainMap": (f"{GIBS}/wms/epsg4326/best/wms.cgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS={IMERG}"
                 "&CRS=EPSG:4326&BBOX=-90,-180,90,180&FORMAT=image/png&TRANSPARENT=true"),
+    # The layer's own capabilities (7 KB, one time dimension), then 5-minute frames.
+    "boltCaps": f"{MTG}/li_afa/ows?service=WMS&request=GetCapabilities&version=1.3.0",
+    "boltMap": (f"{MTG}/wms?service=WMS&version=1.3.0&request=GetMap&layers=li_afa&styles="
+                f"&crs=CRS:84&bbox={','.join(map(str, BOLT_BOX))}&format=image/png&transparent=true"),
+    "boltBox": BOLT_BOX,
+    # The same satellite's 10-minute IR frame and H SAF h40b rain, same box:
+    # laid over the world mosaic and IMERG inside the disk (sky.js).
+    "mtgBox": BOLT_BOX,
+    "mtgIrCaps": f"{MTG}/ir105_hrfi/ows?service=WMS&request=GetCapabilities&version=1.3.0",
+    "mtgIrMap": (f"{MTG}/wms?service=WMS&version=1.3.0&request=GetMap&layers=ir105_hrfi&styles="
+                 f"&crs=CRS:84&bbox={','.join(map(str, BOLT_BOX))}&format=image/png&transparent=true"),
+    "mtgRainMap": (f"{MTG}/wms?service=WMS&version=1.3.0&request=GetMap&layers=h40b&styles="
+                   f"&crs=CRS:84&bbox={','.join(map(str, BOLT_BOX))}&format=image/png&transparent=true"),
 }
+
+# Weather satellites on the globe. The roster and a baked set of elements come
+# from data/processed/satellites.json (src/satellites.py, run by hand); the
+# reader's browser asks CelesTrak for fresher elements (CORS-open), at most
+# once per two hours, which is how often CelesTrak updates them.
+SATELLITES = Path(__file__).resolve().parent.parent / "data" / "processed" / "satellites.json"
+SATS_LIVE = ["https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=json",
+             "https://celestrak.org/NORAD/elements/gp.php?CATNR=39574&FORMAT=json"]
 
 # The prototype's grade words and plain phrases (atlas.js GRADE / SAY), so the
 # pre-rendered card reads exactly as the script will render it.
@@ -296,13 +321,21 @@ def main() -> None:
 
     fonts = {f.name: site.add_file("assets/fonts", f) for f in sorted((ATLAS / "fonts").glob("*.woff2"))}
     site.add_file("assets/fonts", ATLAS / "fonts" / "LICENSE.txt", hashed=False)
-    css = re.sub(r"\{FONT:([\w.-]+)\}", lambda m: fonts[m.group(1)], ship(ATLAS / "atlas.css"))
+    # Placeholders are url("font:<file>") - plain CSS strings, so CSS parsers and
+    # editor tooling read atlas.css cleanly (a bare url({FONT:...}) made tree-sitter
+    # report ~6000 cascading syntax errors for the whole file).
+    css = re.sub(r'"font:([\w.-]+)"', lambda m: fonts[m.group(1)], ship(ATLAS / "atlas.css"))
     icon = re.sub(r"<!--.*?-->\s*", "", (WEB / "favicon.svg").read_text(), flags=re.S)
     og_file = ATLAS / "og.jpg"
     a = {
         "css": site.add_text("assets", "atlas.css", css),
         "sky": site.add_text("assets", "sky.js", ship(ATLAS / "sky.js")),
         "stage": site.add_text("assets", "stage.js", ship(ATLAS / "stage.js")),
+        "bolts": site.add_text("assets", "bolts.js", ship(ATLAS / "bolts.js")),
+        "sats": site.add_text("assets", "sats.js", ship(ATLAS / "sats.js")),
+        # The satellite roster with the orbital elements it was built with
+        # (src/satellites.py); the page refreshes them from CelesTrak.
+        "satdata": site.add_json("assets", "satellites.json", json.loads(SATELLITES.read_text())),
         "app": site.add_text("assets", "atlas.js", ship(ATLAS / "atlas.js")),
         "icon": site.add_text("assets", "favicon.svg", icon),
         "portrait": site.add_file("assets", WEB / "portrait.webp"),
@@ -338,12 +371,12 @@ def main() -> None:
         cfg = {"base": base, "data": data_url, "city": slug,
                "elev": a["elev"], "biome": a["biome"], "stars": a["stars"],
                "moon": a["moon"], "lights": a["lights"], "starsEpoch": stars_epoch,
-               "forecast": API_FORECAST, "wx": WX}
+               "forecast": API_FORECAST, "wx": WX, "sats": a["satdata"], "satsLive": SATS_LIVE}
         html = prerender(template, kv, counts, ti)
         for key, val in {
             "{HEAD}": head(kv, url, home, og, data["as_of"], first, is_home),
             "{ICON}": a["icon"], "{DATA}": data_url, "{CSS}": a["css"],
-            "{SKY_JS}": a["sky"], "{STAGE_JS}": a["stage"], "{APP_JS}": a["app"], "{PORTRAIT}": a["portrait"],
+            "{SKY_JS}": a["sky"], "{STAGE_JS}": a["stage"], "{BOLTS_JS}": a["bolts"], "{SATS_JS}": a["sats"], "{APP_JS}": a["app"], "{PORTRAIT}": a["portrait"],
             "{CFG}": json.dumps(cfg, separators=(",", ":")).replace("</", "<\\/"),
             "{BASE}": base, "{N_CITIES}": str(len(cities)), "{AS_OF}": esc(data["as_of"]),
         }.items():

@@ -968,12 +968,12 @@ def check_palettes(base_url: str, r: Result) -> None:
             page.evaluate("""() => {
               window.__globe._spin([-10, -50], false);
               window.__globe.setZoom(3);
-              // Full detail: while the view is moving the shader renders into
-              // a smaller buffer and the result is scaled up, and sampling a
-              // single pixel out of an interpolated image is not a measurement
-              // of what the renderer decided.
-              window.__globe._detail = 1;
-              window.__globe.render();
+              // The settled frame: while the view is moving the shader renders
+              // into a smaller buffer and the result is scaled up, and sampling
+              // a single pixel out of an interpolated image is not a
+              // measurement of what the renderer decided. renderSettled() also
+              // cancels any pending frame that would repaint underneath us.
+              window.__globe.renderSettled();
             }""")
 
             px_all = page.evaluate("""(pts) => {

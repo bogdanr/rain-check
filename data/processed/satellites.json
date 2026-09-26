@@ -1,0 +1,267 @@
+{
+ "read": "2026-09-26T09:48Z",
+ "source": "CelesTrak GP data (OMM JSON)",
+ "urls": [
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=json",
+  "https://celestrak.org/NORAD/elements/gp.php?CATNR=39574&FORMAT=json"
+ ],
+ "sats": [
+  {
+   "id": 51850,
+   "name": "GOES-18",
+   "role": "GOES-West",
+   "op": "NOAA (USA)",
+   "kind": "geo",
+   "what": "Imager (ABI) and lightning mapper (GLM) over the eastern Pacific and the Americas",
+   "rain": "Full-disc infrared every 10 min: the cloud tops forecasters watch storms grow in.",
+   "omm": {
+    "OBJECT_NAME": "GOES 18",
+    "NORAD_CAT_ID": 51850,
+    "EPOCH": "2026-09-25T23:11:38.768352",
+    "MEAN_MOTION": 1.00272776,
+    "ECCENTRICITY": 5.12e-05,
+    "INCLINATION": 0.0434,
+    "RA_OF_ASC_NODE": 340.5046,
+    "ARG_OF_PERICENTER": 262.8556,
+    "MEAN_ANOMALY": 332.3516,
+    "MEAN_MOTION_DOT": 9.9e-07
+   }
+  },
+  {
+   "id": 60133,
+   "name": "GOES-19",
+   "role": "GOES-East",
+   "op": "NOAA (USA)",
+   "kind": "geo",
+   "what": "Imager (ABI) and lightning mapper (GLM) over the Americas and the Atlantic",
+   "rain": "GOES-East since 2025. With the rest of this ring, its infrared makes up the world cloud mosaic drawn as this globe's clouds.",
+   "omm": {
+    "OBJECT_NAME": "GOES 19",
+    "NORAD_CAT_ID": 60133,
+    "EPOCH": "2026-09-25T09:28:03.263808",
+    "MEAN_MOTION": 1.00271635,
+    "ECCENTRICITY": 5.476e-05,
+    "INCLINATION": 0.0132,
+    "RA_OF_ASC_NODE": 6.0215,
+    "ARG_OF_PERICENTER": 250.2719,
+    "MEAN_ANOMALY": 174.77,
+    "MEAN_MOTION_DOT": -2.47e-06
+   }
+  },
+  {
+   "id": 54743,
+   "name": "Meteosat-12",
+   "role": "MTG-I1",
+   "op": "EUMETSAT (Europe)",
+   "kind": "geo",
+   "what": "Flexible Combined Imager and the Lightning Imager, over Europe and Africa",
+   "rain": "Its Lightning Imager is the source of the lightning layer on this globe.",
+   "omm": {
+    "OBJECT_NAME": "METEOSAT-12 (MTG-I1)",
+    "NORAD_CAT_ID": 54743,
+    "EPOCH": "2026-09-25T21:47:48.916320",
+    "MEAN_MOTION": 1.00273662,
+    "ECCENTRICITY": 0.0003511,
+    "INCLINATION": 0.7436,
+    "RA_OF_ASC_NODE": 20.8651,
+    "ARG_OF_PERICENTER": 95.7409,
+    "MEAN_ANOMALY": 214.651,
+    "MEAN_MOTION_DOT": -5e-08
+   }
+  },
+  {
+   "id": 58990,
+   "name": "INSAT-3DS",
+   "role": "Indian Ocean",
+   "op": "ISRO / IMD (India)",
+   "kind": "geo",
+   "what": "Imager and sounder over India and the Indian Ocean",
+   "rain": "Watches the monsoon and the Bay of Bengal cyclones.",
+   "omm": {
+    "OBJECT_NAME": "INSAT-3DS",
+    "NORAD_CAT_ID": 58990,
+    "EPOCH": "2026-09-25T23:53:59.316288",
+    "MEAN_MOTION": 1.00271546,
+    "ECCENTRICITY": 0.0001432,
+    "INCLINATION": 0.0141,
+    "RA_OF_ASC_NODE": 182.1359,
+    "ARG_OF_PERICENTER": 10.2906,
+    "MEAN_ANOMALY": 252.988,
+    "MEAN_MOTION_DOT": -1.53e-06
+   }
+  },
+  {
+   "id": 41882,
+   "name": "Fengyun-4A",
+   "role": "FY-4A",
+   "op": "CMA (China)",
+   "kind": "geo",
+   "what": "Imager (AGRI), infrared sounder and lightning mapper over East Asia",
+   "rain": "Part of the ring of imagers the world cloud mosaic is stitched from.",
+   "omm": {
+    "OBJECT_NAME": "FENGYUN 4A",
+    "NORAD_CAT_ID": 41882,
+    "EPOCH": "2026-09-25T00:08:19.447296",
+    "MEAN_MOTION": 1.00269817,
+    "ECCENTRICITY": 0.00082785,
+    "INCLINATION": 2.5675,
+    "RA_OF_ASC_NODE": 79.0046,
+    "ARG_OF_PERICENTER": 166.607,
+    "MEAN_ANOMALY": 243.4079,
+    "MEAN_MOTION_DOT": -3.55e-06
+   }
+  },
+  {
+   "id": 41836,
+   "name": "Himawari-9",
+   "role": "JMA",
+   "op": "JMA (Japan)",
+   "kind": "geo",
+   "what": "Advanced Himawari Imager over East Asia, Australia and the western Pacific",
+   "rain": "Full disc every 10 min; JMA tracks typhoons with it.",
+   "omm": {
+    "OBJECT_NAME": "HIMAWARI-9",
+    "NORAD_CAT_ID": 41836,
+    "EPOCH": "2026-09-25T22:15:52.181856",
+    "MEAN_MOTION": 1.00272793,
+    "ECCENTRICITY": 0.0001813,
+    "INCLINATION": 0.0132,
+    "RA_OF_ASC_NODE": 213.5824,
+    "ARG_OF_PERICENTER": 18.6774,
+    "MEAN_ANOMALY": 247.2037,
+    "MEAN_MOTION_DOT": 0
+   }
+  },
+  {
+   "id": 49008,
+   "name": "Fengyun-3E",
+   "role": "Early morning",
+   "op": "CMA (China)",
+   "kind": "sso",
+   "node": "early morning",
+   "what": "Sounders and imager in the dawn-dusk plane, the first civil weather satellite there",
+   "rain": "Fills the early-morning gap the models used to have between the other two planes.",
+   "omm": {
+    "OBJECT_NAME": "FENGYUN 3E",
+    "NORAD_CAT_ID": 49008,
+    "EPOCH": "2026-09-26T04:19:58.892736",
+    "MEAN_MOTION": 14.19912022,
+    "ECCENTRICITY": 0.0002278,
+    "INCLINATION": 98.755,
+    "RA_OF_ASC_NODE": 271.4884,
+    "ARG_OF_PERICENTER": 127.6538,
+    "MEAN_ANOMALY": 232.4845,
+    "MEAN_MOTION_DOT": 5.6e-07
+   }
+  },
+  {
+   "id": 38771,
+   "name": "Metop-B",
+   "role": "Mid-morning",
+   "op": "EUMETSAT (Europe)",
+   "kind": "sso",
+   "node": "mid-morning",
+   "what": "Infrared sounder (IASI), microwave sounders and scatterometer",
+   "rain": "Its soundings are among the observations that do the most for global forecast skill.",
+   "omm": {
+    "OBJECT_NAME": "METOP-B",
+    "NORAD_CAT_ID": 38771,
+    "EPOCH": "2026-09-26T03:06:31.478400",
+    "MEAN_MOTION": 14.21461158,
+    "ECCENTRICITY": 0.0003252,
+    "INCLINATION": 98.6397,
+    "RA_OF_ASC_NODE": 318.5626,
+    "ARG_OF_PERICENTER": 68.5427,
+    "MEAN_ANOMALY": 291.6097,
+    "MEAN_MOTION_DOT": 7.3e-07
+   }
+  },
+  {
+   "id": 43689,
+   "name": "Metop-C",
+   "role": "Mid-morning",
+   "op": "EUMETSAT (Europe)",
+   "kind": "sso",
+   "node": "mid-morning",
+   "what": "Infrared sounder (IASI), microwave sounders and scatterometer",
+   "rain": "Shares Metop-B's plane, half an orbit behind it, for twice the coverage.",
+   "omm": {
+    "OBJECT_NAME": "METOP-C",
+    "NORAD_CAT_ID": 43689,
+    "EPOCH": "2026-09-26T03:28:20.288928",
+    "MEAN_MOTION": 14.21474698,
+    "ECCENTRICITY": 4.43e-05,
+    "INCLINATION": 98.7324,
+    "RA_OF_ASC_NODE": 326.9807,
+    "ARG_OF_PERICENTER": 68.8965,
+    "MEAN_ANOMALY": 291.2259,
+    "MEAN_MOTION_DOT": 7.1e-07
+   }
+  },
+  {
+   "id": 43013,
+   "name": "NOAA-20",
+   "role": "Afternoon",
+   "op": "NOAA / NASA (USA)",
+   "kind": "sso",
+   "node": "early afternoon",
+   "what": "Microwave (ATMS) and infrared (CrIS) sounders, VIIRS imager",
+   "rain": "One of the two afternoon sounders every global model assimilates.",
+   "omm": {
+    "OBJECT_NAME": "NOAA 20 (JPSS-1)",
+    "NORAD_CAT_ID": 43013,
+    "EPOCH": "2026-09-26T01:52:38.235648",
+    "MEAN_MOTION": 14.19527694,
+    "ECCENTRICITY": 0.0001123,
+    "INCLINATION": 98.7832,
+    "RA_OF_ASC_NODE": 207.6657,
+    "ARG_OF_PERICENTER": 37.7609,
+    "MEAN_ANOMALY": 322.3645,
+    "MEAN_MOTION_DOT": 4.9e-07
+   }
+  },
+  {
+   "id": 54234,
+   "name": "NOAA-21",
+   "role": "Afternoon",
+   "op": "NOAA / NASA (USA)",
+   "kind": "sso",
+   "node": "early afternoon",
+   "what": "Microwave (ATMS) and infrared (CrIS) sounders, VIIRS imager",
+   "rain": "Flies NOAA-20's plane half an orbit apart, so each spot is seen twice as often.",
+   "omm": {
+    "OBJECT_NAME": "NOAA 21 (JPSS-2)",
+    "NORAD_CAT_ID": 54234,
+    "EPOCH": "2026-09-26T02:37:29.607744",
+    "MEAN_MOTION": 14.19550698,
+    "ECCENTRICITY": 6.52e-05,
+    "INCLINATION": 98.7115,
+    "RA_OF_ASC_NODE": 206.2193,
+    "ARG_OF_PERICENTER": 273.8566,
+    "MEAN_ANOMALY": 86.2536,
+    "MEAN_MOTION_DOT": 1.7e-07
+   }
+  },
+  {
+   "id": 39574,
+   "name": "GPM Core",
+   "role": "Rain radar",
+   "op": "NASA / JAXA",
+   "kind": "leo",
+   "what": "Dual-frequency precipitation radar (DPR) and microwave imager (GMI)",
+   "rain": "Measures rain itself, from 65°S to 65°N. The rain layer on this globe (IMERG) is calibrated to it.",
+   "omm": {
+    "OBJECT_NAME": "GPM-CORE",
+    "NORAD_CAT_ID": 39574,
+    "EPOCH": "2026-09-26T03:04:52.602240",
+    "MEAN_MOTION": 15.45129563,
+    "ECCENTRICITY": 0.0010884,
+    "INCLINATION": 64.972,
+    "RA_OF_ASC_NODE": 329.8795,
+    "ARG_OF_PERICENTER": 265.567,
+    "MEAN_ANOMALY": 94.4228,
+    "MEAN_MOTION_DOT": 0.00010573
+   }
+  }
+ ]
+}

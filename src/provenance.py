@@ -181,6 +181,16 @@ SOURCES: dict[str, Source] = {s.key: s for s in [
         "a test fixture only.",
     ),
     Source(
+        "celestrak", "CelesTrak GP orbital elements (OMM), weather satellites",
+        "Free public data; credit requested (CelesTrak)", False,
+        "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
+        "Satellite orbits from CelesTrak (T.S. Kelso), from US Space Force data",
+        "Twelve satellites' mean elements baked into data/processed/satellites.json "
+        "by src/satellites.py (run by hand) and shipped with the site; the "
+        "reader's browser refreshes them from celestrak.org at most once per "
+        "two hours. The browser tests answer CelesTrak with the baked copy.",
+    ),
+    Source(
         "nasa_moon", "NASA SVS CGI Moon Kit (LRO colour map)",
         "Public domain (NASA)", False,
         "https://svs.gsfc.nasa.gov/4720",

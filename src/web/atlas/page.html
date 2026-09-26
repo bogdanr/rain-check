@@ -16,6 +16,8 @@
 
 <!-- The stage: one fixed WebGL globe behind every chapter. -->
 <canvas id="stage" aria-hidden="true"></canvas>
+<canvas id="bolts" aria-hidden="true"></canvas>
+<canvas id="sats" aria-hidden="true"></canvas>
 <svg id="marks" aria-hidden="true"></svg>
 <div id="stage-hit" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
@@ -86,8 +88,18 @@
     <p class="now-tom dim" id="now-tom"></p>
     <p class="now-sat" id="now-sat"></p>
     <div class="now-sky">
-      <button type="button" class="sky-toggle" id="sky-toggle" aria-pressed="true"
-              title="Real Sun, Moon, stars and satellite weather on the globe"><i></i>Live sky</button>
+      <div class="sky-ctl">
+        <button type="button" class="sky-toggle" id="sky-toggle" aria-pressed="true"
+                title="Real Sun, Moon, stars and satellite weather on the globe"><i></i>Live sky</button>
+        <div class="sky-layers" role="group" aria-label="Weather layers">
+          <button type="button" class="sky-q" id="sky-clouds" aria-pressed="true"
+                  title="Satellite cloud cover (EUMETSAT infrared)">Clouds</button>
+          <button type="button" class="sky-q" id="sky-rain" aria-pressed="true"
+                  title="Satellite rain and snow rate (NASA IMERG)">Rain</button>
+          <button type="button" class="sky-q" id="sky-bolts" aria-pressed="true"
+                  title="Satellite lightning, last 15 minutes (EUMETSAT Meteosat Lightning Imager)">Lightning</button>
+        </div>
+      </div>
       <p class="sky-src mono" id="sky-src"></p>
     </div>
     <p class="now-cred mono">Forecast <a href="https://open-meteo.com/">Open-Meteo</a> · not part of the audit</p>
@@ -107,6 +119,8 @@
       <div class="promise-read">
         <p class="pr-said"><span class="dim">It said</span> <b class="big tnum" id="pr-said"></b></p>
         <p class="pr-got"><span class="dim">It rained</span> <b class="big tnum accent" id="pr-got"></b></p>
+      </div>
+      <div class="promise-foot">
         <p class="pr-verdict" id="pr-verdict"></p>
         <p class="pr-n mono" id="pr-n"></p>
       </div>
@@ -263,9 +277,11 @@
         HYG Database v4.1 (astronexus, CC BY-SA 4.0), turned to the current sidereal time. The Sun and Moon
         are computed for now (Astronomical Almanac low-precision formulae).</p>
       <p>Live weather on the globe: clouds from the <a href="https://view.eumetsat.int/">EUMETSAT</a> IR 10.8 µm
-        world cloud mosaic (© EUMETSAT); rain from NASA GPM IMERG via
+        world cloud mosaic (© EUMETSAT); lightning from the Meteosat Lightning Imager (© EUMETSAT); rain from NASA GPM IMERG via
         <a href="https://earthdata.nasa.gov/gibs">NASA GIBS</a>; city lights from NASA Black Marble; the Moon
-        from the NASA LRO / SVS CGI Moon Kit. Cloud heights are exaggerated about 20×. None of it enters the audit.</p>
+        from the NASA LRO / SVS CGI Moon Kit; satellite orbits from <a href="https://celestrak.org/">CelesTrak</a>
+        (each satellite is drawn where it really is, to within about 15 km, under a pixel at globe scale; the
+        geostationary ring is drawn about 4× closer than it is). Cloud heights are exaggerated about 20×. None of it enters the audit.</p>
       <p><a href="{BASE}cities/">All {N_CITIES} cities</a> · <a href="https://github.com/bogdanr/rain-check">Code and data</a>
         · by <a href="https://bogdan.nimblex.net/" rel="author">Bogdan Rădulescu</a> · data as of {AS_OF}</p>
     </footer>
@@ -290,6 +306,8 @@
 <script id="cfg" type="application/json">{CFG}</script>
 <script src="{SKY_JS}"></script>
 <script src="{STAGE_JS}"></script>
+<script src="{BOLTS_JS}"></script>
+<script src="{SATS_JS}"></script>
 <script src="{APP_JS}"></script>
 </body>
 </html>
