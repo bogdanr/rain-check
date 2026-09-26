@@ -18,11 +18,26 @@
  *
  * The 3D noise volume only shapes clouds where the satellite sees cloud; it
  * never adds cloud to a clear sky.
+ *
+ * Where it runs: the same file is also the sky's Web Worker. The page loads
+ * it as a script, then starts it again as a worker (AtlasSky.init), and every
+ * download and pixel pass - the IR fields, the rain palettes, the lightning
+ * cells, the noise volume, the city-detail frame - runs there, off the main
+ * thread. Without Worker or OffscreenCanvas it all runs on the page as before.
  */
 (function (global) {
   'use strict';
 
   var DEG = Math.PI / 180;
+  var IN_WORKER = typeof document === 'undefined' && typeof importScripts === 'function';
+  // Milliseconds of pixel work done on the page's own thread (0 with the worker).
+  var STATS = { mainMs: 0 };
+  function cpu(f) {
+    var t = performance.now(), r = f();
+    if (!IN_WORKER) STATS.mainMs += performance.now() - t;
+    return r;
+  }
+  function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 
   /* ── Ephemerides ─────────────────────────────────────── */
   function jd(t) { return t / 86400000 + 2440587.5; }
@@ -87,16 +102,21 @@
 
   function iso(t) { return new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'); }
 
-  function timed(url, ms) {
+  /* prio: fetch priority ('high' for the cloud frames the reader waits for,
+   * 'low' for what can come later); browsers without it ignore the field. */
+  function timed(url, ms, prio) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = setTimeout(function () { ctrl && ctrl.abort(); }, ms || 15000);
-    return fetch(url, ctrl ? { signal: ctrl.signal, mode: 'cors' } : { mode: 'cors' })
+    var o = { mode: 'cors' };
+    if (ctrl) o.signal = ctrl.signal;
+    if (prio) o.priority = prio;
+    return fetch(url, o)
       .then(function (r) { clearTimeout(timer); if (!r.ok) throw new Error(r.status + ' ' + url); return r; },
             function (e) { clearTimeout(timer); throw e; });
   }
 
-  function pixels(url, w, h) {
-    return timed(url).then(function (r) { return r.blob(); })
+  function pixels(url, w, h, prio) {
+    return timed(url, 0, prio).then(function (r) { return r.blob(); })
       .then(function (b) { return createImageBitmap(b); })
       .then(function (img) {
         var c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h)
@@ -109,7 +129,7 @@
 
   /* A layer's newest time, from its own capabilities document. */
   function capsTime(url, what) {
-    return timed(url).then(function (r) { return r.text(); }).then(function (x) {
+    return timed(url, 0, 'high').then(function (r) { return r.text(); }).then(function (x) {
       var m = /<Dimension[^>]*name="time"[^>]*default="([^"]+)"/.exec(x) ||
               /default="(\d{4}-\d\d-\d\dT[\d:.]+Z)"/.exec(x);
       if (!m) throw new Error(what + ' capabilities: no time');
@@ -136,8 +156,30 @@
    * block that is all cloud borrows a clear neighbour), capped by what the
    * clearest part of that latitude looks like. Cover is the contrast above
    * that; height is the same contrast measured against the coldest grey. */
+  var BW = 64, BH = 16, GX = IR_W / BW, GY = IR_H / BH;
+
+  /* The clear-ground grey behind world pixel (x, y), pixel centres at
+   * integers, bilinear between the block values. */
+  function bgAt(bg, x, y) {
+    var fy = Math.max(0, Math.min(GY - 1.001, (y + 0.5) / BH - 0.5)), y0 = Math.floor(fy), ty = fy - y0;
+    var fx = (x + 0.5) / BW - 0.5, x0 = Math.floor(fx), tx = fx - x0;
+    var xa = ((x0 % GX) + GX) % GX, xb = (xa + 1) % GX;
+    return (bg[y0 * GX + xa] * (1 - tx) + bg[y0 * GX + xb] * tx) * (1 - ty) +
+           (bg[(y0 + 1) * GX + xa] * (1 - tx) + bg[(y0 + 1) * GX + xb] * tx) * ty;
+  }
+  // No data poleward of about 80 deg (the mosaic is white there).
+  function polarK(lat) { var al = Math.abs(lat); return al < 70 ? 1 : al > 80 ? 0 : (80 - al) / 10; }
+  /* Cover and top height of grey v over clear ground b, into out[o], out[o+1]. */
+  function covTop(v, b, polar, out, o) {
+    var cov = clamp01((v - b - 10) / 62);
+    out[o] = cov * cov * (3 - 2 * cov) * polar * 255;
+    out[o + 1] = clamp01((v - b - 4) / Math.max(40, 246 - b)) * 255;
+  }
+
+  /* Returns the RG field and the clear-ground block grid it was read against
+   * (kept, so the city-detail frame is read against the very same ground). */
   function irField(g) {
-    var W = IR_W, H = IR_H, BW = 64, BH = 16, GX = W / BW, GY = H / BH;
+    var W = IR_W, H = IR_H;
     var x, y;
     // Clearest grey per latitude row band (5th percentile), for the cap.
     var rowCap = new Float32Array(GY), hist = new Uint32Array(256);
@@ -165,24 +207,10 @@
     }
     var out = new Uint8Array(W * H * 2);
     for (y = 0; y < H; y++) {
-      var fy = Math.max(0, Math.min(GY - 1.001, (y + 0.5) / BH - 0.5)), y0 = Math.floor(fy), ty = fy - y0;
-      var lat = 90 - (y + 0.5) / H * 180, al = Math.abs(lat);
-      // No data poleward of about 80 deg (the mosaic is white there).
-      var polar = al < 70 ? 1 : al > 80 ? 0 : (80 - al) / 10;
-      for (x = 0; x < W; x++) {
-        var fx = (x + 0.5) / BW - 0.5, x0 = Math.floor(fx), tx = fx - x0;
-        var xa = (x0 + GX) % GX, xb = (x0 + 1) % GX;
-        var b = (bg[y0 * GX + xa] * (1 - tx) + bg[y0 * GX + xb] * tx) * (1 - ty) +
-                (bg[(y0 + 1) * GX + xa] * (1 - tx) + bg[(y0 + 1) * GX + xb] * tx) * ty;
-        var v = g[y * W + x], c = v - b;
-        var cov = Math.max(0, Math.min(1, (c - 10) / 62));
-        cov = cov * cov * (3 - 2 * cov) * polar;
-        var top = Math.max(0, Math.min(1, (v - b - 4) / Math.max(40, 246 - b)));
-        out[(y * W + x) * 2] = cov * 255;
-        out[(y * W + x) * 2 + 1] = top * 255;
-      }
+      var polar = polarK(90 - (y + 0.5) / H * 180);
+      for (x = 0; x < W; x++) covTop(g[y * W + x], bgAt(bg, x, y), polar, out, (y * W + x) * 2);
     }
-    return out;
+    return { d: out, bg: bg };
   }
 
   /* IMERG colours -> rate. GIBS paints the half-hourly rate with a
@@ -265,12 +293,28 @@
 
   /* A frame that is all transparent is a frame not yet filled in: step back
    * one 10-minute slot, a few times. */
-  function mtgFrame(base, w, t, tries) {
-    return pixels(mtgUrl(base, w, t), w, w).then(function (p) {
+  function mtgFrame(base, w, t, tries, prio) {
+    return pixels(mtgUrl(base, w, t), w, w, prio).then(function (p) {
       for (var i = 3; i < p.length; i += 4) if (p[i] >= 128) return { t: t, px: p, w: w };
       if (tries <= 1) throw new Error('Meteosat: empty frames');
       return mtgFrame(base, w, t - 600000, tries - 1);
     });
+  }
+
+  /* The frame's grey (channel 0) at fractional frame pixel (fx, fy), pixel
+   * centres at integers: bilinear where all four neighbours are filled in,
+   * the nearest filled pixel at the disk's edge, -1 where there is none.
+   * (Nearest-neighbour alone doubled or dropped rows and columns between the
+   * two nearly equal grids: stair-steps across the whole disk.) */
+  function greyAt(px, FW, fx, fy) {
+    var x0 = Math.max(0, Math.min(FW - 2, Math.floor(fx))), y0 = Math.max(0, Math.min(FW - 2, Math.floor(fy)));
+    var tx = clamp01(fx - x0), ty = clamp01(fy - y0);
+    var o = (y0 * FW + x0) * 4, r = FW * 4;
+    if (px[o + 3] < 128 || px[o + 7] < 128 || px[o + r + 3] < 128 || px[o + r + 7] < 128) {
+      var n = (Math.round(Math.max(0, Math.min(FW - 1, fy))) * FW + Math.round(Math.max(0, Math.min(FW - 1, fx)))) * 4;
+      return px[n + 3] >= 128 ? px[n] : -1;
+    }
+    return (px[o] * (1 - tx) + px[o + 4] * tx) * (1 - ty) + (px[o + r] * (1 - tx) + px[o + r + 4] * tx) * ty;
   }
 
   /* Paste the fresh IR grey into the mosaic's grey. The two services style
@@ -278,27 +322,30 @@
    * mosaic's scale by matching their distributions where both see the same
    * ground (quantile matching; the weather moved in between, but not the
    * climate of a 140-degree box). Cover is then read from the merged grey by
-   * the one irField, so the seam needs no second calibration. */
+   * the one irField, so the seam needs no second calibration. Returns the
+   * merged grey and the mapping (lut), which the city-detail frame reuses. */
   function mergeIr(g, f, box) {
     var W = IR_W, H = IR_H, FW = f.w, px = f.px, x, y, i;
     var dLon = (box[2] - box[0]) / FW, dLat = (box[3] - box[1]) / FW;
-    var src = new Int32Array(W * H).fill(-1), wt = new Float32Array(W * H);
+    var src = new Float32Array(W * H).fill(-1), wt = new Float32Array(W * H);
     var hg = new Float64Array(256), hf = new Float64Array(256);
     for (y = 0; y < H; y++) {
-      var lat = 90 - (y + 0.5) / H * 180, fy = Math.floor((box[3] - lat) / dLat);
-      if (fy < 0 || fy >= FW) continue;
+      var lat = 90 - (y + 0.5) / H * 180, fy = (box[3] - lat) / dLat - 0.5;
+      if (fy < -0.5 || fy > FW - 0.5) continue;
       for (x = 0; x < W; x++) {
-        var lon = (x + 0.5) / W * 360 - 180, fx = Math.floor((lon - box[0]) / dLon);
-        if (fx < 0 || fx >= FW) continue;
-        var o = fy * FW + fx, w = mtgWeight(lon, lat);
-        if (w <= 0 || px[o * 4 + 3] < 128) continue;
-        i = y * W + x; src[i] = px[o * 4]; wt[i] = w;
-        if (w > 0.5) { hg[g[i]]++; hf[px[o * 4]]++; }
+        var lon = (x + 0.5) / W * 360 - 180, fx = (lon - box[0]) / dLon - 0.5;
+        if (fx < -0.5 || fx > FW - 0.5) continue;
+        var w = mtgWeight(lon, lat);
+        if (w <= 0) continue;
+        var v = greyAt(px, FW, fx, fy);
+        if (v < 0) continue;
+        i = y * W + x; src[i] = v; wt[i] = w;
+        if (w > 0.5) { hg[g[i]]++; hf[Math.round(v)]++; }
       }
     }
     var lut = new Uint8Array(256), ng = 0, nf = 0, k;
     for (k = 0; k < 256; k++) { ng += hg[k]; nf += hf[k]; }
-    if (nf < 1000) return g;
+    if (nf < 1000) return { g: g, lut: null };
     var cg = 0, cf = 0, j = 0;
     for (k = 0; k < 256; k++) {
       cf += hf[k];
@@ -306,9 +353,13 @@
       while (j < 255 && (cg + hg[j]) / ng < q) cg += hg[j++];
       lut[k] = j;
     }
+    // Fractional greys map between their two neighbouring table entries.
     var out = new Uint8Array(g);
-    for (i = 0; i < W * H; i++) if (src[i] >= 0) out[i] = Math.round(g[i] * (1 - wt[i]) + lut[src[i]] * wt[i]);
-    return out;
+    for (i = 0; i < W * H; i++) if (src[i] >= 0) {
+      var s = src[i], s0 = Math.min(254, Math.floor(s)), ts = s - s0;
+      out[i] = Math.round(g[i] * (1 - wt[i]) + (lut[s0] * (1 - ts) + lut[s0 + 1] * ts) * wt[i]);
+    }
+    return { g: out, lut: lut };
   }
 
   /* h40b's colour classes (its legend, type "intervals": each colour is the
@@ -330,25 +381,32 @@
     return Math.round((i + 1) / 110 * 255);
   }
 
-  /* Lay h40b over IMERG inside the disk. Transparent there means dry. */
+  /* Lay h40b over IMERG inside the disk. Transparent there means dry. The
+   * colours are classes, so they are turned into rain codes first and the
+   * codes are interpolated between the four nearest frame pixels. */
   function mergeRain(d, f, box) {
     var W = RAIN_W, H = RAIN_H, FW = f.w, px = f.px, memo = new Map();
     var dLon = (box[2] - box[0]) / FW, dLat = (box[3] - box[1]) / FW;
     var out = new Uint8Array(d);
+    function code(x, y) {
+      var o = (y * FW + x) * 4;
+      if (px[o + 3] < 128) return 0;
+      var key = (px[o] << 16) | (px[o + 1] << 8) | px[o + 2], c = memo.get(key);
+      if (c === undefined) memo.set(key, c = rainCode(h40bRate(px[o], px[o + 1], px[o + 2])));
+      return c;
+    }
     for (var y = 0; y < H; y++) {
-      var lat = 90 - (y + 0.5) / H * 180, fy = Math.floor((box[3] - lat) / dLat);
-      if (fy < 0 || fy >= FW) continue;
+      var lat = 90 - (y + 0.5) / H * 180, fy = (box[3] - lat) / dLat - 0.5;
+      if (fy < -0.5 || fy > FW - 0.5) continue;
+      var y0 = Math.max(0, Math.min(FW - 2, Math.floor(fy))), ty = clamp01(fy - y0);
       for (var x = 0; x < W; x++) {
-        var lon = (x + 0.5) / W * 360 - 180, fx = Math.floor((lon - box[0]) / dLon);
-        if (fx < 0 || fx >= FW) continue;
+        var lon = (x + 0.5) / W * 360 - 180, fx = (lon - box[0]) / dLon - 0.5;
+        if (fx < -0.5 || fx > FW - 0.5) continue;
         var w = mtgWeight(lon, lat);
         if (w <= 0) continue;
-        var o = (fy * FW + fx) * 4, c = 0;
-        if (px[o + 3] >= 128) {
-          var key = (px[o] << 16) | (px[o + 1] << 8) | px[o + 2];
-          c = memo.get(key);
-          if (c === undefined) memo.set(key, c = rainCode(h40bRate(px[o], px[o + 1], px[o + 2])));
-        }
+        var x0 = Math.max(0, Math.min(FW - 2, Math.floor(fx))), tx = clamp01(fx - x0);
+        var c = (code(x0, y0) * (1 - tx) + code(x0 + 1, y0) * tx) * (1 - ty) +
+                (code(x0, y0 + 1) * (1 - tx) + code(x0 + 1, y0 + 1) * tx) * ty;
         var i = (y * W + x) * 2;
         out[i] = Math.round(d[i] * (1 - w) + c * w);
         if (w > 0.5) out[i + 1] = 0;   // h40b does not separate snow
@@ -370,47 +428,136 @@
     }
   }
 
+  /* The calibration of the newest merged cloud field: the Meteosat-to-mosaic
+   * grey mapping, the clear-ground grid, and the Meteosat frame's time. The
+   * city-detail frame is read with exactly these, so it matches the field
+   * around it. */
+  var CAL = null;
+
   /* Every layer independently: rain failing never costs the clouds, and
-   * Meteosat failing only means the world fields everywhere. */
-  function weather(cfg, now) {
-    var box = cfg.mtgBox;
-    var fresh = capsTime(cfg.mtgIrCaps, 'Meteosat IR').then(function (t) { return mtgFrame(cfg.mtgIrMap, MTG_W, t, 3); });
-    // The rain for the cloud frame's own time, so the two line up exactly.
-    var freshRain = fresh.then(function (f) { return mtgFrame(cfg.mtgRainMap, MTG_RW, f.t, 3); });
-    function soft(p) { return p.catch(function (e) { return { err: String(e) }; }); }
-    var ir = Promise.all([capsTime(cfg.irCaps, 'IR'), soft(fresh)]).then(function (r) {
-      var t1 = r[0], f = r[1].err ? null : r[1], t0 = t1 - 3 * 3600000;
-      return Promise.all([pixels(irUrl(cfg, t1), IR_W, IR_H),
-                          f ? null : pixels(irUrl(cfg, t0), IR_W, IR_H).catch(function () { return null; })])
-        .then(function (p) {
-          var b = irField(f ? mergeIr(grey(p[0]), f, box) : grey(p[0]));
-          // With a 10-minute frame in, the 3-hour morph between mosaics
-          // would only animate history: show the merged frame still.
-          return { w: IR_W, h: IR_H, t: t1, tf: f ? f.t : null, t0: p[1] ? t0 : t1, b: b, a: p[1] ? irField(grey(p[1])) : b,
-                   ferr: r[1].err || null };
-        });
-    });
+   * Meteosat failing only means the world fields everywhere.
+   *
+   * Nothing waits for anything it does not need. All four capabilities are
+   * asked at once; the world mosaic is fetched the moment its own time is
+   * known and handed on (emit) as soon as it is read, without waiting for
+   * Meteosat or the rain. When the fresh Meteosat frame arrives, the merged
+   * field is handed on again; the rain is handed on when it is in, and again
+   * whenever a better cloud mask or the Meteosat rain comes. Each hand-over
+   * is one layer: { ir } or { rain }, with a key naming what went into it.
+   * The promise resolves once everything has settled, with the last of each
+   * and the errors.
+   *
+   * (The earlier version also fetched the mosaic from 3 h before, to morph
+   * from it: a second 2048 x 1024 download and pass on every load. The page
+   * now cross-fades from whatever it was showing instead.) */
+  function weather(cfg, now, opts, emit) {
+    emit = emit || function () {};
+    var box = cfg.mtgBox, st = {}, errs = {}, out = { ir: null, rain: null }, sentIr = '', sentRain = '';
+    function settle(k, p) {
+      return p.then(function (v) { st[k] = v; }, function (e) { st[k] = null; errs[k] = String(e && e.message || e); })
+        .then(function () { try { update(); } catch (e) { errs.update = String(e); } });
+    }
+    function update() {
+      if (st.world) {
+        var key = st.fresh ? 'm' + st.world.t + '/' + st.fresh.t : 'w' + st.world.t;
+        if (key !== sentIr) {
+          sentIr = key;
+          var ir = cpu(function () {
+            var m = st.fresh ? mergeIr(st.world.g, st.fresh, box) : { g: st.world.g, lut: null };
+            var f = irField(m.g);
+            CAL = m.lut ? { lut: m.lut, bg: f.bg, t: st.fresh.t, box: box } : null;
+            return { w: IR_W, h: IR_H, t: st.world.t, tf: st.fresh && m.lut ? st.fresh.t : null, b: f.d, key: key };
+          });
+          out.ir = ir;
+          emit({ ir: ir });
+        }
+      }
+      // Rain waits only for the clouds to settle (it is masked by them).
+      if (st.imerg && 'world' in st) {
+        var rk = 'r' + st.imerg.t + (st.frain ? '/' + st.frain.t : '') + '|' + sentIr;
+        if (rk !== sentRain) {
+          sentRain = rk;
+          var rain = cpu(function () {
+            var d = st.frain ? mergeRain(st.imerg.d, st.frain, box) : new Uint8Array(st.imerg.d);
+            if (out.ir) maskRain(d, out.ir.b);
+            return { w: RAIN_W, h: RAIN_H, t: st.imerg.t, tf: st.frain ? st.frain.t : null, d: d, key: rk };
+          });
+          out.rain = rain;
+          emit({ rain: rain });
+        }
+      }
+    }
     /* GIBS sometimes answers a time it lists with a fully transparent image
      * (the tile set is still being filled in, and which request sizes are
      * ready varies). IMERG always has rain somewhere on Earth, so an empty
      * frame is a missing frame: step back half an hour, a few times. */
     function rainFrame(t, tries) {
-      return pixels(rainUrl(cfg, t), RAIN_W, RAIN_H).then(function (p) {
+      return pixels(rainUrl(cfg, t), RAIN_W, RAIN_H, 'low').then(function (p) {
         var any = false;
         for (var i = 3; i < p.length; i += 4) if (p[i] >= 128) { any = true; break; }
-        if (any) return { w: RAIN_W, h: RAIN_H, t: t, d: rainField(p) };
+        if (any) return { w: RAIN_W, h: RAIN_H, t: t, d: cpu(function () { return rainField(p); }) };
         if (tries <= 1) throw new Error('IMERG: empty frames');
         return rainFrame(t - 1800000, tries - 1);
       });
     }
-    var rain = rainLatest(cfg, now).then(function (t) { return rainFrame(t, 4); });
-    return Promise.all([soft(ir), soft(rain), soft(freshRain)]).then(function (r) {
-      var I = r[0].err ? null : r[0], R = r[1].err ? null : r[1], F = r[2].err ? null : r[2];
-      if (R && F) { R.d = mergeRain(R.d, F, box); R.tf = F.t; }
-      if (R && I) maskRain(R.d, I.b);
-      var errors = [r[0].err, r[1].err, I && I.ferr].filter(Boolean);
-      return { ir: I, rain: R, errors: errors };
+    var world = capsTime(cfg.irCaps, 'IR').then(function (t) {
+      return pixels(irUrl(cfg, t), IR_W, IR_H, 'high').then(function (p) { return { t: t, g: cpu(function () { return grey(p); }) }; });
     });
+    var fresh = capsTime(cfg.mtgIrCaps, 'Meteosat IR').then(function (t) { return mtgFrame(cfg.mtgIrMap, MTG_W, t, 3, 'high'); });
+    // The rain for the cloud frame's own time, so the two line up exactly.
+    var frain = fresh.then(function (f) { return mtgFrame(cfg.mtgRainMap, MTG_RW, f.t, 3, 'low'); });
+    var imerg = rainLatest(cfg, now).then(function (t) { return rainFrame(t, 4); });
+    return Promise.all([settle('world', world), settle('fresh', fresh), settle('imerg', imerg), settle('frain', frain)])
+      .then(function () {
+        var errors = [errs.world, errs.imerg, st.world ? errs.fresh : null, errs.update].filter(Boolean);
+        return { ir: out.ir, rain: out.rain, errors: errors };
+      });
+  }
+
+  /* ── The city-detail frame ──────────────────────────────
+   *
+   * The world field is about 19 km a pixel; zoomed in on one city that is a
+   * visible grid. Inside the Meteosat disk the same 10.5 um frame exists at
+   * about 1-2 km, so once the world clouds are showing, one small frame
+   * around the selected city is asked for at that resolution, for the same
+   * 10-minute slot, and read with the merged field's own calibration (CAL):
+   * grey mapped onto the mosaic's scale by the same table, cover measured
+   * against the same clear ground. The stage lays it over the world field
+   * with a soft edge. Outside the disk there is no such frame, and the world
+   * field stands. */
+  var DETAIL_HALF = 8;   // degrees either way of the city
+  function detail(cfg, pos, size) {
+    var cal = CAL;
+    if (!cal || !cfg.mtgIrDetail) return Promise.reject(new Error('detail: no Meteosat calibration'));
+    if (mtgWeight(pos.lon, pos.lat) < 0.3) return Promise.reject(new Error('detail: outside the Meteosat disk'));
+    var B = cal.box, H2 = DETAIL_HALF * 2;
+    var lon0 = Math.max(B[0], Math.min(B[2] - H2, pos.lon - DETAIL_HALF));
+    var lat0 = Math.max(B[1], Math.min(B[3] - H2, pos.lat - DETAIL_HALF));
+    var bx = [lon0, lat0, lon0 + H2, lat0 + H2];
+    var url = cfg.mtgIrDetail.replace('{bbox}', bx.join(',')) + '&width=' + size + '&height=' + size + '&time=' + iso(cal.t);
+    return pixels(url, size, size, 'low').then(function (px) {
+      return cpu(function () { return detailField(px, size, bx, cal); });
+    });
+  }
+
+  /* RGBA: cover, top, weight (the disk's view-angle weight; zero where the
+   * frame is empty), 255. */
+  function detailField(px, S, bx, cal) {
+    var out = new Uint8Array(S * S * 4), n = 0, lut = cal.lut;
+    for (var y = 0; y < S; y++) {
+      var lat = bx[3] - (y + 0.5) / S * (bx[3] - bx[1]), wy = (90 - lat) / 180 * IR_H - 0.5, polar = polarK(lat);
+      for (var x = 0; x < S; x++) {
+        var o = (y * S + x) * 4;
+        out[o + 3] = 255;
+        if (px[o + 3] < 128) continue;
+        var lon = bx[0] + (x + 0.5) / S * (bx[2] - bx[0]), wx = (lon + 180) / 360 * IR_W - 0.5;
+        covTop(lut[px[o]], bgAt(cal.bg, wx, wy), polar, out, o);
+        out[o + 2] = mtgWeight(lon, lat) * 255;
+        n++;
+      }
+    }
+    if (n < S * S * 0.2) throw new Error('detail: frame mostly empty');
+    return { box: bx, w: S, h: S, t: cal.t, d: out };
   }
 
   /* ── Lightning: Meteosat's Lightning Imager ─────────────
@@ -463,7 +610,7 @@
   }
 
   function boltLatest(cfg) {
-    return timed(cfg.boltCaps).then(function (r) { return r.text(); }).then(function (x) {
+    return timed(cfg.boltCaps, 0, 'low').then(function (r) { return r.text(); }).then(function (x) {
       var m = /<Dimension[^>]*name="time"[^>]*default="([^"]+)"/.exec(x);
       if (!m) throw new Error('LI capabilities: no time');
       return Date.parse(m[1]);
@@ -472,9 +619,9 @@
 
   function boltFrame(cfg, t) {
     if (boltCache.has(t)) return Promise.resolve(boltCache.get(t));
-    return pixels(cfg.boltMap + '&width=' + BOLT_W + '&height=' + BOLT_H + '&time=' + iso(t), BOLT_W, BOLT_H)
+    return pixels(cfg.boltMap + '&width=' + BOLT_W + '&height=' + BOLT_H + '&time=' + iso(t), BOLT_W, BOLT_H, 'low')
       .then(function (p) {
-        var f = { t: t, cells: boltField(p, cfg.boltBox) };
+        var f = { t: t, cells: cpu(function () { return boltField(p, cfg.boltBox); }) };
         boltCache.set(t, f);
         // Keep only the frames still on screen: the newest three.
         Array.from(boltCache.keys()).sort(function (a, b) { return b - a; }).slice(3)
@@ -485,14 +632,17 @@
 
   /* The newest 15 minutes: three 5-minute frames, newest first. An older
    * frame that fails is only a shorter history; the newest must load. A
-   * refresh fetches just the frames it has not already seen. */
-  function bolts(cfg) {
+   * refresh fetches just the frames it has not already seen. opts.lite (a
+   * slow link or a light device): the newest frame alone, marked lite, so
+   * the page can ask for the history later. */
+  function bolts(cfg, opts) {
+    var lite = !!(opts && opts.lite);
     return boltLatest(cfg).then(function (t) {
       return Promise.all([boltFrame(cfg, t),
-        boltFrame(cfg, t - 300000).catch(function () { return null; }),
-        boltFrame(cfg, t - 600000).catch(function () { return null; })]);
+        lite ? null : boltFrame(cfg, t - 300000).catch(function () { return null; }),
+        lite ? null : boltFrame(cfg, t - 600000).catch(function () { return null; })]);
     }).then(function (fs) {
-      return { t: fs[0].t, box: cfg.boltBox, frames: fs.filter(Boolean) };
+      return { t: fs[0].t, box: cfg.boltBox, frames: fs.filter(Boolean), lite: lite };
     });
   }
 
@@ -578,25 +728,143 @@
     }
     var z = 0;
     (function slice() {
-      var until = performance.now() + 12;
-      while (z < N && performance.now() < until) {
-        for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
-          var X = (x + 0.5) / N, Y = (y + 0.5) / N, Z = (z + 0.5) / N;
-          var wf = worley(oct[0], X, Y, Z) * 0.625 + worley(oct[1], X, Y, Z) * 0.25 + worley(oct[2], X, Y, Z) * 0.125;
-          var pf = perlin(X, Y, Z, 4, 1) + perlin(X, Y, Z, 8, 2) * 0.5 + perlin(X, Y, Z, 16, 3) * 0.25;
-          pf = Math.max(0, Math.min(1, pf * 0.7 + 0.5));
-          // Perlin-Worley: Perlin remapped by the Worley field.
-          var pw = Math.max(0, Math.min(1, (pf - (wf - 1)) / (1 - (wf - 1)) - 0.35) / 0.65);
-          var det = worley(oct[3], X, Y, Z) * 0.625 + worley(oct[4], X, Y, Z) * 0.25 + worley(oct[5], X, Y, Z) * 0.125;
-          var o = ((z * N + y) * N + x) * 2;
-          out[o] = Math.max(0, Math.min(1, pw)) * 255;
-          out[o + 1] = det * 255;
+      // A worker has no frames to keep: it builds the volume in one go.
+      var until = performance.now() + (IN_WORKER ? 1e9 : 12);
+      cpu(function () {
+        while (z < N && performance.now() < until) {
+          for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+            var X = (x + 0.5) / N, Y = (y + 0.5) / N, Z = (z + 0.5) / N;
+            var wf = worley(oct[0], X, Y, Z) * 0.625 + worley(oct[1], X, Y, Z) * 0.25 + worley(oct[2], X, Y, Z) * 0.125;
+            var pf = perlin(X, Y, Z, 4, 1) + perlin(X, Y, Z, 8, 2) * 0.5 + perlin(X, Y, Z, 16, 3) * 0.25;
+            pf = Math.max(0, Math.min(1, pf * 0.7 + 0.5));
+            // Perlin-Worley: Perlin remapped by the Worley field.
+            var pw = Math.max(0, Math.min(1, (pf - (wf - 1)) / (1 - (wf - 1)) - 0.35) / 0.65);
+            var det = worley(oct[3], X, Y, Z) * 0.625 + worley(oct[4], X, Y, Z) * 0.25 + worley(oct[5], X, Y, Z) * 0.125;
+            var o = ((z * N + y) * N + x) * 2;
+            out[o] = Math.max(0, Math.min(1, pw)) * 255;
+            out[o + 1] = det * 255;
+          }
+          z++;
         }
-        z++;
-      }
+      });
       if (z < N) setTimeout(slice, 0); else done(out, N);
     })();
   }
 
-  global.AtlasSky = { bodies: bodies, vec: vec, gmst: gmst, weather: weather, at: at, bolts: bolts, boltsNear: boltsNear, noise3d: noise3d, iso: iso };
-})(window);
+  /* ── Where it runs: the sky worker ───────────────────────
+   *
+   * In the worker: answer the page's jobs. Each job is { id, op, ... }; a
+   * weather job sends { id, part } for every layer as it is read, then
+   * { id, done, v }. A worker that cannot draw images (no OffscreenCanvas
+   * or createImageBitmap there) answers { id, fallback } and the page does
+   * the job itself. */
+  var local = { weather: weather, bolts: bolts, detail: detail, noise3d: noise3d };
+  if (IN_WORKER) {
+    var able = false;
+    try { able = typeof createImageBitmap === 'function' && !!new OffscreenCanvas(1, 1).getContext('2d'); } catch (e) { able = false; }
+    // Up and able: the page's start-up watchdog stands down (start()).
+    self.postMessage({ ready: able });
+    self.onmessage = function (e) {
+      var m = e.data, id = m.id;
+      if (!able) { self.postMessage({ id: id, fallback: true }); return; }
+      function done(v, tr) { self.postMessage({ id: id, done: true, v: v }, tr || []); }
+      function fail(err) { self.postMessage({ id: id, done: true, err: String(err && err.message || err) }); }
+      if (m.op === 'weather') {
+        weather(m.cfg, m.now, m.opts, function (part) { self.postMessage({ id: id, part: part }); })
+          // The layers already went out as parts: the end carries only the errors.
+          .then(function (r) { done({ errors: r.errors }); }, fail);
+      } else if (m.op === 'bolts') bolts(m.cfg, m.opts).then(function (b) { done(b); }, fail);
+      else if (m.op === 'detail') detail(m.cfg, m.pos, m.size).then(function (d) { done(d, [d.d.buffer]); }, fail);
+      else if (m.op === 'noise') noise3d(function (d, N) { done({ d: d, N: N }, [d.buffer]); });
+      else fail('unknown job ' + m.op);
+    };
+    return;
+  }
+
+  /* On the page: the same jobs, sent to a worker when there is one. Two
+   * workers: the main one reads the clouds, rain and the city-detail frame;
+   * the side one builds the noise volume (a few hundred ms of arithmetic)
+   * and then reads the lightning, so neither ever queues in front of the
+   * cloud frames. Anything the workers cannot do (failed to start, crashed,
+   * no OffscreenCanvas) is done here instead. */
+  /* A worker must say it is up within READY_MS. One that is slow to start
+   * (its script stuck behind other downloads, a busy device) would hold
+   * every queued job - the clouds first - for as long as it takes; instead
+   * it is dropped and its jobs run here. */
+  var W = { main: null, side: null }, seq = 0, pend = {}, READY_MS = 3000;
+  function start(url) {
+    if (!url || typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined') return null;
+    var w;
+    try { w = new Worker(url); } catch (e) { return null; }
+    var watchdog = setTimeout(function () { if (!w.ready) drop(w); }, READY_MS);
+    w.onmessage = function (e) {
+      var m = e.data;
+      if ('ready' in m) {
+        clearTimeout(watchdog);
+        if (m.ready) w.ready = true; else drop(w);
+        return;
+      }
+      var p = pend[m.id];
+      if (!p) return;
+      if (m.part) { p.part && p.part(m.part); return; }
+      delete pend[m.id];
+      if (m.fallback) { drop(w); p.local().then(p.ok, p.no); return; }
+      if (m.err) p.no(new Error(m.err)); else p.ok(m.v);
+    };
+    w.onerror = function (e) { if (e && e.preventDefault) e.preventDefault(); drop(w); };
+    return w;
+  }
+  /* A worker that failed: forget it and redo its open jobs here. */
+  function drop(w) {
+    if (W.main === w) W.main = null;
+    if (W.side === w) W.side = null;
+    if (!W.main) api.mode = 'page';
+    try { w.terminate(); } catch (e) { /* already gone */ }
+    Object.keys(pend).forEach(function (k) {
+      var p = pend[k];
+      if (p.w !== w) return;
+      delete pend[k];
+      p.local().then(p.ok, p.no);
+    });
+  }
+  function job(which, msg, runLocal, part) {
+    var w = W[which] || W.main;
+    if (!w) return runLocal();
+    return new Promise(function (ok, no) {
+      var id = ++seq;
+      pend[id] = { ok: ok, no: no, part: part, local: runLocal, w: w };
+      msg.id = id;
+      w.postMessage(msg);
+    });
+  }
+
+  var api = {
+    bodies: bodies, vec: vec, gmst: gmst, at: at, boltsNear: boltsNear, iso: iso, stats: STATS, mode: 'page',
+    /* Start the workers from this very script's URL. */
+    init: function (o) {
+      W.main = start(o && o.worker);
+      if (W.main) { W.side = start(o.worker); api.mode = 'worker'; }
+    },
+    /* onPart gets each layer as it is read ({ ir } or { rain }); the
+     * promise resolves with { ir, rain, errors } once all have settled. */
+    weather: function (cfg, now, opts, onPart) {
+      var last = { ir: null, rain: null };
+      function part(p) { if (p.ir) last.ir = p.ir; if (p.rain) last.rain = p.rain; if (onPart) onPart(p); }
+      return job('main', { op: 'weather', cfg: cfg, now: now, opts: opts || {} },
+        function () { return local.weather(cfg, now, opts || {}, part); }, part)
+        .then(function (r) { return { ir: last.ir, rain: last.rain, errors: r.errors || [] }; });
+    },
+    bolts: function (cfg, opts) {
+      return job('side', { op: 'bolts', cfg: cfg, opts: opts || {} }, function () { return local.bolts(cfg, opts); });
+    },
+    detail: function (cfg, pos, size) {
+      return job('main', { op: 'detail', cfg: cfg, pos: pos, size: size }, function () { return local.detail(cfg, pos, size); });
+    },
+    noise3d: function (done) {
+      job('side', { op: 'noise' }, function () {
+        return new Promise(function (ok) { local.noise3d(function (d, N) { ok({ d: d, N: N }); }); });
+      }).then(function (r) { done(r.d, r.N); });
+    }
+  };
+  global.AtlasSky = api;
+})(typeof window !== 'undefined' ? window : self);

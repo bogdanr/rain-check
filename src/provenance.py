@@ -167,9 +167,16 @@ SOURCES: dict[str, Source] = {s.key: s for s in [
         "https://www.eumetsat.int/data-policy",
         "Cloud imagery (c) EUMETSAT",
         "Fetched by the reader's browser from view.eumetsat.int at view time "
-        "and drawn as the globe's clouds; not stored in data/ or dist/. One "
-        "frozen pair of frames sits in src/fixtures/atlas/ for the browser "
-        "tests only.",
+        "and drawn as the globe's clouds; not stored in data/ or dist/. Over "
+        "the Meteosat (MTG) disk a fresher IR 10.5 um frame replaces the "
+        "mosaic, and once a city there is chosen one sharper ~2 km crop of "
+        "about +/-8 deg around it is fetched as well (skipped on slow "
+        "connections and in data-saver mode). The processed layers are kept "
+        "in the reader's own browser storage (IndexedDB) so the next city "
+        "page can show them at once, labelled with their true image time, "
+        "until fresh frames arrive. One frozen pair of frames sits in "
+        "src/fixtures/atlas/ for the browser tests only; the city crop is "
+        "cut from it.",
     ),
     Source(
         "gibs_imerg", "NASA GPM IMERG precipitation rate via NASA GIBS",

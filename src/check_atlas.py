@@ -43,6 +43,24 @@ MTG_T = "2026-09-26T04:50:00Z"
 SATS = Path(__file__).resolve().parent.parent / "data" / "processed" / "satellites.json"
 
 
+def mtg_crop(url: str) -> bytes:
+    """The city-detail request (a small bbox of the same IR layer): the
+    fixture frame cut to that box and scaled to the size asked for, so the
+    detail lines up with the merged field as the real service's would."""
+    from io import BytesIO
+
+    from PIL import Image
+    q = dict(kv.split("=", 1) for kv in url.split("?", 1)[1].split("&") if "=" in kv)
+    x0, y0, x1, y1 = map(float, q["bbox"].split(","))
+    im = Image.open(FIX / "mtg-ir-0450.png").convert("RGBA")
+    W, H = im.size
+    box = ((x0 + 70) / 140 * W, (70 - y1) / 140 * H, (x1 + 70) / 140 * W, (70 - y0) / 140 * H)
+    out = im.resize((int(q["width"]), int(q["height"])), Image.BILINEAR, box=box)
+    buf = BytesIO()
+    out.save(buf, "PNG")
+    return buf.getvalue()
+
+
 def live_fixtures(ctx, blocked: list[str]) -> None:
     """Answer every live source from the fixtures; refuse anything else."""
     def serve(route, name, ctype):
@@ -68,6 +86,9 @@ def live_fixtures(ctx, blocked: list[str]) -> None:
                 route.fulfill(status=200, content_type="text/xml", headers={"Access-Control-Allow-Origin": "*"},
                               body=f'<WMS_Capabilities><Dimension name="time" default="{MTG_T}" units="ISO8601"/>'
                                    '</WMS_Capabilities>')
+            elif MTG_T in u and "ir105_hrfi" in u and "bbox=-70,-70,70,70" not in u:
+                route.fulfill(status=200, content_type="image/png", body=mtg_crop(u),
+                              headers={"Access-Control-Allow-Origin": "*"})
             elif MTG_T in u:
                 serve(route, "mtg-ir-0450.png" if "ir105_hrfi" in u else "h40b-0450.png", "image/png")
             else:
@@ -89,18 +110,27 @@ def live_fixtures(ctx, blocked: list[str]) -> None:
             serve(route, "imerg.png", "image/png")
 
     def other(route):
-        host = route.request.url.split("/")[2]
-        if host.startswith("127.0.0.1"):
-            route.continue_()
-        else:
-            blocked.append(route.request.url[:120])
-            route.abort()
+        blocked.append(route.request.url[:120])
+        route.abort()
 
-    ctx.route("**/*", other)       # registered first, so matched last
+    # Registered first, so matched last. The test server's own requests are
+    # not intercepted at all: routed through here, a later page's worker
+    # script could wait many seconds for the handler.
+    ctx.route(lambda url: not url.startswith("http://127.0.0.1"), other)
     ctx.route("**://api.open-meteo.com/**", lambda r: serve(r, "forecast.json", "application/json"))
     ctx.route("**://view.eumetsat.int/**", eumetsat)
     ctx.route("**://gibs.earthdata.nasa.gov/**", gibs)
     ctx.route("**://celestrak.org/**", celestrak)
+
+
+def release(held: list) -> None:
+    """Let held requests through (one whose page has gone is just dropped)."""
+    for r in held:
+        try:
+            r.fallback()
+        except Exception:
+            pass
+    held.clear()
 
 
 def legend(p, has: str, ms: int = 30000) -> str:
@@ -282,6 +312,26 @@ def main() -> None:
         check("Elsewhere" in s and "· flat" not in s, "volume clouds and rain compile on SwiftShader")
         check(not p.evaluate("document.body.classList.contains('nogl')"), "globe still drawn with the volume on")
 
+        # The volume's noise is built (in the worker, or here as a fallback).
+        try:
+            p.wait_for_function("() => performance.getEntriesByName('rc:noise').length > 0", timeout=20000)
+        except Exception:
+            pass
+        check(p.evaluate("performance.getEntriesByName('rc:noise').length") > 0, "the volume's noise is built")
+        # The city-detail frame: Bucharest is inside the Meteosat disk.
+        try:
+            p.wait_for_function("() => !!document.querySelector('#stage').dataset.detail", timeout=15000)
+        except Exception:
+            pass
+        det = p.get_attribute("#stage", "data-detail") or ""
+        check(det.count(",") == 3, f"a city-detail frame lies over the close-up clouds: [{det}]")
+        # Ultra: the full-resolution tier with the longest march must compile too.
+        p.goto(B + f"?now={NOW}&sky=ultra", wait_until="networkidle")
+        legend(p, "Elsewhere")
+        p.wait_for_timeout(1500)
+        check(p.get_attribute("#stage", "data-tier") == "ultra" and "flat" not in p.inner_text("#sky-src"),
+              "the ultra tier compiles on SwiftShader")
+
         # Rapid switch: the card ends on the last city, not the slowest reply.
         links = p.locator("#lg tbody a")
         last = links.nth(5)
@@ -297,8 +347,7 @@ def main() -> None:
 
         # --- every live source down: the page is the audit, and says so ---
         dctx = b.new_context(viewport={"width": 1440, "height": 900})
-        dctx.route("**/*", lambda r: r.continue_() if r.request.url.split("/")[2].startswith("127.0.0.1")
-                   else r.abort())
+        dctx.route(lambda url: not url.startswith("http://127.0.0.1"), lambda r: r.abort())
         d = dctx.new_page()
         derrs: list[str] = []
         d.on("pageerror", lambda e: derrs.append(str(e)))
@@ -312,6 +361,75 @@ def main() -> None:
               "verdict unaffected by the outage")
         check(not derrs, "no script errors with live sources down" + (f": {derrs[:3]}" if derrs else ""))
         dctx.close()
+
+        # --- a slow rain feed does not hold the clouds back ---------------
+        sctx = b.new_context(viewport={"width": 1440, "height": 900})
+        souts: list[str] = []
+        live_fixtures(sctx, souts)
+        held: list = []
+
+        def hold(route):
+            held.append(route)
+        sctx.route("**://gibs.earthdata.nasa.gov/**", hold)
+        s2 = sctx.new_page()
+        serrs: list[str] = []
+        s2.on("pageerror", lambda e: serrs.append(str(e)))
+        s2.goto(B + f"?now={NOW}&cache=1", wait_until="load")
+        try:
+            s2.wait_for_function("() => !!document.documentElement.dataset.clouds", timeout=15000)
+        except Exception:
+            pass
+        check(bool(s2.evaluate("document.documentElement.dataset.clouds"))
+              and not s2.evaluate("document.documentElement.dataset.rain"),
+              "clouds show while the rain feed is still loading")
+        release(held)
+        sctx.unroute("**://gibs.earthdata.nasa.gov/**", hold)
+        try:
+            s2.wait_for_function("() => !!document.documentElement.dataset.rain", timeout=15000)
+        except Exception:
+            pass
+        check(bool(s2.evaluate("document.documentElement.dataset.rain")), "the rain follows once its feed answers")
+        # A fresh context's first page: the worker's script is not held up by
+        # the harness's routing (a later page's can be, for many seconds, and
+        # the page then rightly falls back to doing the work itself).
+        check(s2.evaluate("AtlasSky.mode") == "worker", "the sky's downloads and pixel passes run in a worker")
+        ms = s2.evaluate("AtlasSky.stats.mainMs")
+        check(ms < 50, f"pixel work on the page's own thread: {ms:.0f} ms")
+        try:
+            s2.wait_for_function("() => performance.getEntriesByName('rc:bolts').length > 0", timeout=20000)
+        except Exception:
+            pass
+        marks = s2.evaluate("""() => Object.fromEntries(performance.getEntriesByType('mark')
+            .filter(m => m.name.startsWith('rc:')).map(m => [m.name.slice(3), Math.round(m.startTime)]))""")
+        check("clouds" in marks and "bolts" in marks and marks["clouds"] <= marks["bolts"],
+              f"clouds are on screen before the lightning: {marks}")
+        # The layers are saved for the next page (a 5 MB write: wait for it).
+        try:
+            s2.wait_for_function("() => document.documentElement.dataset.skySaved !== undefined", timeout=20000)
+        except Exception:
+            pass
+        # The next page shows the saved clouds before any satellite answers.
+        sctx.route("**://view.eumetsat.int/**", hold)
+        s2.goto(B + f"city/casablanca/?now={NOW}&cache=1", wait_until="load")
+        try:
+            s2.wait_for_function("() => (document.documentElement.dataset.clouds || '').includes('cached')",
+                                 timeout=5000)
+        except Exception:
+            pass
+        check("cached" in (s2.evaluate("document.documentElement.dataset.clouds") or ""),
+              "the next city page shows the saved clouds at once")
+        release(held)
+        sctx.unroute("**://view.eumetsat.int/**", hold)
+        try:
+            s2.wait_for_function("() => !(document.documentElement.dataset.clouds || 'cached').includes('cached')",
+                                 timeout=15000)
+        except Exception:
+            pass
+        check("cached" not in (s2.evaluate("document.documentElement.dataset.clouds") or "cached"),
+              "the live clouds replace the saved ones")
+        check(not serrs, "no script errors with a slow feed" + (f": {serrs[:3]}" if serrs else ""))
+        check(not souts, "no request left the test server (slow feed)" + (f": {souts[:3]}" if souts else ""))
+        sctx.close()
 
         q = b.new_context(java_script_enabled=False).new_page()
         q.goto(B + "city/tokyo/")

@@ -160,7 +160,7 @@
   };
 
   Sats.prototype._frame = function () {
-    var cam = this.st.cam, dpr = Math.min(devicePixelRatio || 1, 1.5), t = this.time();
+    var cam = this.st.cam, dpr = this.st.dpr ? this.st.dpr() : Math.min(devicePixelRatio || 1, 1.5), t = this.time();
     var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
     // Redraw for the camera, the hovered satellite, and once a second of the clock.
     var key = [cam.lon, cam.lat, cam.k, cam.cx, cam.cy, cam.dim].map(function (v) { return v.toFixed(3); }).join() +

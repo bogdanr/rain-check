@@ -74,7 +74,14 @@ WX = {
                  f"&crs=CRS:84&bbox={','.join(map(str, BOLT_BOX))}&format=image/png&transparent=true"),
     "mtgRainMap": (f"{MTG}/wms?service=WMS&version=1.3.0&request=GetMap&layers=h40b&styles="
                    f"&crs=CRS:84&bbox={','.join(map(str, BOLT_BOX))}&format=image/png&transparent=true"),
+    # The same IR layer at its own ~2 km over a 16-degree box around the
+    # selected city ({bbox} filled in by sky.js), laid over the merged field
+    # once that is on screen: the close-up view's clouds without the 19 km grid.
+    "mtgIrDetail": (f"{MTG}/wms?service=WMS&version=1.3.0&request=GetMap&layers=ir105_hrfi&styles="
+                    "&crs=CRS:84&bbox={bbox}&format=image/png&transparent=true"),
 }
+# Origins the page talks to first (preconnected in page.html).
+PRECONNECT = ["https://view.eumetsat.int", GIBS]
 
 # Weather satellites on the globe. The roster and a baked set of elements come
 # from data/processed/satellites.json (src/satellites.py, run by hand); the
@@ -371,7 +378,9 @@ def main() -> None:
         cfg = {"base": base, "data": data_url, "city": slug,
                "elev": a["elev"], "biome": a["biome"], "stars": a["stars"],
                "moon": a["moon"], "lights": a["lights"], "starsEpoch": stars_epoch,
-               "forecast": API_FORECAST, "wx": WX, "sats": a["satdata"], "satsLive": SATS_LIVE}
+               "forecast": API_FORECAST, "wx": WX, "sats": a["satdata"], "satsLive": SATS_LIVE,
+               # sky.js again, as the sky's Web Worker (same URL, so it is cached).
+               "skyJs": a["sky"]}
         html = prerender(template, kv, counts, ti)
         for key, val in {
             "{HEAD}": head(kv, url, home, og, data["as_of"], first, is_home),
@@ -379,6 +388,7 @@ def main() -> None:
             "{SKY_JS}": a["sky"], "{STAGE_JS}": a["stage"], "{BOLTS_JS}": a["bolts"], "{SATS_JS}": a["sats"], "{APP_JS}": a["app"], "{PORTRAIT}": a["portrait"],
             "{CFG}": json.dumps(cfg, separators=(",", ":")).replace("</", "<\\/"),
             "{BASE}": base, "{N_CITIES}": str(len(cities)), "{AS_OF}": esc(data["as_of"]),
+            "{PRECONNECT}": "".join(f'<link rel="preconnect" href="{o}" crossorigin>' for o in PRECONNECT),
         }.items():
             html = html.replace(key, val)
         if re.search(r"\{[A-Z_]+\}", html):

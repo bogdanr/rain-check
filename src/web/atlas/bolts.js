@@ -109,7 +109,7 @@
   };
 
   Bolts.prototype._frame = function (now) {
-    var st = this.st, cam = st.cam, dpr = Math.min(devicePixelRatio || 1, 1.5);
+    var st = this.st, cam = st.cam, dpr = st.dpr ? st.dpr() : Math.min(devicePixelRatio || 1, 1.5);
     var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
     // Nothing moves in reduced motion but the camera: redraw only for it.
     var key = [cam.lon, cam.lat, cam.k, cam.cx, cam.cy, cam.dim, w, h].map(function (v) { return v.toFixed(3); }).join();

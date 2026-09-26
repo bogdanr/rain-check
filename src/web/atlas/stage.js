@@ -24,6 +24,10 @@
  *    curtains under them. The volume is drawn at reduced resolution while
  *    anything moves, then refined over a few jittered frames at a higher one
  *    and left alone: an idle page costs nothing.
+ *  - near the selected city, a Meteosat frame at about 1-2 km (sky.js
+ *    detail) is laid over the 19 km world field with a soft edge; elsewhere
+ *    the world field is read through a small noise warp, so cloud edges
+ *    follow cloud shapes instead of its pixel grid.
  *
  * Markers are an SVG layer projected with the same orthographic maths, so
  * they stay focusable and labelled.
@@ -32,6 +36,36 @@
   'use strict';
 
   var DEG = Math.PI / 180;
+
+  /* A performance mark, once per name (DevTools > Performance, and the
+   * browser checks read them). */
+  function mark(n) {
+    try { if (!performance.getEntriesByName('rc:' + n).length) performance.mark('rc:' + n); } catch (e) { /* no User Timing */ }
+  }
+  function sess(k, v) {
+    try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); }
+    catch (e) { /* private mode */ }
+    return null;
+  }
+
+  /* The city-detail frame, shared by the globe and the volume: cover, top
+   * and weight at a world uv (weight 0 outside the frame, and fading to 0
+   * over its outer 15%). uDetLod is chosen per frame from how many of its
+   * texels fall on a screen pixel, so the zoomed-out globe does not shimmer. */
+  var DET = [
+    'uniform sampler2D uDet;',
+    'uniform vec4 uDetBox;',                    // lon0, lat0, lon1, lat1 (degrees)
+    'uniform float uHasDet, uDetLod;',
+    'vec3 detAt(vec2 uv){',
+    '  if (uHasDet < 0.5) return vec3(0.0);',
+    '  vec2 t = vec2(((uv.x - 0.5) * 360.0 - uDetBox.x) / (uDetBox.z - uDetBox.x),',
+    '                (uDetBox.w - (0.5 - uv.y) * 180.0) / (uDetBox.w - uDetBox.y));',
+    '  if (t.x <= 0.0 || t.y <= 0.0 || t.x >= 1.0 || t.y >= 1.0) return vec3(0.0);',
+    '  vec3 s = textureLod(uDet, t, uDetLod).rgb;',
+    '  float e = min(min(t.x, 1.0 - t.x), min(t.y, 1.0 - t.y));',
+    '  return vec3(s.rg, s.b * smoothstep(0.0, 0.15, e));',
+    '}'
+  ].join('\n');
 
   var VS = '#version 300 es\n' +
     'in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
@@ -55,6 +89,7 @@
     // Live sky. uLive 0 = the fixed studio light of the report; 1 = the real Sun.
     'uniform vec3 uSun, uMoon;',                // view-space directions
     'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights, uRainOn;',
+    DET,
     'out vec4 o;',
     'const float PI = 3.14159265;',
     'float metres(float c){',
@@ -71,7 +106,13 @@
     '  float lon = uLon0 + atan(n.x, n.z * cl - n.y * sl);',
     '  return vec2(fract(lon / (2.0 * PI) + 0.5), 0.5 - lat / PI);',
     '}',
-    'float cover(vec2 uv, float lod){ return mix(textureLod(uWxA, uv, lod).r, textureLod(uWxB, uv, lod).r, uMix); }',
+    // The flat layer and, at lod 0, the city-detail frame over it; the
+    // shadows read a coarse mip of the world field alone.
+    'float cover(vec2 uv, float lod){',
+    '  float c = mix(textureLod(uWxA, uv, lod).r, textureLod(uWxB, uv, lod).r, uMix);',
+    '  if (lod < 0.5){ vec3 dt = detAt(uv); c = mix(c, dt.x, dt.z); }',
+    '  return c;',
+    '}',
     // Radial gap between a point on the view ray and the terrain under it.
     'float gapAt(vec3 p, out vec3 n){',
     '  float r = length(p); n = p / r; float la;',
@@ -238,16 +279,34 @@
     'uniform sampler3D uNoise;',
     'uniform vec2 uCtr, uJit;',
     'uniform float uR, uMix, uFrame, uT, uHasRain, uHasLights, uMoonK, uThin, uRainOn;',
+    'uniform float uWarp, uEro, uStepK;',       // warp (world texels), edge erosion (1-1.5), march step (shell heights)
     'uniform mat3 uW2V;',
     'uniform vec3 uSun, uMoon, uCity;',
     'uniform int uSteps, uLSteps;',
+    DET,
     'out vec4 o;',
     'const float PI = 3.14159265;',
     'const float CB = 1.010, CT = 1.046, HH = CT - CB;',
     'const float SIG = 420.0, SIGR = 60.0;',
     'float hash(vec2 q){ return fract(sin(dot(q, vec2(12.9898, 78.233))) * 43758.5453); }',
     'vec2 uvW(vec3 d){ return vec2(atan(d.x, d.z) / (2.0 * PI) + 0.5, 0.5 - asin(clamp(d.y, -1.0, 1.0)) / PI); }',
-    'vec2 wxAt(vec2 uv){ return mix(textureLod(uWxA, uv, 0.0).rg, textureLod(uWxB, uv, 0.0).rg, uMix); }',
+    'vec2 wxW(vec2 uv){ return mix(textureLod(uWxA, uv, 0.0).rg, textureLod(uWxB, uv, 0.0).rg, uMix); }',
+    'vec2 wxAt(vec2 uv){ vec3 dt = detAt(uv); return mix(wxW(uv), dt.xy, dt.z); }',
+    // The main march reads the world field through a small warp (about a
+    // texel either way, varying over a few texels): cloud edges then follow
+    // noise shapes instead of the 19 km grid's straight lines and diamonds.
+    // Never over the city-detail frame, which has no grid to hide.
+    'vec2 wxWarp(vec2 uv, vec3 d){',
+    '  vec3 dt = detAt(uv);',
+    '  vec2 w;',
+    '  if (uWarp > 0.0 && dt.z < 0.99){',
+    '    vec3 c = d * 7.0;',
+    '    vec2 off = vec2(textureLod(uNoise, c + vec3(0.31, 0.17, 0.53), 0.0).g,',
+    '                    textureLod(uNoise, c + vec3(0.71, 0.43, 0.09), 0.0).g) - 0.6;',
+    '    w = wxW(uv + off * uWarp / vec2(textureSize(uWxA, 0)));',
+    '  } else w = wxW(uv);',
+    '  return mix(w, dt.xy, dt.z);',
+    '}',
     'float remap(float v, float a, float b){ return clamp((v - a) / max(b - a, 1e-4), 0.0, 1.0); }',
     // Henyey-Greenstein, scaled so isotropic is 1.
     'float hg(float c, float g){ float g2 = g * g; return (1.0 - g2) / pow(1.0 + g2 - 2.0 * g * c, 1.5); }',
@@ -263,9 +322,12 @@
     '  if (prof < 0.01) return 0.0;',
     '  vec3 c = d * 7.0 + vec3(uT * 0.0012, hf * 0.45, uT * 0.0008);',
     '  float dn = remap(texture(uNoise, c).r * prof, 1.0 - cov, 1.0) * cov;',
-    '  if (detail && dn > 0.0 && dn < 0.7){',
+    // Edges eroded by finer noise; harder, and with a finer octave, the
+    // larger a satellite pixel stands on screen (uEro, from the zoom).
+    '  if (detail && dn > 0.0 && dn < 0.7 + 0.25 * (uEro - 1.0)){',
     '    float det = texture(uNoise, d * 41.0 + vec3(0.0, hf * 1.3, 0.0)).g;',
-    '    dn = remap(dn, (1.0 - det) * 0.3 * (1.0 - 0.4 * hf), 1.0);',
+    '    if (uEro > 1.01) det = mix(det, textureLod(uNoise, d * 131.0 + vec3(hf * 2.1, 0.0, 0.0), 0.0).g, 0.5 * (uEro - 1.0));',
+    '    dn = remap(dn, (1.0 - det) * 0.3 * uEro * (1.0 - 0.4 * hf), 1.0);',
     '  }',
     // Thinned a little over the selected city, so its marker stays readable.
     '  vec3 e = d - uCity;',
@@ -294,7 +356,7 @@
     '    if (m < 0.02){ o = vec4(0.0); return; }',
     '  }',
     '  float len = zT - zB;',
-    '  int N = int(clamp(len / (HH * 0.09), 10.0, float(uSteps)));',
+    '  int N = int(clamp(len / (HH * uStepK), 10.0, float(uSteps)));',
     '  float ds = len / float(N);',
     '  float j = fract(hash(gl_FragCoord.xy) + uFrame * 0.61803);',
     '  vec3 S = uSun;',
@@ -313,7 +375,7 @@
     '    vec3 moonL = vec3(0.55, 0.64, 0.86) * uMoonK * max(dot(p / r, uMoon), 0.0) * 0.30;',
     '    vec3 skyA = vec3(0.36, 0.52, 0.80) * 0.5 * day;',
     '    if (r >= CB){',
-    '      vec2 wx = wxAt(uv);',
+    '      vec2 wx = wxWarp(uv, d);',
     '      float dn = cloud(d, r, wx, true);',
     '      if (dn <= 0.001) continue;',
     '      float hf = (r - CB) / HH;',
@@ -481,14 +543,20 @@
 
   /* Quality tiers for the volume. `move` and `still` are the buffer scale
    * relative to the canvas while the camera moves and once it rests; `acc`
-   * is how many jittered frames a resting view is refined over. */
+   * is how many jittered frames a resting view is refined over; `dpr` caps
+   * the device pixel ratio the whole stage is drawn at; `stepK` is the
+   * march step in shell heights. Ultra is for strong GPUs: on a 2x laptop
+   * screen high drew the volume at 1.5 x 0.8 = 1.2 px per CSS px, about 60%
+   * of the panel's resolution each way, and that softness read as pixels. */
   var TIERS = {
-    high: { move: 0.5, still: 0.8, steps: 72, lsteps: 5, acc: 6 },
-    mid:  { move: 0.34, still: 0.55, steps: 40, lsteps: 3, acc: 4 },
+    ultra: { move: 0.6, still: 1.0, steps: 96, lsteps: 6, acc: 8, dpr: 2, stepK: 0.06 },
+    high: { move: 0.5, still: 0.8, steps: 72, lsteps: 5, acc: 6, dpr: 1.5, stepK: 0.09 },
+    mid:  { move: 0.34, still: 0.55, steps: 40, lsteps: 3, acc: 4, dpr: 1.5, stepK: 0.09 },
     flat: null
   };
+  var ORDER = ['flat', 'mid', 'high', 'ultra'];
   // Texture units, fixed for the life of the context.
-  var U_ELEV = 0, U_BIO = 1, U_WXA = 2, U_WXB = 3, U_RAIN = 4, U_LIGHTS = 5, U_MOON = 6, U_NOISE = 7, U_CL = 8;
+  var U_ELEV = 0, U_BIO = 1, U_WXA = 2, U_WXB = 3, U_RAIN = 4, U_LIGHTS = 5, U_MOON = 6, U_NOISE = 7, U_CL = 8, U_DET = 9;
 
   function Stage(canvas, svg, opts) {
     this.c = canvas; this.svg = svg; this.opts = opts;
@@ -510,16 +578,21 @@
     gl.bindVertexArray(null);
     this.u = this._uniforms(this.prog, ['uElev', 'uBio', 'uWxA', 'uWxB', 'uRain', 'uLights', 'uRes', 'uCtr', 'uTex', 'uR',
       'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp', 'uSun', 'uMoon', 'uLive', 'uMoonK', 'uWx', 'uFlat', 'uMix',
-      'uHasRain', 'uHasLights', 'uRainOn', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand']);
+      'uHasRain', 'uHasLights', 'uRainOn', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand',
+      'uDet', 'uDetBox', 'uHasDet', 'uDetLod']);
     gl.useProgram(this.prog);
-    [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS]]
+    [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uDet', U_DET]]
       .forEach(function (s) { gl.uniform1i(this.u[s[0]], s[1]); }, this);
     // The main globe's displacement law (src/web/globe.js:193-207).
     var RE = 6371000, TOP_M = 8500;
     gl.uniform3f(this.u.uDisp, 100 / RE, 20 * Math.sqrt(TOP_M) / RE, 20 * TOP_M / RE);
     this.hasTex = 0;
     this.pinned = false; this.showClouds = true; this.showRain = true;
+    // ?crisp=0: the old look, for comparison - no warp, no zoom erosion, no
+    // city-detail frame.
+    this.crisp = new URLSearchParams(location.search).get('crisp') !== '0';
     this.tier = this._detectTier();
+    canvas.dataset.tier = this.tier;
     this._loadTextures();
     this._loadStars();
     this.readTheme();
@@ -553,21 +626,62 @@
   };
 
   /* Software renderers get the flat layer; phones and small screens the
-   * lighter volume. ?sky=high|mid|flat|off overrides, for review, and pins
-   * the tier so the frame-time adaptation leaves it alone. */
+   * lighter volume; strong desktop GPUs ultra. ?sky=ultra|high|mid|flat|off
+   * overrides, for review, and pins the tier so the frame-time adaptation
+   * leaves it alone. */
   Stage.prototype._detectTier = function () {
     var q = new URLSearchParams(location.search).get('sky');
     if (q && (q in TIERS || q === 'off')) { this.pinned = true; return q === 'off' ? 'flat' : q; }
     return this._deviceTier();
   };
 
-  /* What this device gets when nobody has chosen. */
+  /* What this device gets when nobody has chosen. Ultra goes to desktop
+   * GPUs known to carry it; any other capable device starts on high and
+   * earns ultra by holding the display's full rate (_adapt). What the tab
+   * has learnt - ultra earned, or a ceiling after a step down - is kept for
+   * the session, so the next city page starts where this one ended. */
   Stage.prototype._deviceTier = function () {
     var gl = this.gl, ext = gl.getExtension('WEBGL_debug_renderer_info');
     var r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
     if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(r)) return 'flat';
     if (matchMedia('(pointer: coarse)').matches || Math.min(innerWidth, innerHeight) < 600) return 'mid';
-    return 'high';
+    var t = 'high';
+    if ((navigator.hardwareConcurrency || 0) >= 8 &&
+        /nvidia|geforce|quadro|rtx|radeon|apple m\d|apple gpu|intel\(r\) arc/i.test(r)) t = 'ultra';
+    if (sess('rc-sky-tier') === 'ultra') t = 'ultra';
+    var cap = sess('rc-sky-cap');
+    if (cap && ORDER.indexOf(cap) >= 0 && ORDER.indexOf(t) > ORDER.indexOf(cap)) t = cap;
+    return t;
+  };
+
+  /* The device pixel ratio the stage (and the overlays drawn over it) use. */
+  Stage.prototype.dpr = function () {
+    var q = TIERS[this.tier];
+    return Math.min(devicePixelRatio || 1, q ? q.dpr : 1.5);
+  };
+
+  /* Frame times while the camera moves, sorted: step down one tier when the
+   * volume cannot hold about 20 fps (35 on ultra), and never climb above
+   * that again in this tab; step high up to ultra, once, when it holds the
+   * display's full rate with almost no dropped frames. rAF is tied to the
+   * display, so "fast" means the shortest frames are one refresh long and
+   * the slow tail stays close to them. */
+  Stage.prototype._adapt = function (d) {
+    var mean = d.reduce(function (a, b) { return a + b; }, 0) / d.length;
+    var fast = d[Math.floor(d.length * 0.05)], p90 = d[Math.floor(d.length * 0.9)];
+    var i = ORDER.indexOf(this.tier);
+    if (i > 0 && mean > (this.tier === 'ultra' ? 28 : 50)) {
+      sess('rc-sky-cap', ORDER[i - 1]);
+      if (this.tier === 'ultra') sess('rc-sky-tier', null);
+      this.setTier(ORDER[i - 1]);
+      return;
+    }
+    if (this.tier === 'high' && !this._promoted && !sess('rc-sky-cap') && fast < 20 && p90 < fast * 1.3 &&
+        !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this._promoted = true;
+      sess('rc-sky-tier', 'ultra');
+      this.setTier('ultra');
+    }
   };
 
   /* 8 bytes a star: int16 lon/pi, int16 lat/(pi/2), rgb, magnitude byte. */
@@ -684,21 +798,62 @@
     return t;
   }
 
-  /* Satellite fields from AtlasSky.weather(). The two IR frames (3 h apart)
-   * are blended from the older to the newer once, so the clouds move the way
-   * the weather really moved; after that the newest frame stands. */
+  /* Satellite fields from AtlasSky.weather(), one layer or both. A new cloud
+   * field arrives with `a` (what the page was showing) and `b` (the new
+   * one); when they differ it cross-fades from a to b once, so a fresher
+   * frame, or the Meteosat frame landing on the world mosaic, eases in
+   * rather than popping. */
   Stage.prototype.setWeather = function (wx) {
     if (this.failed || !wx) return;
     var gl = this.gl, T = this._wxTex = this._wxTex || {};
     if (wx.ir) {
       T.a = tex2(gl, U_WXA, T.a, wx.ir.w, wx.ir.h, wx.ir.a);
       T.b = tex2(gl, U_WXB, T.b, wx.ir.w, wx.ir.h, wx.ir.b);
-      this.hasWx = 1;
+      this.hasWx = 1; this._wxH = wx.ir.h;
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (wx.ir.a !== wx.ir.b && !reduce) { this.mix = 0; this.mixT0 = performance.now(); } else this.mix = 1;
     }
     if (wx.rain) { T.r = tex2(gl, U_RAIN, T.r, wx.rain.w, wx.rain.h, wx.rain.d); this.hasRain = 1; }
     this.acc = 0; this.dirty = true;
+  };
+
+  /* The city-detail frame (AtlasSky.detail), or null to drop it. RGBA:
+   * cover, top, weight; mipmapped, since the zoomed-out globe shrinks its
+   * 1024 texels into a hundred-odd pixels. */
+  Stage.prototype.setDetail = function (det) {
+    if (this.failed) return;
+    var gl = this.gl;
+    if (!det || !this.crisp) { this.det = null; this.c.dataset.detail = ''; this.acc = 0; this.dirty = true; return; }
+    gl.activeTexture(gl.TEXTURE0 + U_DET);
+    this._detTex = this._detTex || gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this._detTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, det.w, det.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, det.d);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    this.det = { box: det.box, w: det.w, h: det.h };
+    this.c.dataset.detail = det.box.map(function (v) { return v.toFixed(2); }).join(',');
+    this.acc = 0; this.dirty = true;
+  };
+
+  /* The mip of the detail frame for a globe of radius Rpx (in the pixels of
+   * the target being drawn): about one texel per pixel. */
+  Stage.prototype._detLod = function (Rpx) {
+    var d = this.det, px = (d.box[3] - d.box[1]) * DEG * Rpx;
+    return Math.max(0, Math.log2(d.h / Math.max(px, 1)));
+  };
+
+  /* The detail frame's uniforms on the bound program, for a globe of
+   * radius Rpx in that program's target. */
+  Stage.prototype._detUniforms = function (u, Rpx) {
+    var gl = this.gl, d = this.det;
+    gl.uniform1f(u.uHasDet, d ? 1 : 0);
+    if (!d) return;
+    gl.uniform4f(u.uDetBox, d.box[0], d.box[1], d.box[2], d.box[3]);
+    gl.uniform1f(u.uDetLod, this._detLod(Rpx));
   };
 
   Stage.prototype.setNoise = function (data, N) {
@@ -713,6 +868,9 @@
     gl.generateMipmap(gl.TEXTURE_3D);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     this.hasNoise = 1; this.acc = 0; this.dirty = true;
+    // The volume fades in over the flat layer rather than replacing it at once.
+    this.volT0 = matchMedia('(prefers-reduced-motion: reduce)').matches ? -1e9 : performance.now();
+    mark('noise');
   };
 
   /* The quality tier in use; a slow device steps down by itself. */
@@ -721,6 +879,7 @@
     // A driver that could not compile the volume only ever has the flat layer.
     if (t !== 'flat' && this.cprog === null) t = 'flat';
     this.tier = t; this.acc = 0; this.dirty = true; this._dts = [];
+    this.c.dataset.tier = t;
     this.opts.onTier && this.opts.onTier(t);
   };
 
@@ -735,9 +894,10 @@
     try {
       this.cprog = this._program(VS, CFS);
       var cu = this.cu = this._uniforms(this.cprog, ['uWxA', 'uWxB', 'uRain', 'uLights', 'uNoise', 'uCtr', 'uJit', 'uR', 'uMix',
-        'uFrame', 'uT', 'uHasRain', 'uHasLights', 'uMoonK', 'uThin', 'uW2V', 'uSun', 'uMoon', 'uCity', 'uSteps', 'uLSteps', 'uRainOn']);
+        'uFrame', 'uT', 'uHasRain', 'uHasLights', 'uMoonK', 'uThin', 'uW2V', 'uSun', 'uMoon', 'uCity', 'uSteps', 'uLSteps', 'uRainOn',
+        'uWarp', 'uEro', 'uStepK', 'uDet', 'uDetBox', 'uHasDet', 'uDetLod']);
       var gl = this.gl;
-      [['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uNoise', U_NOISE]]
+      [['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uNoise', U_NOISE], ['uDet', U_DET]]
         .forEach(function (s) { gl.uniform1i(cu[s[0]], s[1]); });
     } catch (e) {
       // A driver that cannot compile the volume keeps the flat layer.
@@ -873,7 +1033,7 @@
   }
   function halton(i, b) { var f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; }
 
-  var MIX_MS = 6000;
+  var MIX_MS = 6000, VOL_IN_MS = 700;
 
   Stage.prototype._frame = function (now) {
     var moving = false;
@@ -899,20 +1059,22 @@
       if (!moving) this.acc = 0;
     }
     var q = TIERS[this.tier];
+    var fadeIn = this.volT0 !== undefined && this._volOn ? (now - this.volT0) / VOL_IN_MS : 1;
+    if (fadeIn < 1) { this.dirty = true; if (!moving) this.acc = 0; }
     var refine = this._volOn && q && !moving && this.acc < q.acc;
     if (!this.dirty && !refine) { this._prev = now; return; }
     this.dirty = false;
     if (moving) { this.acc = 0; this._tStill = now / 1000; }
     this._draw(moving, now);
     this._drawMarkers();
-    // Adapt: a volume that cannot hold ~20 fps while moving steps down a tier.
-    if (moving && this._volOn && this._prev) {
+    // Adapt the tier to the frame times while the volume moves (_adapt).
+    if (moving && this._volOn && this._prev && !document.hidden) {
       var dt = now - this._prev;
       if (dt < 300) this._dts.push(dt);
-      if (this._dts.length >= 40) {
-        var mean = this._dts.reduce(function (a, b) { return a + b; }, 0) / this._dts.length;
+      if (this._dts.length >= 60) {
+        var d = this._dts.sort(function (a, b) { return a - b; });
         this._dts = [];
-        if (mean > 50 && !this.pinned) this.setTier(this.tier === 'high' ? 'mid' : 'flat');
+        if (!this.pinned) this._adapt(d);
       }
     }
     this._prev = now;
@@ -920,7 +1082,7 @@
 
   Stage.prototype._draw = function (moving, now) {
     if (this.failed) return;
-    var gl = this.gl, dpr = Math.min(devicePixelRatio || 1, 1.5);
+    var gl = this.gl, dpr = this.dpr();
     var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
     if (this.c.width !== w || this.c.height !== h) { this.c.width = w; this.c.height = h; }
     gl.viewport(0, 0, w, h);
@@ -961,7 +1123,13 @@
     var rainOn = live && this.hasRain && this.showRain;
     var volW = wx && q && this.hasNoise && this._volProgram()
       ? Math.max(0, Math.min(1, (0.55 - c.dim) / 0.2)) * Math.max(0, Math.min(1, (c.k - 0.14) / 0.08)) : 0;
-    this._volOn = volW > 0;
+    if (volW > 0 && this.volT0 !== undefined) {
+      var vin = Math.max(0, Math.min(1, (now - this.volT0) / VOL_IN_MS));
+      volW *= vin * vin * (3 - 2 * vin);
+      if (vin >= 1) mark('volume');
+    }
+    // Kept on through the fade, so the frame loop keeps drawing it.
+    this._volOn = volW > 0 || (wx && q && this.hasNoise && this.volT0 !== undefined && now - this.volT0 < VOL_IN_MS);
     gl.useProgram(this.prog);
     gl.uniform2f(u.uRes, w, h);
     gl.uniform2f(u.uCtr, c.cx * w, h - c.cy * h);
@@ -979,6 +1147,7 @@
     gl.uniform1f(u.uHasRain, this.hasRain ? 1 : 0);
     gl.uniform1f(u.uHasLights, this.hasLights ? 1 : 0);
     gl.uniform1f(u.uRainOn, rainOn ? 1 : 0);
+    this._detUniforms(u, R);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!live || !this.kprog) return;
 
@@ -1008,6 +1177,14 @@
       gl.uniform1f(cu.uRainOn, rainOn ? 1 : 0);
       gl.uniform1f(cu.uHasLights, this.hasLights ? 1 : 0);
       gl.uniform1i(cu.uSteps, q.steps); gl.uniform1i(cu.uLSteps, q.lsteps);
+      gl.uniform1f(cu.uStepK, q.stepK);
+      // How many buffer pixels one world-field texel spans: past one, its
+      // grid starts to show, so the warp comes in and the edges erode
+      // harder, up to 1.5x at four pixels a texel (the city close-up).
+      var tpx = R * fw / w * Math.PI / (this._wxH || 1024);
+      gl.uniform1f(cu.uWarp, this.crisp ? Math.max(0, Math.min(1.5, (tpx - 0.6) * 1.5)) : 0);
+      gl.uniform1f(cu.uEro, this.crisp ? 1 + 0.5 * Math.max(0, Math.min(1, (tpx - 1) / 3)) : 1);
+      this._detUniforms(cu, R * fw / w);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, w, h);

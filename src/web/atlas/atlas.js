@@ -111,6 +111,7 @@
       acted: c.umbrella.acted, missed: c.umbrella.missed
     } : null, h.name);
     if (stage) stage.setCity(h, first);
+    cityDetail();
     if (evidence.redraw) evidence.redraw();
     live(h);
   }
@@ -630,7 +631,25 @@
   var SKY = { on: true, wx: null, err: null, loading: false, at: 0 };
   var DEG = Math.PI / 180;
 
+  /* A performance mark, once per name: rc:clouds, rc:rain, rc:bolts, ... */
+  function pmark(n) {
+    try { if (!performance.getEntriesByName('rc:' + n).length) performance.mark('rc:' + n); } catch (e) { /* no User Timing */ }
+  }
+
+  /* A light session: data saver, a slow link, or a small memory. It gets
+   * the newest lightning frame alone and no city-detail frame; the clouds
+   * and rain are the same. ?lite=1|0 forces it either way. */
+  var LITE = (function () {
+    var q = new URLSearchParams(location.search).get('lite');
+    if (q) return q === '1';
+    var c = navigator.connection || {};
+    return !!(c.saveData || /(^|-)2g$|^3g$/.test(c.effectiveType || '') || (navigator.deviceMemory && navigator.deviceMemory <= 2));
+  })();
+
   function skyInit() {
+    // The sky's downloads and pixel passes run in a worker (the same script).
+    AtlasSky.init({ worker: CFG.skyJs });
+    document.documentElement.dataset.skyMode = AtlasSky.mode;
     var q = new URLSearchParams(location.search).get('sky'), saved = null;
     try { saved = localStorage.getItem('rc-sky'); } catch (e) { /* private mode */ }
     SKY.on = q === 'off' ? false : q ? true : saved !== 'off';
@@ -689,20 +708,28 @@
   }
 
   /* The lightning layer follows the live sky and its own switch; the frames
-   * are fetched only once somebody wants to see them. */
+   * are fetched only once somebody wants to see them, and only after the
+   * clouds are on screen (or their fetch has settled, or BOLT_HOLD ms have
+   * passed): the flashes light the clouds, so they have nothing to light
+   * before, and their 1400 x 1400 frames should not compete with the cloud
+   * frames. */
+  var BOLT_HOLD = 6000;
   function boltsApply() {
     if (!SKY.bolt) return;
     SKY.bolt.show(SKY.bolts, SKY.on);
-    if (SKY.on && SKY.bolts) lightning(false);
+    if (!(SKY.on && SKY.bolts)) return;
+    if ((SKY.wx && SKY.wx.ir) || SKY.boltGo) { lightning(false); return; }
+    if (!SKY.boltTimer) SKY.boltTimer = setTimeout(function () { SKY.boltGo = true; boltsApply(); }, BOLT_HOLD);
   }
 
   function lightning(refresh) {
     if (!SKY.bolt || SKY.bLoading || (SKY.b && !refresh)) return;
     SKY.bLoading = true;
-    AtlasSky.bolts(CFG.wx).then(function (b) {
+    AtlasSky.bolts(CFG.wx, { lite: LITE }).then(function (b) {
       SKY.bLoading = false; SKY.b = b; SKY.bErr = null;
       SKY.bolt.setData(b);
       SKY.bolt.setStale(now() - b.t > BOLT_STALE);
+      pmark('bolts');
       skyLegend();
       if (S.h) overCity(S.h);
     }, function (e) {
@@ -796,21 +823,111 @@
     skyLegend();
   }
 
+  /* Each layer goes on screen the moment it is read: the world clouds, then
+   * the Meteosat clouds over them, the rain on its own. A layer the page
+   * already shows (same key) is skipped, so a refresh that finds nothing
+   * newer changes nothing. A first visit in this browser shows the last
+   * layers it saw (skyCache) while the fresh ones load; each carries its
+   * own time, and the legend ages it by that. */
   function weather(refresh) {
-    if (SKY.loading || (SKY.wx && !refresh)) return;
+    if (SKY.loading || (SKY.wx && SKY.wxLive && !refresh)) return;
     SKY.loading = true;
-    AtlasSky.weather(CFG.wx, now()).then(function (wx) {
+    if (!SKY.wx) skyCache.get().then(function (c) { if (c && !SKY.wxLive) showWx(c, true); });
+    AtlasSky.weather(CFG.wx, now(), { lite: LITE }, function (part) { showWx(part, false); }).then(function (wx) {
       SKY.loading = false;
-      if (!wx.ir && !wx.rain) { SKY.err = wx.errors.join('; '); skyLegend(); return; }
-      // A refresh that finds nothing newer keeps what is on screen.
-      var o = SKY.wx;
-      if (o && o.ir && wx.ir && wx.ir.t === o.ir.t && wx.ir.tf === o.ir.tf &&
-          (!wx.rain || (o.rain && wx.rain.t === o.rain.t && wx.rain.tf === o.rain.tf))) return;
-      SKY.wx = wx; SKY.err = wx.errors.length ? wx.errors.join('; ') : null;
-      if (stage) stage.setWeather(wx);
-      boltClouds();
+      if (!SKY.boltGo) { SKY.boltGo = true; boltsApply(); }
+      SKY.err = wx.errors.length ? wx.errors.join('; ') : null;
+      if (!wx.ir && !wx.rain) { skyLegend(); return; }
+      skyCache.put(SKY.wx);
       skyLegend();
-      if (S.h) overCity(S.h);
+    }, function (e) {
+      SKY.loading = false; SKY.err = String(e && e.message || e); skyLegend();
+      if (!SKY.boltGo) { SKY.boltGo = true; boltsApply(); }
+    });
+  }
+
+  /* Put one or both layers on screen. A new cloud field cross-fades from
+   * the one shown (stage.setWeather: a, then b). */
+  function showWx(p, cached) {
+    var o = SKY.wx || { ir: null, rain: null }, n = { ir: null, rain: null }, changed = false;
+    if (p.ir && (!o.ir || o.ir.key !== p.ir.key || o.cached)) {
+      var a = o.ir && o.ir.w === p.ir.w && o.ir.h === p.ir.h ? o.ir.b : p.ir.b;
+      n.ir = Object.assign({}, p.ir, { a: a });
+      changed = true;
+    }
+    if (p.rain && (!o.rain || o.rain.key !== p.rain.key || o.cached)) { n.rain = p.rain; changed = true; }
+    if (!changed) return;
+    if (!cached) SKY.wxLive = true;
+    SKY.wx = { ir: n.ir || o.ir, rain: n.rain || o.rain, cached: cached && !SKY.wxLive };
+    if (stage) stage.setWeather({ ir: n.ir, rain: n.rain });
+    if (n.ir) { pmark(cached ? 'clouds-cached' : 'clouds'); document.documentElement.dataset.clouds = n.ir.key + (cached ? ' cached' : ''); }
+    if (n.rain) { pmark(cached ? 'rain-cached' : 'rain'); document.documentElement.dataset.rain = n.rain.key + (cached ? ' cached' : ''); }
+    boltClouds();
+    if (n.ir) { boltsApply(); if (!cached) cityDetail(); }
+    skyLegend();
+    if (S.h) overCity(S.h);
+  }
+
+  /* The last layers seen, in IndexedDB, so the next city page (or visit)
+   * has clouds at once. Kept 3 hours past the frame's own time - the world
+   * mosaic's cadence - and never used with ?now= (review and tests pin the
+   * clock; ?cache=1 turns it on there, for the cache check). */
+  var skyCache = (function () {
+    var TTL = 3 * 3600000, on = typeof indexedDB !== 'undefined' &&
+      (!NOWQ || new URLSearchParams(location.search).get('cache') === '1');
+    function db() {
+      return new Promise(function (ok, no) {
+        var r = indexedDB.open('rc-sky', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('wx'); };
+        r.onsuccess = function () { ok(r.result); };
+        r.onerror = function () { no(r.error); };
+      });
+    }
+    function tx(mode, f) {
+      return db().then(function (d) {
+        return new Promise(function (ok, no) {
+          var t = d.transaction('wx', mode), s = t.objectStore('wx'), r = f(s);
+          t.oncomplete = function () { d.close(); ok(r && r.result); };
+          t.onerror = t.onabort = function () { d.close(); no(t.error); };
+        });
+      });
+    }
+    function strip(l, ch) { if (!l) return null; var o = { w: l.w, h: l.h, t: l.t, tf: l.tf, key: l.key }; o[ch] = l[ch]; return o; }
+    return {
+      get: function () {
+        if (!on) return Promise.resolve(null);
+        return tx('readonly', function (s) { return s.get('last'); }).then(function (c) {
+          if (!c || c.v !== 1) return null;
+          var t = now(), ir = c.ir && t - c.ir.t < TTL + 3 * 3600000 ? c.ir : null, rain = c.rain && t - c.rain.t < TTL ? c.rain : null;
+          return ir || rain ? { ir: ir, rain: rain } : null;
+        }).catch(function () { return null; });
+      },
+      put: function (wx) {
+        if (!on || !wx || wx.cached) return;
+        tx('readwrite', function (s) { return s.put({ v: 1, ir: strip(wx.ir, 'b'), rain: strip(wx.rain, 'd') }, 'last'); })
+          .then(function () { document.documentElement.dataset.skySaved = (wx.ir && wx.ir.key) || ''; })
+          .catch(function () { /* quota, private mode */ });
+      }
+    };
+  })();
+
+  /* The city-detail frame: about 2 km a pixel around the selected city,
+   * where Meteosat sees it, asked for once the Meteosat clouds are on
+   * screen (it is read with their calibration). Not in a light session. */
+  function cityDetail() {
+    if (!stage || !S.h || LITE || !SKY.on || !CFG.wx.mtgIrDetail) return;
+    var ir = SKY.wx && SKY.wx.ir;
+    if (!ir || !ir.tf || SKY.wx.cached) return;
+    var key = S.h.slug + '|' + ir.tf;
+    if (SKY.detKey === key) return;
+    SKY.detKey = key;
+    stage.setDetail(null);
+    AtlasSky.detail(CFG.wx, { lon: S.h.lon, lat: S.h.lat }, 1024).then(function (d) {
+      if (SKY.detKey !== key) return;          // another city, or a newer frame, won
+      stage.setDetail(d);
+      pmark('detail');
+    }, function (e) {
+      if (SKY.detKey === key) SKY.detErr = String(e && e.message || e);
     });
   }
 
@@ -850,7 +967,8 @@
       if (mBolt) add('lightning', bo.t, !SKY.bolts);
       var oldest = Math.min.apply(null, ts);
       var tip = 'Over Europe, Africa and the Atlantic, from the same satellite, Meteosat (MTG) at 0\u00b0: ' +
-        'clouds from its 10.5 \u00b5m infrared image, every 10 minutes (cover and height read from how cold the cloud tops look; heights exaggerated about 20\u00d7). ' +
+        'clouds from its 10.5 \u00b5m infrared image, every 10 minutes (cover and height read from how cold the cloud tops look; heights exaggerated about 20\u00d7), ' +
+        'at about 2 km a pixel around the selected city and about 19 km elsewhere. ' +
         (mRain ? 'Rain from H SAF h40b, that infrared calibrated by microwave satellite passes, for the same moment as the clouds; drawn into the clouds, darker where heavier, and only where there is cloud. ' : '') +
         (mBolt ? 'Lightning from the Lightning Imager, last ' + bo.frames.length * 5 + ' minutes, flashing inside the clouds where it counted flashes, and only where there is cloud. ' : '') +
         'The age shown is the oldest of them' + (flat ? '. This device gets the flat cloud layer.' : '.');
