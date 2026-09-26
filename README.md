@@ -110,7 +110,7 @@ Network responses are cached under `data/cache/`, so a warm run makes no network
 | `src/web/` | Front-end for the report: globe, themes, charts (d3-geo / d3-array vendored) |
 | `data/processed/` | Committed analysis tables (Parquet/JSON) that the page is built from |
 | `figures/` | Committed static figures |
-| `dist/` | The built site, as deployed |
+| `dist/` | The built site (`python src/atlas.py`); not committed, the Pages workflow builds its own |
 | `design/` | Design prototypes and screenshot tooling for the site redesign |
 
 ## Data and licences

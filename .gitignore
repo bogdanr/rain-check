@@ -37,6 +37,12 @@ plans/
 # so the papers are not disclosed before submission.
 paper/
 
+# Built site. The Pages workflow rebuilds it from src/ with the public origin;
+# a local build (python src/atlas.py, served on :8000) carries 127.0.0.1 URLs
+# and must never be committed. dist.check/ is src/check_site.py's scratch copy.
+dist/
+dist.check/
+
 # Editor leftovers. Vim writes both alongside the file being edited, so without
 # these they show up as untracked siblings of real source and get swept into a
 # "git add src/" by accident.
