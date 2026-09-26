@@ -326,11 +326,18 @@ def main() -> None:
         det = p.get_attribute("#stage", "data-detail") or ""
         check(det.count(",") == 3, f"a city-detail frame lies over the close-up clouds: [{det}]")
         # Ultra: the full-resolution tier with the longest march must compile too.
-        p.goto(B + f"?now={NOW}&sky=ultra", wait_until="networkidle")
-        legend(p, "Elsewhere")
-        p.wait_for_timeout(1500)
-        check(p.get_attribute("#stage", "data-tier") == "ultra" and "flat" not in p.inner_text("#sky-src"),
+        # Its own tab, closed straight after: ultra on a software renderer
+        # keeps a small CI runner's CPU busy and would starve every page
+        # after it (and "networkidle" may never come; the legend waits).
+        u = ctx.new_page()
+        u.on("pageerror", lambda e: errs.append(str(e)))
+        u.goto(B + f"?now={NOW}&sky=ultra", wait_until="load")
+        legend(u, "Elsewhere")
+        u.wait_for_timeout(1500)
+        check(u.get_attribute("#stage", "data-tier") == "ultra" and "flat" not in u.inner_text("#sky-src"),
               "the ultra tier compiles on SwiftShader")
+        u.close()
+        p.goto(B + f"?now={NOW}", wait_until="networkidle")
 
         # Rapid switch: the card ends on the last city, not the slowest reply.
         links = p.locator("#lg tbody a")
@@ -344,6 +351,7 @@ def main() -> None:
         check(not errs, "no script errors" + (f": {errs[:3]}" if errs else ""))
         check(not bad, "no failed requests" + (f": {bad[:3]}" if bad else ""))
         check(not outside, "no request left the test server" + (f": {outside[:3]}" if outside else ""))
+        p.goto("about:blank")                   # stop drawing the globe in the background
 
         # --- every live source down: the page is the audit, and says so ---
         dctx = b.new_context(viewport={"width": 1440, "height": 900})
