@@ -674,6 +674,11 @@
       var s = 0, n = 0;
       for (var dx = -2; dx <= 2; dx++) for (var dy = -2; dy <= 2; dy++) { s += sample(wx.ir, lon + dx * 0.18, lat + dy * 0.18, 'b', 2); n++; }
       o.cloud = s / n / 255;
+      // Top height (how cold the top is), the channel after cover: tall
+      // cold tops over a storm are its anvil (bolts.js grades storms by it).
+      var x = Math.floor((wrap(lon) + 180) / 360 * wx.ir.w) % wx.ir.w,
+        y = Math.max(0, Math.min(wx.ir.h - 1, Math.floor((90 - lat) / 180 * wx.ir.h)));
+      o.top = wx.ir.b[(y * wx.ir.w + x) * 2 + 1] / 255;
     }
     if (wx.rain) {
       var i = sample(wx.rain, lon, lat, 'd', 2);

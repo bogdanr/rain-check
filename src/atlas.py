@@ -340,6 +340,8 @@ def main() -> None:
         "stage": site.add_text("assets", "stage.js", ship(ATLAS / "stage.js")),
         "bolts": site.add_text("assets", "bolts.js", ship(ATLAS / "bolts.js")),
         "sats": site.add_text("assets", "sats.js", ship(ATLAS / "sats.js")),
+        # The ?tune=1 look panel; loaded on demand only, never by a reader.
+        "tune": site.add_text("assets", "tune.js", ship(ATLAS / "tune.js")),
         # The satellite roster with the orbital elements it was built with
         # (src/satellites.py); the page refreshes them from CelesTrak.
         "satdata": site.add_json("assets", "satellites.json", json.loads(SATELLITES.read_text())),
@@ -380,7 +382,7 @@ def main() -> None:
                "moon": a["moon"], "lights": a["lights"], "starsEpoch": stars_epoch,
                "forecast": API_FORECAST, "wx": WX, "sats": a["satdata"], "satsLive": SATS_LIVE,
                # sky.js again, as the sky's Web Worker (same URL, so it is cached).
-               "skyJs": a["sky"]}
+               "skyJs": a["sky"], "tuneJs": a["tune"]}
         html = prerender(template, kv, counts, ti)
         for key, val in {
             "{HEAD}": head(kv, url, home, og, data["as_of"], first, is_home),

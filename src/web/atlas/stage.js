@@ -88,7 +88,8 @@
     'uniform vec3 uDisp;',                      // per metre, per root-metre, tallest (radius fractions)
     // Live sky. uLive 0 = the fixed studio light of the report; 1 = the real Sun.
     'uniform vec3 uSun, uMoon;',                // view-space directions
-    'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights, uRainOn;',
+    'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights, uRainOn, uSoft;',
+    'uniform vec4 uLk3;',                       // the look: y = flat-layer opacity
     DET,
     'out vec4 o;',
     'const float PI = 3.14159265;',
@@ -229,7 +230,9 @@
     // height the cloud layer is drawn at, softened by a coarse mip.
     '    if (uWx > 0.5){',
     '      float la2; vec3 nS = normalize(n + S * (0.026 / max(mu, 0.2)));',
-    '      col *= 1.0 - 0.62 * cover(uvOf(nS, la2), 2.5) * day;',
+    '      float sc = cover(uvOf(nS, la2), 2.5);',
+    // Soft: thin cloud lets most sunlight through, so its shadow is faint.
+    '      col *= 1.0 - 0.62 * mix(sc, sc * sc * (1.6 - 0.6 * sc), uSoft) * day;',
     '    }',
     '    vec3 night = vec3(0.10, 0.13, 0.22);',
     '    vec3 moon = vec3(0.50, 0.60, 0.85) * uMoonK * max(dot(n, uMoon), 0.0) * 0.32;',
@@ -240,9 +243,20 @@
     '    float rw = smoothstep(0.08, 0.75, wet);',
     '    vec3 lit = (0.55 + 0.75 * sph) * mix(night * 1.6 + moon * 1.8, dusk, day);',
     '    if (uWx > 0.5 && uFlat > 0.0){',
-    '      float c = max(here, smoothstep(0.02, 0.3, wet) * 0.8) * uFlat;',
+    '      float c = max(here, smoothstep(0.02, 0.3, wet) * 0.8);',
     '      vec3 cc = mix(vec3(0.93, 0.95, 1.0), vec3(0.40, 0.44, 0.52), rw) * lit;',
-    '      col = mix(col, cc, c * 0.9);',
+    '      float op = c * 0.9;',
+    '      if (uSoft > 0.5){',
+    // Soft flat layer: thin cover is a see-through veil, thick cover nearly
+    // opaque; and a little relief from one coarse read toward the Sun - the
+    // side of a mass facing the Sun is lit, the far side and dense cores
+    // are a softer grey.
+    '        op = min(1.0, (1.0 - exp(-c * c * 3.2)) * 0.97 * uLk3.y);',
+    '        float la3; float up = cover(uvOf(normalize(n + S * 0.012), la3), 1.5);',
+    '        float rel = clamp((c - up) * 2.2, -0.45, 0.45);',
+    '        cc *= (1.0 + rel * 0.55 * day) * mix(1.0, 0.86, smoothstep(0.55, 1.0, c));',
+    '      }',
+    '      col = mix(col, cc, op * uFlat);',
     '    } else if (uWx < 0.5 && wet > 0.0){',
     '      col = mix(col, mix(vec3(0.62, 0.66, 0.74), vec3(0.36, 0.40, 0.48), rw) * lit, smoothstep(0.02, 0.4, wet) * 0.6);',
     '    }',
@@ -280,6 +294,9 @@
     'uniform vec2 uCtr, uJit;',
     'uniform float uR, uMix, uFrame, uT, uHasRain, uHasLights, uMoonK, uThin, uRainOn;',
     'uniform float uWarp, uEro, uStepK;',       // warp (world texels), edge erosion (1-1.5), march step (shell heights)
+    'uniform float uSoft;',                     // 1 = soft, translucent look; 0 = the old one (?soft=0)
+    'uniform float uTypes;',                    // 1 = cloud types by height; 0 = one kind (?types=0)
+    'uniform vec4 uLk0, uLk1, uLk2, uLk3;',     // the look (LOOK, stage.setLook)
     'uniform mat3 uW2V;',
     'uniform vec3 uSun, uMoon, uCity;',
     'uniform int uSteps, uLSteps;',
@@ -299,7 +316,10 @@
     'vec2 wxWarp(vec2 uv, vec3 d){',
     '  vec3 dt = detAt(uv);',
     '  vec2 w;',
-    '  if (uWarp > 0.0 && dt.z < 0.99){',
+    // No cloud within a few texels (a coarse mip): nothing for the warp to
+    // pull in, so skip its two 3-D reads.
+    '  bool near = uSoft < 0.5 || mix(textureLod(uWxA, uv, 1.6).r, textureLod(uWxB, uv, 1.6).r, uMix) > 0.008;',
+    '  if (uWarp > 0.0 && dt.z < 0.99 && near){',
     '    vec3 c = d * 7.0;',
     '    vec2 off = vec2(textureLod(uNoise, c + vec3(0.31, 0.17, 0.53), 0.0).g,',
     '                    textureLod(uNoise, c + vec3(0.71, 0.43, 0.09), 0.0).g) - 0.6;',
@@ -310,23 +330,75 @@
     'float remap(float v, float a, float b){ return clamp((v - a) / max(b - a, 1e-4), 0.0, 1.0); }',
     // Henyey-Greenstein, scaled so isotropic is 1.
     'float hg(float c, float g){ float g2 = g * g; return (1.0 - g2) / pow(1.0 + g2 - 2.0 * g * c, 1.5); }',
-    'float cloud(vec3 d, float r, vec2 wx, bool detail){',
+    // How cirrus-like a column is: a cold top over thin cover (a veil of ice,
+    // not a deck). 0 with the old look.
+    'float cirrus(vec2 wx){ return uSoft * min(uLk3.x, 1.0) * smoothstep(0.55, 0.8, wx.g) * (1.0 - smoothstep(0.22, 0.5, wx.r)); }',
+    // Extinction per unit density for a column (look: density, veil): thin
+    // satellite cover is a see-through veil, medium and thick cover full;
+    // cirrus thinner still. The rim of each cloud is made translucent per
+    // sample in main(), so the mass of a cloud is kept.
+    'float sigK(vec2 wx){',
+    '  if (uSoft < 0.5) return 1.0;',
+    '  return uLk0.x * mix(uLk0.w, 1.0, smoothstep(0.1, 0.55, wx.r)) * mix(1.0, 0.5, cirrus(wx));',
+    '}',
+    // Cloud types, estimated per column from what the satellites give us -
+    // cover, how cold the top is, and rain (x = low puffy cumulus, y = low
+    // sheet (stratus), z = mid layer, w = storm tower). Cirrus is cirrus().
+    'vec4 ctype(vec2 wx, float wet){',
+    '  if (uTypes < 0.5 || uSoft < 0.5) return vec4(0.0);',
+    '  float lo = 1.0 - smoothstep(0.3, 0.45, wx.g), mid = smoothstep(0.3, 0.45, wx.g) * (1.0 - smoothstep(0.6, 0.75, wx.g));',
+    '  float storm = smoothstep(0.62, 0.8, wx.g) * smoothstep(0.45, 0.7, wx.r) * smoothstep(0.2, 0.45, wet);',
+    '  float sheet = smoothstep(0.45, 0.7, wx.r);',
+    '  return clamp(vec4(lo * (1.0 - sheet), lo * sheet, mid * smoothstep(0.3, 0.5, wx.r), storm) * uLk2.w, 0.0, 1.0);',
+    '}',
+    // q: 2 = full detail (the view march), 1 = base noise, 0 = no noise read
+    // (the noise's mean; the far steps of the light march, where the shape
+    // no longer shows but the 3-D reads cost the most).
+    'float cloud(vec3 d, float r, vec2 wx, float wet, int q){',
     '  float hf = (r - CB) / HH, cov = wx.r;',
     '  if (cov < 0.02 || hf < 0.0 || hf > 1.0) return 0.0;',
+    '  float ci = cirrus(wx);',
+    '  vec4 ty = ctype(wx, wet);',
     // Colder tops stand taller; a thin cold veil stays a veil, a dense bright
     // mass fills from the base to its top.
     '  float topH = mix(0.12, 1.0, wx.g);',
     '  float thick = mix(0.10, topH, cov * cov);',
+    // Types: cirrus is a thin sheet at the top; a mid layer stays a layer;
+    // a storm stands from the base to the top.
+    '  thick = mix(thick, min(thick, 0.12), ci);',
+    '  thick = mix(thick, min(thick, 0.4), ty.z);',
+    '  thick = mix(thick, topH, ty.w);',
     '  float botH = max(topH - thick, 0.0);',
-    '  float prof = smoothstep(botH, botH + 0.07, hf) * (1.0 - smoothstep(mix(botH, topH, 0.5), topH, hf));',
+    // Cumulus and storms have flat bases.
+    '  float bw = mix(mix(0.07, 0.10, uSoft), 0.025, min(ty.x + ty.w, 1.0));',
+    '  float prof = smoothstep(botH, botH + bw, hf) * (1.0 - smoothstep(mix(botH, topH, 0.5), topH, hf));',
+    // Storm: the anvil - denser in the top third, where it spreads out.
+    '  prof *= 1.0 + 0.5 * ty.w * smoothstep(0.6, 0.9, (hf - botH) / max(topH - botH, 1e-3));',
     '  if (prof < 0.01) return 0.0;',
+    '  float nz = 0.55;',
     '  vec3 c = d * 7.0 + vec3(uT * 0.0012, hf * 0.45, uT * 0.0008);',
-    '  float dn = remap(texture(uNoise, c).r * prof, 1.0 - cov, 1.0) * cov;',
+    '  if (q > 0){',
+    '    nz = texture(uNoise, c).r;',
+    // Stratus and mid layers are smoother sheets.
+    '    nz = mix(nz, 0.3 + 0.7 * nz, ty.y * 0.5 + ty.z * 0.25);',
+    // Cumulus: separate puffs - the noise at a finer scale, cut harder.
+    '    if (q > 1 && ty.x > 0.01) nz = mix(nz, smoothstep(0.25, 0.75, texture(uNoise, c * 1.7 + vec3(0.37, 0.0, 0.61)).r), ty.x * 0.5);',
+    // Cirrus: the noise stretched east-west (around the polar axis): streaks.
+    '    if (q > 1 && ci > 0.01) nz = mix(nz, texture(uNoise, vec3(d.x * 3.0, d.y * 34.0, d.z * 3.0) + vec3(uT * 0.002, 0.0, 0.0)).r, ci);',
+    '  }',
+    '  float dn = remap(nz * prof, 1.0 - cov, 1.0) * cov;',
+    // Lumpy tops (look: lump): the height profile raises the noise threshold
+    // instead of scaling the density, so a dense deck rises into rounded
+    // domes rather than ending in a flat plate. No extra texture read.
+    '  if (uSoft > 0.5 && uLk1.x > 0.0) dn = mix(dn, remap(nz, 1.0 - cov * prof, 1.0) * cov, min(uLk1.x, 1.0));',
     // Edges eroded by finer noise; harder, and with a finer octave, the
     // larger a satellite pixel stands on screen (uEro, from the zoom).
-    '  if (detail && dn > 0.0 && dn < 0.7 + 0.25 * (uEro - 1.0)){',
+    '  if (q > 1 && dn > 0.0 && dn < 0.7 + 0.25 * (uEro - 1.0)){',
     '    float det = texture(uNoise, d * 41.0 + vec3(0.0, hf * 1.3, 0.0)).g;',
     '    if (uEro > 1.01) det = mix(det, textureLod(uNoise, d * 131.0 + vec3(hf * 2.1, 0.0, 0.0), 0.0).g, 0.5 * (uEro - 1.0));',
+    // Puffy (inverted, billowing) detail over the upper part of dense cloud
+    // (look: billow), wispy at the bases and in thin or cirrus cloud.
+    '    det = mix(det, 1.0 - det, uSoft * min(uLk1.y, 1.0) * smoothstep(0.2, 0.6, hf) * smoothstep(0.3, 0.7, cov) * (1.0 - ci));',
     '    dn = remap(dn, (1.0 - det) * 0.3 * uEro * (1.0 - 0.4 * hf), 1.0);',
     '  }',
     // Thinned a little over the selected city, so its marker stays readable.
@@ -362,10 +434,13 @@
     '  vec3 S = uSun;',
     '  float cosT = -S.z;',                      // light travels along -S, leaves toward the viewer (+z)
     '  float ph = 0.55 + 0.25 * hg(cosT, 0.7) + 0.2 * hg(cosT, -0.3);',
+    '  float ph2 = 0.6 + 0.4 * hg(cosT, 0.35);',  // the phase of light scattered more than once: flatter
     '  float T = 1.0; vec3 L = vec3(0.0);',
+    '  float s = j * ds;',
     '  for (int i = 0; i < 96; i++){',
-    '    if (i >= N || T < 0.015) break;',
-    '    vec3 p = vec3(q, zT - (float(i) + j) * ds);',
+    '    if (s >= len || T < 0.02) break;',
+    '    vec3 p = vec3(q, zT - s);',
+    '    s += ds;',
     '    float r = length(p);',
     '    vec3 d = V2W * p / r;',
     '    vec2 uv = uvW(d);',
@@ -376,31 +451,52 @@
     '    vec3 skyA = vec3(0.36, 0.52, 0.80) * 0.5 * day;',
     '    if (r >= CB){',
     '      vec2 wx = wxWarp(uv, d);',
-    '      float dn = cloud(d, r, wx, true);',
-    '      if (dn <= 0.001) continue;',
-    '      float hf = (r - CB) / HH;',
+    '      float wetC = textureLod(uRain, uv, 0.0).r * uHasRain;',
+    '      float dn = cloud(d, r, wx, wetC, 2);',
+    // Empty sky above the rain layer: take a double step.
+    '      if (dn <= 0.001){ if (uSoft > 0.5 && wx.r < 0.02 && r - ds > CB) s += ds; continue; }',
+    '      float hf = (r - CB) / HH, sk = sigK(wx);',
+    // Translucent rims (look: rim, rim width): the faint outer band of a
+    // cloud lets light through; its interior keeps full extinction.
+    '      float rk = uSoft > 0.5 ? mix(uLk0.y, 1.0, smoothstep(0.0, max(uLk0.z, 0.01), dn)) : 1.0;',
     '      float sunVis = smoothstep(-0.05, 0.04, mu + hf * 0.05);',
     '      float tl = 0.0;',
+    // Faint samples add little light: a shorter march toward the Sun.
+    '      int ls = uSoft > 0.5 && dn * sk * rk < 0.05 ? min(uLSteps, 3) : uLSteps;',
     '      if (sunVis > 0.0){',
     '        float st = 0.0035; vec3 pp = p;',
     '        for (int k = 0; k < 6; k++){',
-    '          if (k >= uLSteps) break;',
+    '          if (k >= ls) break;',
     '          pp += S * st;',
     '          float rr = length(pp);',
     '          if (rr > CT) break;',
     '          vec3 dd = V2W * pp / rr;',
-    '          tl += cloud(dd, rr, wxAt(uvW(dd)), false) * st;',
+    '          vec2 wl = wxAt(uvW(dd));',
+    // Soft: noise only on the first two steps; beyond them the shadow is
+    // the column's mean shape (no 3-D read) - most of the old light cost.
+    '          tl += cloud(dd, rr, wl, 0.0, uSoft > 0.5 && k >= 2 ? 0 : 1) * sigK(wl) * st;',
     '          st *= 1.8;',
     '        }',
     '      }',
-    '      float od = SIG * tl;',
-    '      float Ts = max(exp(-od), exp(-od * 0.25) * 0.3);',   // a cheap multiple-scattering floor
-    '      float wetC = textureLod(uRain, uv, 0.0).r * uHasRain;',
+    // Self-shadowing (look: shadow): full extinction toward the Sun, so domes
+    // shade each other.
+    '      float od = SIG * tl * (uSoft > 0.5 ? uLk1.z : 1.0);',
+    // Old: a floor under single scattering. Soft: single scattering plus two
+    // weaker, deeper, flatter octaves of multiple scattering (look: glow),
+    // normalised so a sunlit top is as bright as before and only thin cloud
+    // and rims glow.
+    '      float Ts = max(exp(-od), exp(-od * 0.25) * 0.3) * ph;',
+    '      if (uSoft > 0.5) Ts = (exp(-od) * ph + uLk1.w * (0.5 * exp(-od * 0.5) * ph2 + 0.25 * exp(-od * 0.25))) / (1.0 + 0.75 * uLk1.w) * uLk2.z;',
+    // Powder (look): little light comes back out of a wisp, so the fronts
+    // of puffs are brighter than their fringes and the gaps between.
+    '      float pw = uSoft > 0.5 ? mix(1.0, 1.0 - exp(-dn * 12.0), min(uLk2.x, 1.0)) : 1.0;',
+    // Deep in dense cloud the sky is hidden: the ambient term (look) dims.
+    '      float amb = uSoft > 0.5 ? uLk2.y * mix(1.0, 0.6, smoothstep(0.3, 1.0, dn)) : 1.0;',
     '      float alb = mix(1.0, 0.38, smoothstep(0.08, 0.75, wetC) * (1.0 - 0.6 * hf));',   // grey rain cloud, dark storm bases
     '      vec3 glow = vec3(0.0);',
     '      if (uHasLights > 0.5 && day < 0.95) glow = vec3(1.0, 0.62, 0.32) * textureLod(uLights, uv, 4.0).r * 2.2 * (1.0 - hf) * (1.0 - day);',
-    '      vec3 Li = (sunC * Ts * ph * sunVis * 1.55 + skyA * (0.45 + 0.55 * hf) + moonL * (0.6 + 0.4 * hf) + glow) * alb;',
-    '      float Tr = exp(-SIG * dn * ds);',
+    '      vec3 Li = (sunC * Ts * pw * sunVis * 1.55 + (skyA * (0.45 + 0.55 * hf) + moonL * (0.6 + 0.4 * hf)) * amb + glow) * alb;',
+    '      float Tr = exp(-SIG * sk * rk * dn * ds);',
     '      L += T * Li * (1.0 - Tr); T *= Tr;',
     '    } else {',
     '      vec2 rr = textureLod(uRain, uv, 0.0).rg * uHasRain;',
@@ -554,6 +650,26 @@
     mid:  { move: 0.34, still: 0.55, steps: 40, lsteps: 3, acc: 4, dpr: 1.5, stepK: 0.09 },
     flat: null
   };
+  /* The cloud look: every tunable of the soft look in one place (the ?tune=1
+   * panel, tune.js, edits these live; "Copy values" there gives JSON to
+   * paste here). Packed into four vec4 uniforms, uLk0-uLk3. */
+  var LOOK = {
+    density: 1.0,    // extinction scale for the whole cloud
+    rim: 0.35,       // extinction at a cloud's outer rim (1 = as solid as its core)
+    rimWidth: 0.25,  // density band over which the rim becomes solid
+    veil: 0.45,      // extinction of thin satellite cover (veils), vs thick cover
+    lump: 0.6,       // lumpy, domed tops instead of flat plates
+    billow: 0.8,     // puffy (billowing) detail on the upper part of dense cloud
+    shadow: 1.0,     // self-shadowing toward the Sun
+    glow: 0.8,       // multiple scattering: light glowing through thin cloud
+    powder: 0.35,    // darker fringes, brighter fronts of puffs
+    ambient: 1.0,    // sky light
+    sun: 1.0,        // sunlight
+    types: 1.0,      // strength of the estimated cloud types
+    cirrus: 1.0,     // strength of cirrus veils
+    flat: 1.0        // opacity of the flat cloud layer
+  };
+  var LOOK0 = JSON.parse(JSON.stringify(LOOK));
   var ORDER = ['flat', 'mid', 'high', 'ultra'];
   // Texture units, fixed for the life of the context.
   var U_ELEV = 0, U_BIO = 1, U_WXA = 2, U_WXB = 3, U_RAIN = 4, U_LIGHTS = 5, U_MOON = 6, U_NOISE = 7, U_CL = 8, U_DET = 9;
@@ -579,7 +695,7 @@
     this.u = this._uniforms(this.prog, ['uElev', 'uBio', 'uWxA', 'uWxB', 'uRain', 'uLights', 'uRes', 'uCtr', 'uTex', 'uR',
       'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp', 'uSun', 'uMoon', 'uLive', 'uMoonK', 'uWx', 'uFlat', 'uMix',
       'uHasRain', 'uHasLights', 'uRainOn', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand',
-      'uDet', 'uDetBox', 'uHasDet', 'uDetLod']);
+      'uDet', 'uDetBox', 'uHasDet', 'uDetLod', 'uSoft', 'uLk3']);
     gl.useProgram(this.prog);
     [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uDet', U_DET]]
       .forEach(function (s) { gl.uniform1i(this.u[s[0]], s[1]); }, this);
@@ -591,6 +707,13 @@
     // ?crisp=0: the old look, for comparison - no warp, no zoom erosion, no
     // city-detail frame.
     this.crisp = new URLSearchParams(location.search).get('crisp') !== '0';
+    // ?soft=0: the old cloud look (opaque thin cloud, single-scatter light,
+    // hard flat layer), for comparison.
+    this.soft = new URLSearchParams(location.search).get('soft') !== '0';
+    canvas.dataset.soft = this.soft ? '1' : '0';
+    // ?types=0: one kind of cloud at every height, for comparison.
+    this.types = new URLSearchParams(location.search).get('types') !== '0';
+    this.look = Object.assign({}, LOOK);
     this.tier = this._detectTier();
     canvas.dataset.tier = this.tier;
     this._loadTextures();
@@ -883,6 +1006,28 @@
     this.opts.onTier && this.opts.onTier(t);
   };
 
+  /* The look (LOOK), or part of it; null resets to the defaults. */
+  Stage.prototype.setLook = function (o) {
+    this.look = o ? Object.assign({}, this.look, o) : Object.assign({}, LOOK0);
+    this.acc = 0; this.dirty = true;
+    return this.look;
+  };
+  Stage.prototype.lookDefaults = function () { return Object.assign({}, LOOK0); };
+  /* Switches for the comparisons (?soft, ?types) and the tier, live. */
+  Stage.prototype.setSwitch = function (k, v) {
+    if (k === 'soft' || k === 'types') { this[k] = !!v; this.c.dataset[k] = v ? '1' : '0'; }
+    this.acc = 0; this.dirty = true;
+  };
+  /* The Sun direction, overridden for tuning (a world vector, or null). */
+  Stage.prototype.setSunOverride = function (v) { this.sunOv = v; this.acc = 0; this.dirty = true; };
+  Stage.prototype._lookU = function (u) {
+    var L = this.look, gl = this.gl;
+    if (u.uLk0) gl.uniform4f(u.uLk0, L.density, L.rim, L.rimWidth, L.veil);
+    if (u.uLk1) gl.uniform4f(u.uLk1, L.lump, L.billow, L.shadow, L.glow);
+    if (u.uLk2) gl.uniform4f(u.uLk2, L.powder, L.ambient, L.sun, L.types);
+    if (u.uLk3) gl.uniform4f(u.uLk3, L.cirrus, L.flat, 0, 0);
+  };
+
   /* Which weather layers the reader wants: clouds and rain, each on or off. */
   Stage.prototype.setLayers = function (clouds, rain) {
     this.showClouds = !!clouds; this.showRain = !!rain;
@@ -895,7 +1040,7 @@
       this.cprog = this._program(VS, CFS);
       var cu = this.cu = this._uniforms(this.cprog, ['uWxA', 'uWxB', 'uRain', 'uLights', 'uNoise', 'uCtr', 'uJit', 'uR', 'uMix',
         'uFrame', 'uT', 'uHasRain', 'uHasLights', 'uMoonK', 'uThin', 'uW2V', 'uSun', 'uMoon', 'uCity', 'uSteps', 'uLSteps', 'uRainOn',
-        'uWarp', 'uEro', 'uStepK', 'uDet', 'uDetBox', 'uHasDet', 'uDetLod']);
+        'uWarp', 'uEro', 'uStepK', 'uDet', 'uDetBox', 'uHasDet', 'uDetLod', 'uSoft', 'uTypes', 'uLk0', 'uLk1', 'uLk2', 'uLk3']);
       var gl = this.gl;
       [['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uNoise', U_NOISE], ['uDet', U_DET]]
         .forEach(function (s) { gl.uniform1i(cu[s[0]], s[1]); });
@@ -1065,8 +1210,13 @@
     if (!this.dirty && !refine) { this._prev = now; return; }
     this.dirty = false;
     if (moving) { this.acc = 0; this._tStill = now / 1000; }
+    var t0 = performance.now();
     this._draw(moving, now);
     this._drawMarkers();
+    // CPU-side cost of the frame, smoothed (the ?tune=1 panel shows it; the
+    // GPU time is only visible as the frame interval, frameMs).
+    this.cpuMs = (this.cpuMs || 0) * 0.9 + (performance.now() - t0) * 0.1;
+    if (this._prev) this.frameMs = (this.frameMs || 16) * 0.9 + Math.min(now - this._prev, 300) * 0.1;
     // Adapt the tier to the frame times while the volume moves (_adapt).
     if (moving && this._volOn && this._prev && !document.hidden) {
       var dt = now - this._prev;
@@ -1089,7 +1239,7 @@
     var c = this.cam, u = this.u, R = this._radius() * dpr;
     var F = Math.max(w, h) / 2 / Math.tan(50 * DEG);
     var live = this.live && !!this.sky, M = w2v(c);
-    var S = live ? mul(M, this.sky.sun) : [0, 0, 1], Mo = live ? mul(M, this.sky.moon) : [0, 0, 1];
+    var S = live ? mul(M, this.sunOv || this.sky.sun) : [0, 0, 1], Mo = live ? mul(M, this.sky.moon) : [0, 0, 1];
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // premultiplied
     // Stars first; the Moon; the globe (opaque where it covers, glow elsewhere) on top.
@@ -1147,6 +1297,8 @@
     gl.uniform1f(u.uHasRain, this.hasRain ? 1 : 0);
     gl.uniform1f(u.uHasLights, this.hasLights ? 1 : 0);
     gl.uniform1f(u.uRainOn, rainOn ? 1 : 0);
+    gl.uniform1f(u.uSoft, this.soft ? 1 : 0);
+    this._lookU(u);
     this._detUniforms(u, R);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!live || !this.kprog) return;
@@ -1178,6 +1330,9 @@
       gl.uniform1f(cu.uHasLights, this.hasLights ? 1 : 0);
       gl.uniform1i(cu.uSteps, q.steps); gl.uniform1i(cu.uLSteps, q.lsteps);
       gl.uniform1f(cu.uStepK, q.stepK);
+      gl.uniform1f(cu.uSoft, this.soft ? 1 : 0);
+      this._lookU(cu);
+      gl.uniform1f(cu.uTypes, this.types ? 1 : 0);
       // How many buffer pixels one world-field texel spans: past one, its
       // grid starts to show, so the warp comes in and the edges erode
       // harder, up to 1.5x at four pixels a texel (the city close-up).

@@ -662,6 +662,14 @@
     if (stage && window.AtlasSats && CFG.sats) SKY.sat = new AtlasSats($('#sats'), stage, { hit: $('#stage-hit'), tip: $('#tip'), now: now });
     if (stage) skyLayers();
     skyApply();
+    // ?tune=1: the look panel (tune.js), for tuning the clouds and lightning
+    // by eye. Loaded only then, so readers never download it.
+    if (stage && CFG.tuneJs && new URLSearchParams(location.search).get('tune') === '1') {
+      var ts = document.createElement('script');
+      ts.src = CFG.tuneJs;
+      ts.onload = function () { window.AtlasTune && AtlasTune(stage, SKY.bolt, { vec: AtlasSky.vec }); };
+      document.head.appendChild(ts);
+    }
     // The Sun and Moon move a pixel every few minutes; the satellites publish
     // every 30 min (rain), 3 h (cloud) and 5 min (lightning). A hidden tab
     // does none of it.
@@ -819,7 +827,7 @@
       moonK: b.moonLit, rot: (b.gmst - AtlasSky.gmst(CFG.starsEpoch)) * DEG
     });
     SKY.bodies = b;
-    if (SKY.bolt) SKY.bolt.setSun(AtlasSky.vec(b.sun.lon, b.sun.lat));
+    if (SKY.bolt) SKY.bolt.setSun(stage.sunOv || AtlasSky.vec(b.sun.lon, b.sun.lat));
     skyLegend();
   }
 
@@ -931,9 +939,11 @@
     });
   }
 
-  // Lightning lights the cloud it is in: the layer needs to know where cloud is.
+  // Lightning lights the cloud it is in: the layer needs to know where cloud
+  // is, and - to grade how strong each storm is - how cold its top is and
+  // how hard it rains there ({cloud, top, rain}).
   function boltClouds() {
-    if (SKY.bolt) SKY.bolt.setClouds(SKY.wx && SKY.clouds !== false ? function (lon, lat) { return AtlasSky.at(SKY.wx, lon, lat).cloud; } : null);
+    if (SKY.bolt) SKY.bolt.setClouds(SKY.wx && SKY.clouds !== false ? function (lon, lat) { return AtlasSky.at(SKY.wx, lon, lat); } : null);
   }
 
   function ago(t) {
@@ -974,7 +984,7 @@
         'The age shown is the oldest of them' + (flat ? '. This device gets the flat cloud layer.' : '.');
       parts.push('<span data-tt="' + tip + '"><b>Meteosat</b> ' + names.join(', ') + ' \u00b7 ' + ago(oldest) +
         (offs.length ? ' \u00b7 ' + offs.join(', ') + ' off' : '') +
-        (mBolt && now() - bo.t > BOLT_STALE ? ' \u00b7 <b>stale</b>' : '') + (flat ? ' \u00b7 flat' : '') + '</span>');
+        (mBolt && now() - bo.t > BOLT_STALE ? ' \u00b7 <b>stale</b>' : '') + ' \u00b7 ' + stage.tier + '</span>');
       var el = ['clouds ' + ago(wx.ir.t)];
       if (wx.rain) el.push('rain ' + ago(wx.rain.t));
       parts.push('<span data-tt="Outside Meteosat\u2019s view (the Americas, Asia, the Pacific): clouds from the EUMETSAT IR 10.8 \u00b5m world mosaic (every 3 hours, ' +
@@ -984,7 +994,7 @@
     if (!mIr && wx && wx.ir)
       parts.push(line('Clouds', 'EUMETSAT IR 10.8 \u00b5m world cloud mosaic, every 3 hours. Cover and height are read from how cold the cloud tops look; heights are exaggerated about 20\u00d7 so they show at globe scale.' +
         (flat ? ' This device gets the flat cloud layer.' : ''),
-        'EUMETSAT', wx.ir.t, SKY.clouds === false, flat ? ' \u00b7 flat' : ''));
+        'EUMETSAT', wx.ir.t, SKY.clouds === false, ' \u00b7 ' + stage.tier));
     if (!mIr && wx && wx.rain)
       parts.push(line('Rain', 'NASA GPM IMERG half-hourly estimate (early run). Rain is only drawn where there is cloud: it darkens and greys the cloud; heavier rain is darker.',
         'IMERG', wx.rain.t, SKY.rain === false));
