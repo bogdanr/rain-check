@@ -160,6 +160,40 @@ SOURCES: dict[str, Source] = {s.key: s for s in [
         "https://datacatalog.worldbank.org/public-licenses",
         "World Bank country income groups, CC BY 4.0",
     ),
+    # --- the Atlas live sky (display only, never enters the audit) ---------
+    Source(
+        "eumetsat", "EUMETSAT IR 10.8 um world cloud mosaic (EUMETView)",
+        "Free use with attribution (EUMETSAT data policy)", False,
+        "https://www.eumetsat.int/data-policy",
+        "Cloud imagery (c) EUMETSAT",
+        "Fetched by the reader's browser from view.eumetsat.int at view time "
+        "and drawn as the globe's clouds; not stored in data/ or dist/. One "
+        "frozen pair of frames sits in src/fixtures/atlas/ for the browser "
+        "tests only.",
+    ),
+    Source(
+        "gibs_imerg", "NASA GPM IMERG precipitation rate via NASA GIBS",
+        "NASA open data, no restriction; credit requested", False,
+        "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies",
+        "Rain imagery from NASA GPM IMERG, served by NASA Global Imagery "
+        "Browse Services (GIBS)",
+        "Fetched live by the browser, as the clouds are; a frozen frame is "
+        "a test fixture only.",
+    ),
+    Source(
+        "nasa_moon", "NASA SVS CGI Moon Kit (LRO colour map)",
+        "Public domain (NASA)", False,
+        "https://svs.gsfc.nasa.gov/4720",
+        "Moon texture: NASA's Scientific Visualization Studio, CGI Moon Kit",
+        "Downscaled to dist/assets/geo/ as the Moon on the Atlas globe.",
+    ),
+    Source(
+        "black_marble", "NASA Black Marble night lights",
+        "Public domain (NASA)", False,
+        "https://earthobservatory.nasa.gov/features/NightLights",
+        "City lights: NASA Earth Observatory, Black Marble",
+        "Downscaled to dist/assets/geo/ as the night side of the Atlas globe.",
+    ),
 ]}
 
 # Every organisation string appearing in either model registry, mapped to the

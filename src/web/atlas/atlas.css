@@ -228,6 +228,49 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 }
 .huge.neg { color: var(--bad); text-shadow: 0 0 40px rgba(255, 111, 97, .35); }
 
+/* ── Right now: live forecast + the live sky's key ─────── */
+.now-card { width: 312px; padding: 18px 20px 14px; font-size: 13.5px; line-height: 1.45; }
+.now-card .kicker { margin-bottom: 10px; font-size: 10.5px; }
+.now-main { display: flex; align-items: center; gap: 14px; }
+.now-temp { font: 600 44px/1 var(--sans); letter-spacing: -.03em; color: var(--ink-strong); }
+.now-cond { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.now-cond b { color: var(--ink-strong); font-weight: 600; font-size: 15px; }
+.now-cond .mono { font-size: 11px; }
+.now-said { margin: 12px 0 8px; color: var(--ink); text-wrap: pretty; }
+.now-pop { color: var(--ink-strong); }
+.now-meant { display: block; margin-top: 4px; color: var(--muted); }
+.now-meant b { color: var(--ink); font-weight: 600; }
+.now-meant.off b:last-of-type { color: var(--warn); }
+.now-hours { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; height: 34px; margin: 4px 0 16px; }
+.now-hours span { position: relative; display: flex; align-items: flex-end; background: rgba(var(--accent-rgb), .06); border-radius: 2px; }
+.now-hours i { display: block; width: 100%; border-radius: 2px; background: linear-gradient(0deg, rgba(var(--accent-rgb), .55), rgba(var(--accent-rgb), .95)); }
+.now-hours em { position: absolute; top: 100%; left: 0; font: 400 9.5px var(--mono); color: var(--faint); font-style: normal; margin-top: 2px; }
+.now-tom { margin: 0 0 4px; font-size: 12.5px; }
+.now-sat { margin: 0; font-size: 12.5px; color: var(--ink); }
+.now-sat:empty, .now-tom:empty, .now-hours:empty { display: none; }
+.now-card.pending .now-said, .now-card.pending .now-hours, .now-card.pending .now-tom { opacity: .4; }
+.now-card.fail .now-main, .now-card.fail .now-hours, .now-card.fail .now-tom { display: none; }
+.now-card.fail .now-said { color: var(--muted); }
+.now-sky { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--edge); }
+.sky-toggle { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 99px; cursor: pointer;
+  font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  background: transparent; border: 1px solid var(--edge-2); }
+.sky-toggle i { width: 22px; height: 12px; border-radius: 6px; background: var(--faint); position: relative; transition: background .2s; }
+.sky-toggle i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
+.sky-toggle[aria-pressed="true"] { color: var(--ink-strong); border-color: rgba(var(--accent-rgb), .6); }
+.sky-toggle[aria-pressed="true"] i { background: var(--accent); }
+.sky-toggle[aria-pressed="true"] i::after { transform: translateX(10px); }
+.sky-src { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--muted); min-width: 0; }
+.sky-src span { cursor: help; }
+.now-cred { margin: 10px 0 0; font-size: 10px; color: var(--faint); }
+.now-cred a { color: var(--muted); }
+@media (min-width: 861px) {
+  /* Bottom right of the opening screen, clear of the verdict card; it
+     scrolls away with the chapter. */
+  .now-card { position: absolute; right: 2.2vw; bottom: 28px; }
+}
+@media (min-width: 861px) and (max-height: 700px) { .now-card .now-hours, .now-card .now-tom { display: none; } }
+
 /* ── The promise ───────────────────────────────────────── */
 .seg { display: flex; gap: 4px; padding: 4px; background: rgba(0, 0, 0, .3); border: 1px solid var(--edge); border-radius: 12px; }
 .seg button { flex: 1; padding: 8px 4px; border: 0; border-radius: 8px; background: none; color: var(--muted);

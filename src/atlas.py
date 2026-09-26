@@ -28,11 +28,13 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 
 import atlas_data
 import city_report
+from config import API_FORECAST
 from sitebuild import DIST, WEB, Site, ship
 
 ATLAS = WEB / "atlas"
@@ -40,6 +42,22 @@ SITE_NAME = "rain check"
 AUTHOR = {"name": "Bogdan R\u0103dulescu", "url": "https://bogdan.nimblex.net/",
           "id": "https://bogdan.nimblex.net/#person"}
 REPO = "https://github.com/bogdanr/rain-check"
+
+# The live sky's public sources. Each sends Access-Control-Allow-Origin: *, so
+# the reader's browser fetches them directly: no job of ours republishes
+# imagery, and none of it ever enters the audit (sky.js documents the reading).
+EUMETSAT = "https://view.eumetsat.int/geoserver/mumi"
+GIBS = "https://gibs.earthdata.nasa.gov"
+IMERG = "IMERG_Precipitation_Rate_30min"
+WX = {
+    # The layer's own capabilities: small, and its time dimension names the newest frame.
+    "irCaps": f"{EUMETSAT}/worldcloudmap_ir108/ows?service=WMS&request=GetCapabilities&version=1.3.0",
+    "irMap": (f"{EUMETSAT}/wms?service=WMS&version=1.3.0&request=GetMap&layers=mumi:worldcloudmap_ir108"
+              "&styles=&crs=CRS:84&bbox=-180,-90,180,90&format=image/jpeg"),
+    "rainDomain": f"{GIBS}/wmts/epsg4326/best/1.0.0/{IMERG}/default/2km/all/{{range}}.xml",
+    "rainMap": (f"{GIBS}/wms/epsg4326/best/wms.cgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS={IMERG}"
+                "&CRS=EPSG:4326&BBOX=-90,-180,90,180&FORMAT=image/png&TRANSPARENT=true"),
+}
 
 # The prototype's grade words and plain phrases (atlas.js GRADE / SAY), so the
 # pre-rendered card reads exactly as the script will render it.
@@ -283,6 +301,7 @@ def main() -> None:
     og_file = ATLAS / "og.jpg"
     a = {
         "css": site.add_text("assets", "atlas.css", css),
+        "sky": site.add_text("assets", "sky.js", ship(ATLAS / "sky.js")),
         "stage": site.add_text("assets", "stage.js", ship(ATLAS / "stage.js")),
         "app": site.add_text("assets", "atlas.js", ship(ATLAS / "atlas.js")),
         "icon": site.add_text("assets", "favicon.svg", icon),
@@ -290,6 +309,8 @@ def main() -> None:
         "elev": site.add_file("assets/geo", WEB / "geo" / "relief-elev.webp"),
         "biome": site.add_file("assets/geo", WEB / "geo" / "relief-biome.webp"),
         "stars": site.add_bytes("assets", "stars.bin", built["stars"]),
+        "moon": site.add_file("assets/geo", WEB / "geo" / "moon.webp"),
+        "lights": site.add_file("assets/geo", WEB / "geo" / "night-lights.webp"),
         "og": site.add_file("assets", og_file),
     }
     a["og_abs"] = args.origin.rstrip("/") + a["og"]
@@ -302,6 +323,9 @@ def main() -> None:
                       for slug, c in cities.items()}
     data_url = site.add_json("data", "data.json", data)
 
+    # stars.bin holds each star's ground longitude at 00:00 UTC on the data
+    # date (atlas_data.stars); the page turns the sky on from that instant.
+    stars_epoch = int(datetime.fromisoformat(data["as_of"]).replace(tzinfo=timezone.utc).timestamp() * 1000)
     template = (ATLAS / "page.html").read_text()
     first = min(c["hero"]["first"] for c in cities.values())
     urls = [home, home + "cities/"]
@@ -312,12 +336,14 @@ def main() -> None:
         kv, counts, ti = values(data, city)
         kv["_bss"] = counts["bss"].replace("-", "\u2212")
         cfg = {"base": base, "data": data_url, "city": slug,
-               "elev": a["elev"], "biome": a["biome"], "stars": a["stars"]}
+               "elev": a["elev"], "biome": a["biome"], "stars": a["stars"],
+               "moon": a["moon"], "lights": a["lights"], "starsEpoch": stars_epoch,
+               "forecast": API_FORECAST, "wx": WX}
         html = prerender(template, kv, counts, ti)
         for key, val in {
             "{HEAD}": head(kv, url, home, og, data["as_of"], first, is_home),
             "{ICON}": a["icon"], "{DATA}": data_url, "{CSS}": a["css"],
-            "{STAGE_JS}": a["stage"], "{APP_JS}": a["app"], "{PORTRAIT}": a["portrait"],
+            "{SKY_JS}": a["sky"], "{STAGE_JS}": a["stage"], "{APP_JS}": a["app"], "{PORTRAIT}": a["portrait"],
             "{CFG}": json.dumps(cfg, separators=(",", ":")).replace("</", "<\\/"),
             "{BASE}": base, "{N_CITIES}": str(len(cities)), "{AS_OF}": esc(data["as_of"]),
         }.items():

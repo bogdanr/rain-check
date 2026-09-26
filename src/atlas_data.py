@@ -31,6 +31,38 @@ DISPLAY_NAME = {"'s-Hertogenbosch": "Hertogenbosch"}
 
 EVENT = f"day total \u2265 {RAIN_THRESHOLD_MM:g} mm at the gauge"
 
+# Terms only the Atlas needs: the live sky on its globe (src/web/atlas/sky.js).
+# None of this imagery enters the audit, so the report's glossary omits them.
+SKY_GLOSSARY = [
+    dict(
+        id="ir-cloud", term="Infrared cloud image", full="EUMETSAT IR 10.8 \u00b5m",
+        plain="A satellite picture of heat, not light, so it works at night. "
+              "Cloud tops are colder than the ground below them and show up "
+              "brighter. The globe's clouds are the latest such mosaic.",
+        care="Low cloud and fog are nearly as warm as the ground, so they are "
+             "under-shown. Cover is read from contrast in a styled image, not "
+             "from calibrated temperatures.",
+    ),
+    dict(
+        id="cloud-top", term="Cloud-top height (estimated)",
+        plain="How tall the clouds on the globe stand. Colder tops are drawn "
+              "higher, as they are in reality: thunderstorms reach the "
+              "coldest, highest levels.",
+        care="An estimate from brightness, not a measurement, and exaggerated "
+             "about 20\u00d7 - true to scale, even a storm would be thinner "
+             "than a pixel.",
+    ),
+    dict(
+        id="sat-rain", term="Satellite rain estimate", full="NASA GPM IMERG",
+        plain="Where it rained in the latest half hour, estimated by NASA "
+              "from a constellation of satellites. It drives the rain shafts "
+              "and the darker, wet ground on the globe.",
+        care="An estimate, a few hours old, and least reliable beyond about "
+             "60\u00b0 north or south and over snow. It is not the gauge "
+             "rain the audit scores against.",
+    ),
+]
+
 
 def show(name: str) -> str:
     return DISPLAY_NAME.get(name, name)
@@ -332,7 +364,7 @@ def evidence(idx: list[list]) -> dict:
                             "n", "ess", "base_rate", "reliability", "resolution", "gauge_km"],
             "league": league, "methods": methods,
             "glossary": [[e["id"], e["term"], e.get("full", ""), e["plain"], e["care"]]
-                         for e in GLOSSARY]}
+                         for e in GLOSSARY + SKY_GLOSSARY]}
 
 
 # ---------------------------------------------------------------------------

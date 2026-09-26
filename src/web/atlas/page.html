@@ -72,6 +72,26 @@
     <p class="nojs-note">The interactive chapters need JavaScript. Every city has its own page: see the
       <a href="{BASE}cities/">list of all cities</a>.</p>
   </div>
+
+  <!-- Right now: the live forecast for the city, read against its own record,
+       and the key to the live sky on the globe. Filled by atlas.js. -->
+  <aside class="card now-card pending" id="now" aria-labelledby="now-h" aria-live="polite" hidden>
+    <p class="kicker" id="now-h">Right now · <span data-k="name"></span></p>
+    <div class="now-main">
+      <span class="now-temp tnum" id="now-temp">—</span>
+      <span class="now-cond"><b id="now-cond">Loading the forecast…</b><span class="dim mono" id="now-range"></span></span>
+    </div>
+    <p class="now-said" id="now-said"></p>
+    <div class="now-hours" id="now-hours" role="img"></div>
+    <p class="now-tom dim" id="now-tom"></p>
+    <p class="now-sat" id="now-sat"></p>
+    <div class="now-sky">
+      <button type="button" class="sky-toggle" id="sky-toggle" aria-pressed="true"
+              title="Real Sun, Moon, stars and satellite weather on the globe"><i></i>Live sky</button>
+      <p class="sky-src mono" id="sky-src"></p>
+    </div>
+    <p class="now-cred mono">Forecast <a href="https://open-meteo.com/">Open-Meteo</a> · not part of the audit</p>
+  </aside>
 </section>
 
 <!-- 2 ─ The promise -->
@@ -240,7 +260,12 @@
         Rain gauges: NOAA GHCN-Daily and ISD, JMA. Full credits in
         <a href="https://github.com/bogdanr/rain-check/blob/main/NOTICE.md">NOTICE.md</a>.</p>
       <p>Sky: every star to magnitude 7.5 at its real position and colour, from the
-        HYG Database v4.1 (astronexus, CC BY-SA 4.0).</p>
+        HYG Database v4.1 (astronexus, CC BY-SA 4.0), turned to the current sidereal time. The Sun and Moon
+        are computed for now (Astronomical Almanac low-precision formulae).</p>
+      <p>Live weather on the globe: clouds from the <a href="https://view.eumetsat.int/">EUMETSAT</a> IR 10.8 µm
+        world cloud mosaic (© EUMETSAT); rain from NASA GPM IMERG via
+        <a href="https://earthdata.nasa.gov/gibs">NASA GIBS</a>; city lights from NASA Black Marble; the Moon
+        from the NASA LRO / SVS CGI Moon Kit. Cloud heights are exaggerated about 20×. None of it enters the audit.</p>
       <p><a href="{BASE}cities/">All {N_CITIES} cities</a> · <a href="https://github.com/bogdanr/rain-check">Code and data</a>
         · by <a href="https://bogdan.nimblex.net/" rel="author">Bogdan Rădulescu</a> · data as of {AS_OF}</p>
     </footer>
@@ -263,6 +288,7 @@
   </div>
 </dialog>
 <script id="cfg" type="application/json">{CFG}</script>
+<script src="{SKY_JS}"></script>
 <script src="{STAGE_JS}"></script>
 <script src="{APP_JS}"></script>
 </body>

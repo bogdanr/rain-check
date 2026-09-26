@@ -58,6 +58,7 @@
     });
     tips();
     stage = makeStage();
+    skyInit();
     chapters();
     palette();
     evidence();
@@ -111,6 +112,7 @@
     } : null, h.name);
     if (stage) stage.setCity(h, first);
     if (evidence.redraw) evidence.redraw();
+    live(h);
   }
 
   // One plain word per site tier, worst to best: the site's labels stay as
@@ -568,7 +570,8 @@
     var C = D.coverage;
     var st = new AtlasStage($('#stage'), $('#marks'), {
       elev: CFG.elev, biome: CFG.biome, dragTarget: $('#stage-hit'), stars: CFG.stars,
-      onFail: function () { document.body.classList.add('nogl'); },
+      moon: CFG.moon, lights: CFG.lights, onTier: function () { skyLegend(); },
+      onFail: function () { document.body.classList.add('nogl'); skyLegend(); },
       onPick: function (m) { if (m.slug !== S.h.slug) select(m.slug); },
       onHover: globeTip
     });
@@ -600,10 +603,216 @@
       st.cityMarks = D.cities.filter(function (c) { return c[0] !== h.slug; }).map(function (c) {
         return { slug: c[0], lon: c[4], lat: c[3], r: 2.8, cls: 'city t' + D.tiers.indexOf(tierOf(D.tiers, c[5])) };
       }).concat([{ lon: h.lon, lat: h.lat, r: 6, cls: 'here', pulse: true, label: h.name }]);
+      st.setCityDir(AtlasSky.vec(h.lon, h.lat));
       st.go(first ? 'city' : st.current || 'city', !!first);
     };
     addEventListener('resize', function () { if (S.h) st.go(st.current, true); });
     return st;
+  }
+
+  /* ── The live sky: real Sun, Moon, stars and satellite weather ──
+   *
+   * The clock is the reader's, or ?now=<ISO time> (fixed) for review and
+   * tests. The switch is remembered; ?sky=off starts it off. */
+  var NOWQ = new URLSearchParams(location.search).get('now');
+  function now() { return NOWQ ? Date.parse(NOWQ) : Date.now(); }
+  var SKY = { on: true, wx: null, err: null, loading: false, at: 0 };
+  var DEG = Math.PI / 180;
+
+  function skyInit() {
+    var q = new URLSearchParams(location.search).get('sky'), saved = null;
+    try { saved = localStorage.getItem('rc-sky'); } catch (e) { /* private mode */ }
+    SKY.on = q === 'off' ? false : q ? true : saved !== 'off';
+    $('#sky-toggle').addEventListener('click', function () {
+      SKY.on = !SKY.on;
+      try { localStorage.setItem('rc-sky', SKY.on ? 'on' : 'off'); } catch (e) { /* private mode */ }
+      skyApply();
+    });
+    if (stage && stage.tier !== 'flat') AtlasSky.noise3d(function (d, N) { stage.setNoise(d, N); });
+    skyApply();
+    // The Sun and Moon move a pixel every few minutes; the satellites publish
+    // every 30 min (rain) and 3 h (cloud). A hidden tab does neither.
+    if (!NOWQ) setInterval(function () { if (!document.hidden) skyTick(); }, 60000);
+    if (!NOWQ) setInterval(function () { if (!document.hidden && SKY.on) weather(true); }, 30 * 60000);
+  }
+
+  function skyApply() {
+    $('#sky-toggle').setAttribute('aria-pressed', SKY.on);
+    document.body.classList.toggle('sky-off', !SKY.on);
+    if (stage) stage.setLive(SKY.on);
+    if (SKY.on) { skyTick(); weather(false); }
+    skyLegend();
+    if (S.h) overCity(S.h);
+  }
+
+  function skyTick() {
+    if (!stage || !SKY.on) return;
+    var t = now(), b = AtlasSky.bodies(t);
+    stage.setSky({
+      sun: AtlasSky.vec(b.sun.lon, b.sun.lat), moon: AtlasSky.vec(b.moon.lon, b.moon.lat),
+      moonK: b.moonLit, rot: (b.gmst - AtlasSky.gmst(CFG.starsEpoch)) * DEG
+    });
+    SKY.bodies = b;
+    skyLegend();
+  }
+
+  function weather(refresh) {
+    if (SKY.loading || (SKY.wx && !refresh)) return;
+    SKY.loading = true;
+    AtlasSky.weather(CFG.wx, now()).then(function (wx) {
+      SKY.loading = false;
+      if (!wx.ir && !wx.rain) { SKY.err = wx.errors.join('; '); skyLegend(); return; }
+      // A refresh that finds nothing newer keeps what is on screen.
+      if (SKY.wx && SKY.wx.ir && wx.ir && wx.ir.t === SKY.wx.ir.t && (!wx.rain || (SKY.wx.rain && wx.rain.t === SKY.wx.rain.t))) return;
+      SKY.wx = wx; SKY.err = wx.errors.length ? wx.errors.join('; ') : null;
+      if (stage) stage.setWeather(wx);
+      skyLegend();
+      if (S.h) overCity(S.h);
+    });
+  }
+
+  function ago(t) {
+    var m = Math.max(0, Math.round((now() - t) / 60000));
+    return m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago';
+  }
+  function utc(t) { return new Date(t).toISOString().slice(11, 16) + ' UTC'; }
+
+  /* The legend says what is drawn, from where, and how old it is. */
+  function skyLegend() {
+    var box = $('#sky-src'); if (!box) return;
+    var wx = SKY.wx, b = SKY.bodies, parts = [];
+    if (!SKY.on) { box.innerHTML = 'Off. The globe shows the report\u2019s fixed light.'; return; }
+    if (!stage) { box.innerHTML = 'Needs WebGL 2, which this browser does not offer.'; return; }
+    if (wx && wx.ir) parts.push('<span title="EUMETSAT IR 10.8 \u00b5m world cloud mosaic. Cover and height are read from how cold the cloud tops look; heights are exaggerated about 20\u00d7 so they show at globe scale.">' +
+      'Clouds: EUMETSAT infrared \u00b7 ' + utc(wx.ir.t) + ' (' + ago(wx.ir.t) + ')</span>');
+    if (wx && wx.rain) parts.push('<span title="NASA GPM IMERG half-hourly precipitation estimate (early run), from satellite microwave and infrared.">' +
+      'Rain: NASA IMERG \u00b7 ' + utc(wx.rain.t) + ' (' + ago(wx.rain.t) + ')</span>');
+    if (!wx && SKY.loading) parts.push('Loading the latest satellite images\u2026');
+    if (!wx && !SKY.loading && SKY.err) parts.push('Satellite images unavailable right now.');
+    // Cloud frames arrive every 3 h and rain every 30 min; well past that,
+    // the service has stalled and the picture is history, so say so.
+    var old = [wx && wx.ir && now() - wx.ir.t > 9 * 3600000 ? 'clouds' : '',
+               wx && wx.rain && now() - wx.rain.t > 9 * 3600000 ? 'rain' : ''].filter(Boolean);
+    if (old.length) parts.push('<b>Stale:</b> the ' + old.join(' and ') + ' shown ' + (old.length > 1 ? 'are' : 'is') +
+      ' over 9 h old; the satellite service has not published since.');
+    if (b) parts.push('Sun and Moon at ' + utc(now()) + (NOWQ ? ' (fixed)' : '') + ' \u00b7 Moon ' + Math.round(b.moonLit * 100) + '% lit');
+    if (stage.tier === 'flat') parts.push('Flat clouds on this device');
+    box.innerHTML = parts.join('<br>');
+  }
+
+  /* ── Right now in the selected city: the live forecast, read against
+   * the city's own record ─────────────────────────────────────────────
+   *
+   * The audit scored Open-Meteo's best_match forecast as the day's highest
+   * hourly chance of rain, per local calendar day, from the freshest run
+   * (capitals.py fetch_pop). Today's precipitation_probability_max is the
+   * same number, so it is the one looked up in the city's bins. */
+  var WMO = [
+    [[0], 'Clear sky', 'clear'], [[1, 2], 'Mainly clear', 'clear'], [[3], 'Overcast', 'cloud'],
+    [[45, 48], 'Fog', 'fog'], [[51, 53, 55, 56, 57], 'Drizzle', 'rain'],
+    [[61, 63, 65, 66, 67, 80, 81, 82], 'Rain', 'rain'], [[71, 73, 75, 77, 85, 86], 'Snow', 'snow'],
+    [[95, 96, 99], 'Thunderstorm', 'storm']
+  ];
+  function wmo(code) {
+    for (var i = 0; i < WMO.length; i++) if (WMO[i][0].indexOf(code) >= 0) return { label: WMO[i][1], kind: WMO[i][2] };
+    return { label: 'Unknown', kind: 'cloud' };
+  }
+  function binOf(h, p) {
+    if (p == null || !h.bins || !h.bins.length) return null;
+    for (var i = 0; i < h.bins.length; i++) {
+      var b = h.bins[i];
+      if (p >= b.lo - 1e-9 && (p < b.hi - 1e-9 || i === h.bins.length - 1)) return b;
+    }
+    return null;
+  }
+
+  var liveSeq = 0, fcCache = {};
+  function live(h) {
+    var box = $('#now'), seq = ++liveSeq;
+    box.hidden = false;
+    box.classList.add('pending'); box.classList.remove('fail');
+    box.setAttribute('aria-busy', 'true');
+    overCity(h);
+    var url = CFG.forecast + '?latitude=' + h.lat + '&longitude=' + h.lon +
+      '&current=temperature_2m,weather_code,is_day,precipitation' +
+      '&hourly=precipitation_probability' +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
+      '&forecast_days=2&timezone=auto';
+    var hit = fcCache[h.slug];
+    var p = hit && now() - hit.at < 10 * 60000 ? Promise.resolve(hit.j) : fetchT(url, 8000).then(function (r) {
+      if (!r.ok) throw new Error(r.status); return r.json();
+    }).then(function (j) { fcCache[h.slug] = { at: now(), j: j }; return j; });
+    p.then(function (j) {
+      if (seq !== liveSeq) return;                 // a newer city won the race
+      fillNow(h, j);
+    }).catch(function () {
+      if (seq !== liveSeq) return;
+      // The analysis is the product: an outage only says so, quietly.
+      box.classList.remove('pending'); box.classList.add('fail');
+      box.setAttribute('aria-busy', 'false');
+      $('#now-said').innerHTML = 'The live forecast could not be loaded right now. Everything else on this page is the audit, and stands.';
+    });
+  }
+
+  function fetchT(url, ms) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () { ctrl && ctrl.abort(); }, ms);
+    return fetch(url, ctrl ? { signal: ctrl.signal } : undefined).then(function (r) { clearTimeout(timer); return r; },
+      function (e) { clearTimeout(timer); throw e; });
+  }
+
+  function fillNow(h, j) {
+    var box = $('#now'), cur = j.current || {}, day = j.daily || {}, w = wmo(cur.weather_code);
+    var pop = day.precipitation_probability_max ? day.precipitation_probability_max[0] : null;
+    var popT = day.precipitation_probability_max ? day.precipitation_probability_max[1] : null;
+    var hi = day.temperature_2m_max ? day.temperature_2m_max[0] : null, lo = day.temperature_2m_min ? day.temperature_2m_min[0] : null;
+    box.classList.remove('pending'); box.setAttribute('aria-busy', 'false');
+    box.dataset.kind = w.kind + (cur.is_day === 0 ? ' night' : '');
+    $('#now-temp').textContent = cur.temperature_2m == null ? '\u2014' : minus(Math.round(cur.temperature_2m)) + '\u00b0';
+    $('#now-cond').textContent = w.label;
+    var at = /T(\d\d:\d\d)/.exec(cur.time || '');
+    $('#now-range').textContent = (hi != null ? 'H ' + minus(Math.round(hi)) + '\u00b0 \u00b7 L ' + minus(Math.round(lo)) + '\u00b0' : '') +
+      (at ? ' \u00b7 ' + at[1] + ' local' : '');
+    // Every figure is a vendor value or a number from the city's own table.
+    var b = binOf(h, pop == null ? null : pop / 100), said = '';
+    if (pop == null) said = 'No chance of rain was published for today.';
+    else {
+      said = 'Today\u2019s forecast: <b class="now-pop">' + pop + '%</b> chance of rain.';
+      if (b) {
+        var wet = Math.round(b.rained * b.n);
+        said += ' <span class="now-meant' + (b.sig ? ' off' : '') + '">On the <b>' + b.n.toLocaleString('en') + '</b> days it said ' +
+          Math.round(b.lo * 100) + '\u2013' + Math.round(b.hi * 100) + '% in ' + esc(h.name) + ', it rained on <b>' + wet.toLocaleString('en') +
+          '</b> (<b>' + pct(b.rained) + '</b>)' + (b.sig ? (b.rained > b.said ? ': more often than it says.' : ': less often than it says.') : ', in line with what it says.') + '</span>';
+      } else said += ' <span class="dim">No comparable days in ' + esc(h.name) + '\u2019s record.</span>';
+    }
+    $('#now-said').innerHTML = said;
+    $('#now-tom').textContent = popT != null ? 'Tomorrow: ' + popT + '% chance of rain.' : '';
+    ribbon(j);
+  }
+
+  /* The next 12 hours of hourly chance, as small bars. */
+  function ribbon(j) {
+    var box = $('#now-hours'), H = j.hourly || {}, t = H.time || [], p = H.precipitation_probability || [];
+    var nowL = (j.current && j.current.time || '').slice(0, 13), i0 = 0;
+    for (var i = 0; i < t.length; i++) if (t[i].slice(0, 13) >= nowL) { i0 = i; break; }
+    var html = '';
+    for (i = i0; i < Math.min(t.length, i0 + 12); i++) {
+      var v = p[i] == null ? 0 : p[i];
+      html += '<span title="' + t[i].slice(11, 16) + ' \u00b7 ' + v + '%"><i style="height:' + Math.max(2, v) + '%"></i>' +
+        ((i - i0) % 3 === 0 ? '<em>' + t[i].slice(11, 13) + '</em>' : '') + '</span>';
+    }
+    box.innerHTML = html;
+    box.setAttribute('aria-label', 'Chance of rain, next 12 hours: ' + p.slice(i0, i0 + 12).join('%, ') + '%');
+  }
+
+  /* What the satellites show over the city right now, in plain words. */
+  function overCity(h) {
+    var el = $('#now-sat'), wx = SKY.wx;
+    if (!wx || !SKY.on) { el.textContent = ''; return; }
+    var o = AtlasSky.at(wx, h.lon, h.lat), s = [];
+    if (o.cloud != null) s.push(o.cloud > 0.6 ? 'thick cloud' : o.cloud > 0.25 ? 'some cloud' : 'mostly clear skies');
+    if (o.rain) s.push((o.snow ? 'snow' : 'rain') + ' about ' + (o.rain < 1 ? o.rain.toFixed(1) : Math.round(o.rain)) + ' mm/h');
+    el.textContent = s.length ? 'Satellites over ' + h.name + ' now: ' + s.join(', ') + '.' : '';
   }
 
   function chapters() {
