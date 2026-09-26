@@ -29,6 +29,14 @@ data/raw/*
 # not permit redistribution. The assessment records DOIs so anyone can refetch.
 literature/
 
+# Working research notes: strategy, assessments, session state. Kept on disk
+# as the local research log, not published with the code.
+plans/
+
+# Manuscript drafts. Kept out of the public repo until the preprint is posted,
+# so the papers are not disclosed before submission.
+paper/
+
 # Editor leftovers. Vim writes both alongside the file being edited, so without
 # these they show up as untracked siblings of real source and get swept into a
 # "git add src/" by accident.

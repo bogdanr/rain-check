@@ -21,8 +21,7 @@ and every claim is reported with the interval that says how far to trust it.
 <a href="#what-it-found">Findings</a> ·
 <a href="#how-it-works">Method</a> ·
 <a href="#reproduce-it">Reproduce</a> ·
-<a href="NOTICE.md">Data &amp; licences</a> ·
-<a href="plans/">Research notes</a>
+<a href="NOTICE.md">Data &amp; licences</a>
 
 <a href="https://bogdan.nimblex.net/rain-check/">
 <picture>
@@ -113,7 +112,6 @@ Network responses are cached under `data/cache/`, so a warm run makes no network
 | `figures/` | Committed static figures |
 | `dist/` | The built site, as deployed |
 | `design/` | Design prototypes and screenshot tooling for the site redesign |
-| `plans/` | Research log: strategy, prior-art and grey-literature assessments, session state |
 
 ## Data and licences
 
