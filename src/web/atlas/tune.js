@@ -1,4 +1,4 @@
-/* The look panel (?tune=1): sliders over the cloud and lightning look, for
+/* The look panel (?tune=1): sliders over the cloud, lightning and wave look, for
  * tuning by eye on a real screen and GPU. Never loaded for readers - atlas.js
  * adds this script only when the address asks for it.
  *
@@ -41,6 +41,17 @@
     ['contrast', 'Storm contrast'],
     ['spread', 'Flash strength spread']
   ];
+  var WAVE = [
+    ['Waves'],
+    ['long', 'Long sea, px'],
+    ['chop', 'Chop, px'],
+    ['speed', 'Crest speed'],
+    ['steep', 'Steepness'],
+    ['sky', 'Sky light in faces'],
+    ['sparkle', 'Sun sparkle'],
+    ['foam', 'Crest foam']
+  ];
+  var ARROWS = 'rc-wind-arrows';
 
   function el(tag, attrs, text) {
     var e = document.createElement(tag);
@@ -57,10 +68,22 @@
   }
 
   global.AtlasTune = function (stage, bolts, util) {
-    var saved = load(), state = { clouds: saved.clouds || {}, bolts: saved.bolts || {} };
+    var saved = load(), state = { clouds: saved.clouds || {}, bolts: saved.bolts || {}, waves: saved.waves || {} };
     var dC = stage.lookDefaults(), dB = bolts ? bolts.lookDefaults() : {};
     stage.setLook(state.clouds);
     if (bolts) bolts.setLook(state.bolts);
+    // The waves live in stage.wave / stage.setWave; this gives the slider
+    // builder the same look / setLook shape as the clouds and lightning.
+    var waves = stage.setWave ? {
+      get look() { return stage.wave; },
+      setLook: function (o) { stage.setWave(o); }
+    } : null;
+    var dW = waves ? stage.waveDefaults() : {};
+    // Only the keys that still have a slider: older saved values for
+    // removed sliders would otherwise apply with no way to see or undo them.
+    var wkeys = WAVE.filter(function (d) { return d.length > 1; }).map(function (d) { return d[0]; });
+    for (var wk in state.waves) if (wkeys.indexOf(wk) < 0) delete state.waves[wk];
+    if (waves) stage.setWave(state.waves);
 
     var css = el('style', {}, [
       '#tune{position:fixed;left:10px;bottom:10px;z-index:9999;width:260px;max-height:calc(100vh - 20px);overflow:auto;',
@@ -150,19 +173,37 @@
       return inputs;
     }
     var ic = sliders(CLOUD, stage, dC, 'clouds'), ib = bolts ? sliders(BOLT, bolts, dB, 'bolts') : {};
+    var iw = waves ? sliders(WAVE, waves, dW, 'waves') : {};
+
+    // Debug arrows: the grid's own wind, one arrow per point. Kept in
+    // localStorage so it also holds when Wind is switched on later.
+    if (waves) {
+      var ar = el('label', { style: 'display:flex;gap:3px', title: 'One arrow per grid point, to check the data' }),
+        acb = el('input', { type: 'checkbox', id: 'tune-arrows' });
+      try { acb.checked = localStorage.getItem(ARROWS) === 'on'; } catch (e) { /* private mode */ }
+      acb.onchange = function () {
+        try { if (acb.checked) localStorage.setItem(ARROWS, 'on'); else localStorage.removeItem(ARROWS); } catch (e) { /* private mode */ }
+        var w = util.wind && util.wind();
+        if (w) w.setDebug(acb.checked);
+      };
+      ar.appendChild(acb); ar.appendChild(document.createTextNode('wind arrows (debug)'));
+      box.appendChild(ar);
+      var w0 = util.wind && util.wind();
+      if (w0 && acb.checked) w0.setDebug(true);
+    }
 
     var btns = el('div', { 'class': 'row', style: 'margin-top:8px' });
     var copy = el('button', { type: 'button' }, 'Copy values'), reset = el('button', { type: 'button' }, 'Reset');
     copy.onclick = function () {
-      var txt = JSON.stringify({ clouds: stage.look, bolts: bolts ? bolts.look : {}, changed: state, tier: stage.tier });
+      var txt = JSON.stringify({ clouds: stage.look, bolts: bolts ? bolts.look : {}, waves: waves ? stage.wave : {}, changed: state, tier: stage.tier });
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
         function () { copy.textContent = 'Copied'; setTimeout(function () { copy.textContent = 'Copy values'; }, 1200); },
         function () { global.prompt('Look values', txt); });
     };
     reset.onclick = function () {
-      state = { clouds: {}, bolts: {} }; save(state);
-      stage.setLook(null); if (bolts) bolts.setLook(null);
-      [[ic, dC], [ib, dB]].forEach(function (p) {
+      state = { clouds: {}, bolts: {}, waves: {} }; save(state);
+      stage.setLook(null); if (bolts) bolts.setLook(null); if (waves) stage.setWave(null);
+      [[ic, dC], [ib, dB], [iw, dW]].forEach(function (p) {
         for (var k in p[0]) { p[0][k][0].value = p[1][k]; p[0][k][1].textContent = p[0][k][2](p[1][k]); }
       });
     };

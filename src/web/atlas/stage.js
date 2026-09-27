@@ -67,6 +67,21 @@
     '}'
   ].join('\n');
 
+  /* The 10 m wind (wind.js, setWind): the model grid as an RG16F texture,
+   * u east and v north in m/s, interpolated to the page clock. Columns wrap
+   * round the date line; rows clamp past the outermost (75 degrees). */
+  var WIND = [
+    'uniform sampler2D uWind;',
+    'uniform vec4 uWG;',                        // lon0, dlon, lat0, dlat (degrees)
+    'uniform vec2 uWN;',                        // columns, rows
+    'uniform float uWindOn;',
+    'uniform vec3 uWvG;',                       // WAVE: glint, caps, wind (FS)
+    'vec2 windAt(vec2 uv){',
+    '  float lo = (uv.x - 0.5) * 360.0, la = (0.5 - uv.y) * 180.0;',
+    '  return texture(uWind, vec2(((lo - uWG.x) / uWG.y + 0.5) / uWN.x, ((la - uWG.z) / uWG.w + 0.5) / uWN.y)).rg;',
+    '}'
+  ].join('\n');
+
   var VS = '#version 300 es\n' +
     'in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
 
@@ -91,6 +106,7 @@
     'uniform float uLive, uMoonK, uWx, uFlat, uMix, uHasRain, uHasLights, uRainOn, uSoft;',
     'uniform vec4 uLk3;',                       // the look: y = flat-layer opacity
     DET,
+    WIND,
     'out vec4 o;',
     'const float PI = 3.14159265;',
     'float metres(float c){',
@@ -221,7 +237,24 @@
     '      col *= (uLight.z + 0.25 * (hill - 1.0)) * (sunBase + uLight.w * sph * 0.7);',
     // Sun glint: a tight core and a wide sheen, both from the real Sun.
     '      float gl = max(dot(n, hv), 0.0);',
-    '      col += (pow(gl, 32.0) * 0.35 + pow(gl, 400.0) * uLive * 0.9) * day * (1.0 - here * 0.8) * vec3(1.0, 0.95, 0.85);',
+    '      float core = pow(gl, 400.0), sheen = pow(gl, 32.0) * 0.35;',
+    // With the wind on, the wind shapes the sea as it does seen from orbit.
+    // Cox & Munk (1954): the variance of the sea's slopes grows with the
+    // wind, 0.003 + 0.00512 U, so a calm sea is a small bright mirror of the
+    // Sun and a gale a broad dull sheen (the fixed core above is a slope
+    // variance of about 0.005, a light breeze). Monahan & O Muircheartaigh
+    // (1980): the whitecap fraction is 3.84e-6 U^3.41 - under 1 % at 10 m/s,
+    // about 10 % at 20 - drawn 2.5 times over so storm belts read at globe
+    // scale.
+    '      if (uWindOn > 0.5){',
+    '        float U = length(windAt(uv)) * uWvG.z, s2 = 0.003 + 0.00512 * U * uWvG.x;',
+    '        float c2 = gl * gl, t2 = (1.0 - c2) / max(c2, 1e-4);',
+    '        core = exp(-t2 / s2) * pow(0.005 / s2, 0.7);',
+    '        sheen *= 0.7 + 0.3 * smoothstep(2.0, 12.0, U);',
+    '        float wc = min(0.25, 2.5 * uWvG.y * 3.84e-6 * pow(U, 3.41)) * (1.0 - step(0.02, bio.g) * bio.g);',
+    '        col = mix(col, vec3(0.78, 0.82, 0.86) * (sunBase + uLight.w * sph), wc);',
+    '      }',
+    '      col += (sheen + core * uLive * 0.9) * day * (1.0 - here * 0.8) * vec3(1.0, 0.95, 0.85);',
     '      col += cShore * pow(bio.b, 14.0) * 0.45;',
     '    }',
     '  }',
@@ -525,6 +558,10 @@
     'uniform vec3 cGround;',
     'uniform vec3 uSunS;',                      // sun px (GL y-up), visible flag
     'uniform vec3 uGlobe;',                     // globe centre px, radius px
+    // Lightning (bolts.js, setFlashes): up to 16 flashes, device px (GL y-up).
+    // uFl = x, y, reach, strength; uFl2 = cloud cover there, 0, 0, 0.
+    'uniform vec4 uFl[16], uFl2[16];',
+    'uniform int uFlN;',
     'out vec4 o;',
     'vec3 aces(vec3 x){ return clamp(x * (2.51 * x + 0.03) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }',
     'void main(){',
@@ -538,9 +575,218 @@
     '    float vis = smoothstep(uGlobe.z * 0.99, uGlobe.z * 1.03, length(uSunS.xy - uGlobe.xy));',
     '    add = vec3(1.0, 0.94, 0.84) * (smoothstep(7.0, 5.0, d) + exp(-d / 30.0) * 0.45 + exp(-d / 150.0) * 0.12) * vis * (1.0 - uDim * 0.7);',
     '  }',
+    // A flash lights what is there: the cloud drawn at this pixel (its
+    // opacity, so the light takes the shape of the real puffs), and - where
+    // the cloud is thin or open - faintly the ground under it. Falls off
+    // with the square of the distance from the channel, smoothly to nothing
+    // at its reach; nothing over empty space.
+    '  if (uFlN > 0){',
+    '    float ca = c.a * uFade, inG = 1.0 - smoothstep(uGlobe.z * 0.995, uGlobe.z * 1.005, length(gl_FragCoord.xy - uGlobe.xy));',
+    '    vec3 fc = vec3(0.0); float fg = 0.0;',
+    '    for (int i = 0; i < 16; i++){',
+    '      if (i >= uFlN) break;',
+    '      vec2 d = gl_FragCoord.xy - uFl[i].xy;',
+    '      float rr = uFl[i].z, q = dot(d, d) / (rr * rr);',
+    '      if (q >= 1.0) continue;',
+    '      float g = uFl[i].w / (1.0 + q * 16.0) * (1.0 - q) * (1.0 - q);',
+    '      fc += vec3(g); fg += g * (1.0 - uFl2[i].x * 0.7);',
+    '    }',
+    '    float lc = 1.0 - exp(-fc.x * 1.4);',
+    // Bluish where it is faint (scattered through the cloud), whiter where bright.
+    '    vec3 tint = mix(vec3(0.62, 0.72, 1.0), vec3(0.95, 0.97, 1.0), smoothstep(0.3, 0.9, lc));',
+    '    add += tint * lc * ca * (0.35 + 0.65 * ca);',
+    '    add += vec3(0.62, 0.7, 0.9) * (1.0 - exp(-fg)) * 0.22 * (1.0 - ca) * inG;',
+    '  }',
     '  o = vec4(col * a + add, a);',
     '}'
   ].join('\n');
+
+  /* A stored frame copied back as it is (premultiplied, pixel for pixel):
+   * the still globe under a lightning frame (_draw, fb.base). */
+  var BFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'uniform sampler2D uB;',
+    'out vec4 o;',
+    'void main(){ o = texelFetch(uB, ivec2(gl_FragCoord.xy), 0); }'
+  ].join('\n');
+
+  /* Wind waves on the open sea (setWind), drawn over the stored still globe
+   * (fb.base) and under the cloud composite, so the animation never makes
+   * the terrain re-shade or the clouds re-march.
+   *
+   * A wave is far smaller than a pixel at globe scale, so the crests are
+   * drawn at a fixed screen size (WAVE_PX) - exaggerated, and the legend
+   * says by how much. The pattern is a tile of a directional sea built once
+   * (waveTile), laid along the local wind. The wind turns across the ocean,
+   * and a pattern rotated per pixel would shear; instead the direction is
+   * quantized into 12 fixed orientations and each pixel blends the two
+   * nearest, each of which is seamless on its own (directional flow, as in
+   * Vlachos 2010). Wavelength is fixed for the same reason; the wind speed
+   * sets how steep the sea is, how much long sea there is under the chop,
+   * and how many crests break white (from ~7 m/s, Beaufort 4). Two layers
+   * scroll downwind at deep-water speeds (shorter waves cover more
+   * wavelengths a second), so the pattern moves and changes. Out: light to
+   * add, and in alpha how much of the flat sea to take away. */
+  /* The wave look: every tunable of the wind on the sea (the ?tune=1 panel
+   * edits these live, stage.setWave). */
+  var WAVE = {
+    long: 18,        // long sea, crest to crest, CSS px
+    chop: 8,         // chop, crest to crest, CSS px
+    speed: 1.0,      // how fast the crests run
+    steep: 0.3,      // wave slopes (tuned by eye, 2026-09-27)
+    sky: 1.0,        // sky light in the faces (what draws the crests)
+    sparkle: 1.0,    // sun sparkle on the crests
+    foam: 1.0,       // whitecaps on the crests
+    glint: 1.0,      // how much the wind spreads the Sun's glint (Cox-Munk)
+    caps: 1.0,       // whitecap brightening of the whole sea (Monahan)
+    wind: 1.0,       // wind speed multiplier, to preview calm or gale
+    fps: 24          // wave frames a second
+  };
+  var WAVE0 = JSON.parse(JSON.stringify(WAVE));
+  // The real sea the crests are compared with: the peak wavelength of a
+  // fully developed sea at 10 m/s (Pierson-Moskowitz, w_p = 0.855 g / U,
+  // L = 2 pi g / w_p^2), about 88 m.
+  var REAL_SEA_M = 2 * Math.PI * 10 * 10 / (0.855 * 0.855 * 9.81);
+  Stage.REAL_SEA_M = REAL_SEA_M;
+  var WFS = [
+    '#version 300 es',
+    'precision highp float;',
+    'uniform sampler2D uElev, uBio, uWxA, uWxB, uWave;',
+    'uniform vec2 uCtr;',
+    'uniform float uR, uLon0, uLat0, uT, uFade, uMix, uWx, uFlat, uMoonK;',
+    'uniform vec2 uLam;',                        // the two wavelengths, globe radii
+    'uniform vec4 uWv0, uWv1;',                  // WAVE: steep, sky, sparkle, foam; speed, wind
+    'uniform vec3 uSun, uMoon;',
+    WIND,
+    'out vec4 o;',
+    'const float PI = 3.14159265;',
+    'float metres(float c){',
+    '  c *= 255.0;',
+    '  if (c > 128.0){ float t = (c - 128.0) / 127.0; return t * t * 8500.0; }',
+    '  float d = (128.0 - c) / 127.0; return -pow(d, 1.0 / 0.65) * 9000.0;',
+    '}',
+    'vec2 uvOf(vec3 n, out float lat){',
+    '  float sl = sin(uLat0), cl = cos(uLat0);',
+    '  lat = asin(clamp(n.y * cl + n.z * sl, -1.0, 1.0));',
+    '  float lon = uLon0 + atan(n.x, n.z * cl - n.y * sl);',
+    '  return vec2(fract(lon / (2.0 * PI) + 0.5), 0.5 - lat / PI);',
+    '}',
+    'float cover(vec2 uv, float lod){ return mix(textureLod(uWxA, uv, lod).r, textureLod(uWxB, uv, lod).r, uMix); }',
+    // One orientation: height and screen-plane slope of both layers.
+    'vec3 sea(vec2 q, float ang, float kL, float kC){',
+    '  vec2 D = vec2(cos(ang), sin(ang)), P = vec2(-D.y, D.x);',
+    '  float a = dot(q, D), b = dot(q, P);',
+    // Tile: 6 wavelengths along, crests across. Phase speed per wavelength
+    // goes as 1/sqrt(wavelength): chop moves ~1.5x as many crests a second.
+    // Explicit gradients: the two orientations switch between neighbouring
+    // pixels, and the hardware's own derivatives would pick a wrong mip there.
+    '  float gL = 1.0 / (6.0 * uLam.x * uR), gC = 1.0 / (6.0 * uLam.y * uR);',
+    '  vec4 L = textureGrad(uWave, vec2(a / uLam.x - uT * 0.42 * uWv1.x, b / uLam.x) / 6.0, vec2(D.x, P.x) * gL, vec2(D.y, P.y) * gL);',
+    '  float c2 = cos(0.42), s2 = sin(0.42);',
+    '  vec2 Dc = D * c2 + P * s2, Pc = vec2(-Dc.y, Dc.x);',
+    '  vec4 C = textureGrad(uWave, vec2(dot(q, Dc) / uLam.y - uT * 0.64 * uWv1.x, dot(q, Pc) / uLam.y) / 6.0 + vec2(0.37, 0.61),',
+    '                       vec2(Dc.x, Pc.x) * gC, vec2(Dc.y, Pc.y) * gC);',
+    '  float h = (L.r * 2.0 - 1.0) * kL + (C.r * 2.0 - 1.0) * kC * 0.6;',
+    '  vec2 g = ((L.g * 2.0 - 1.0) * D + (L.b * 2.0 - 1.0) * P) * kL + ((C.g * 2.0 - 1.0) * Dc + (C.b * 2.0 - 1.0) * Pc) * kC;',
+    '  return vec3(h, g);',
+    '}',
+    'void main(){',
+    '  vec2 q = (gl_FragCoord.xy - uCtr) / uR;',
+    '  float rho2 = dot(q, q);',
+    '  o = vec4(0.0);',
+    '  if (rho2 >= 1.0) return;',
+    '  vec3 n = vec3(q, sqrt(1.0 - rho2));',
+    '  float lat; vec2 uv = uvOf(n, lat);',
+    '  float h = metres(textureLod(uElev, uv, 0.0).r);',
+    '  if (h >= 0.0) return;',
+    // Open water only: faded off the coast, sea ice and the limb.
+    '  float m = smoothstep(0.0, -40.0, metres(textureLod(uElev, uv, 1.5).r)) * smoothstep(0.06, 0.28, n.z);',
+    '  m *= 1.0 - smoothstep(0.02, 0.2, textureLod(uBio, uv, 0.0).g);',
+    '  vec2 w = windAt(uv) * uWv1.y; float U = length(w);',
+    '  m *= smoothstep(0.3, 1.5, U) * uFade;',
+    '  if (m <= 0.002) return;',
+    // Downwind on the screen: the east/north tangents in view space.
+    '  vec3 pole = vec3(0.0, cos(uLat0), sin(uLat0));',
+    '  vec3 E = normalize(cross(pole, n) + vec3(1e-6, 0.0, 0.0)), N = cross(n, E);',
+    '  vec2 d = (w.x * E + w.y * N).xy;',
+    '  float ang = atan(d.y, d.x) / (2.0 * PI) * 12.0;',
+    '  float i0 = floor(ang), f = smoothstep(0.0, 1.0, ang - i0);',
+    '  float kL = 0.15 + 0.85 * smoothstep(3.0, 15.0, U), kC = 0.35 + 0.4 * smoothstep(0.5, 7.0, U) - 0.25 * smoothstep(8.0, 18.0, U);',
+    '  vec3 s = mix(sea(q, i0 * PI / 6.0, kL, kC), sea(q, (i0 + 1.0) * PI / 6.0, kL, kC), f);',
+    '  float steep = (0.22 + 0.5 * smoothstep(2.0, 16.0, U)) * uWv0.x;',
+    // The screen-plane slope lifted onto the sphere's tangent plane.
+    '  vec2 g = s.yz * steep;',
+    '  vec3 G = vec3(g, -dot(g, n.xy) / max(n.z, 0.1));',
+    '  vec3 nw = normalize(n - G);',
+    '  vec3 S = uSun, hv = normalize(S + vec3(0.0, 0.0, 1.0));',
+    '  float mu = dot(n, S), day = smoothstep(-0.12, 0.10, mu);',
+    '  vec3 dusk = mix(vec3(1.0, 0.52, 0.30), vec3(1.0), smoothstep(0.0, 0.28, mu));',
+    // Clouds: the flat layer lies over the sea in the base; their shadows too.
+    '  float att = 1.0;',
+    '  if (uWx > 0.5){',
+    '    float la2; float sc = cover(uvOf(normalize(n + S * (0.026 / max(mu, 0.2))), la2), 2.5);',
+    '    att = (1.0 - 0.85 * cover(uv, 1.0) * uFlat) * (1.0 - 0.55 * sc * day);',
+    '  }',
+    // Sunlit and shaded faces, and the glint broken into sparkle: light
+    // added where a facet turns toward the Sun, taken away where it turns off.
+    '  float dl = dot(nw, S) - dot(n, S);',
+    '  float sp = pow(max(dot(nw, hv), 0.0), 90.0), sp0 = pow(max(dot(n, hv), 0.0), 90.0);',
+    // Sky in the faces: a face tipped away from the eye mirrors more of the
+    // bright sky (Fresnel), one facing it shows the dark water - this is
+    // what draws the crests outside the glint.
+    '  float fr = (n.z - nw.z) * 6.0 + dot(nw.xy - n.xy, normalize(n.xy + 1e-4)) * 1.5;',
+    '  vec3 add = vec3(0.16, 0.22, 0.28) * dusk * max(dl, 0.0) * day * 1.4 + vec3(1.0, 0.95, 0.85) * dusk * min(max(sp - sp0, 0.0) * 0.45, 0.35) * uWv0.z * day;',
+    '  add += vec3(0.30, 0.40, 0.52) * dusk * clamp(fr, 0.0, 1.0) * 0.55 * uWv0.y * day;',
+    '  float dark = (max(-dl, 0.0) * 0.55 + max(sp0 - sp, 0.0) * 0.3 * uWv0.z + clamp(-fr, 0.0, 1.0) * 0.3 * uWv0.y) * day;',
+    '  vec3 hm = normalize(uMoon + vec3(0.0, 0.0, 1.0));',
+    '  add += vec3(0.5, 0.6, 0.85) * uMoonK * pow(max(dot(nw, hm), 0.0), 90.0) * 0.5 * (1.0 - day) * step(0.0, dot(n, uMoon));',
+    // Whitecaps: the steepest crests break, more of them the harder it blows.
+    '  float wc = smoothstep(6.0, 18.0, U), foam = smoothstep(0.58 - 0.18 * wc, 0.95, s.x / (kL + 0.6 * kC)) * wc;',
+    '  float lit = mix(0.03 + 0.2 * uMoonK * max(dot(n, uMoon), 0.0), 0.35 + 0.65 * max(mu, 0.0), day);',
+    '  float fa = min(foam * 0.55 * uWv0.w, 0.9);',
+    '  add = add * (1.0 - fa) + vec3(0.86, 0.9, 0.94) * mix(vec3(1.0), dusk, day) * lit * fa;',
+    '  float a = clamp(dark * (1.0 - fa) + fa, 0.0, 0.9);',
+    '  float k = m * att;',
+    '  o = vec4(add * k, a * k);',
+    '}'
+  ].join('\n');
+
+  /* The wave tile: a directional sea with 6 crests along x, seamless both
+   * ways (whole wavenumbers only), from a narrow spectrum around the peak
+   * with a cos^4 spread, random phases (seeded: the same sea every load).
+   * RGBA8: height, slope along, slope across (all to -1..1), unused. */
+  function waveTile(N) {
+    var comps = [], seed = 7;
+    function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+    for (var kx = 2; kx <= 11; kx++) for (var ky = -5; ky <= 5; ky++) {
+      var k = Math.sqrt(kx * kx + ky * ky), th = Math.atan2(ky, kx);
+      var a = Math.exp(-Math.pow((k - 6) / 1.8, 2)) * Math.pow(Math.cos(th), 4) / k;
+      if (a > 0.004) comps.push([kx, ky, a, rnd() * 6.2832]);
+    }
+    var n = N * N, H = new Float32Array(n), X = new Float32Array(n), Y = new Float32Array(n), mh = 0, ms = 0;
+    for (var c = 0; c < comps.length; c++) {
+      var C = comps[c], fx = 6.2832 * C[0] / N, fy = 6.2832 * C[1] / N;
+      for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+        var ph = fx * x + fy * y + C[3], i = y * N + x;
+        // Trochoidal crests: a little of the second harmonic sharpens
+        // crests and flattens troughs, as in a real sea.
+        var sn = Math.sin(ph), cs = Math.cos(ph);
+        H[i] += C[2] * (sn - 0.18 * Math.cos(2 * ph));
+        var dd = C[2] * (cs + 0.36 * Math.sin(2 * ph));
+        X[i] += dd * C[0]; Y[i] += dd * C[1];
+      }
+    }
+    for (var j = 0; j < n; j++) { mh = Math.max(mh, Math.abs(H[j])); ms = Math.max(ms, Math.abs(X[j]), Math.abs(Y[j])); }
+    var out = new Uint8Array(n * 4);
+    for (j = 0; j < n; j++) {
+      out[j * 4] = Math.round(127.5 + 127.5 * H[j] / mh);
+      out[j * 4 + 1] = Math.round(127.5 + 127.5 * X[j] / ms);
+      out[j * 4 + 2] = Math.round(127.5 + 127.5 * Y[j] / ms);
+      out[j * 4 + 3] = 255;
+    }
+    return out;
+  }
 
   /* The Moon: a lit sphere with NASA's LRO colour map, drawn as one point
    * sprite at its real direction and in its real phase. Its disc is drawn
@@ -672,15 +918,17 @@
   var LOOK0 = JSON.parse(JSON.stringify(LOOK));
   var ORDER = ['flat', 'mid', 'high', 'ultra'];
   // Texture units, fixed for the life of the context.
-  var U_ELEV = 0, U_BIO = 1, U_WXA = 2, U_WXB = 3, U_RAIN = 4, U_LIGHTS = 5, U_MOON = 6, U_NOISE = 7, U_CL = 8, U_DET = 9;
+  var U_ELEV = 0, U_BIO = 1, U_WXA = 2, U_WXB = 3, U_RAIN = 4, U_LIGHTS = 5, U_MOON = 6, U_NOISE = 7, U_CL = 8, U_DET = 9, U_WIND = 10, U_WAVE = 11;
 
-  function Stage(canvas, svg, opts) {
-    this.c = canvas; this.svg = svg; this.opts = opts;
+  function Stage(canvas, marks, opts) {
+    this.c = canvas; this.mc = marks; this.opts = opts;
     this.cam = { lon: 26, lat: 30, k: 0.4, cx: 0.68, cy: 0.52, dim: 0 };
     this.from = null; this.to = null; this.t0 = 0; this.dur = 900;
     this.spin = 0; this.dirty = true; this.markers = [];
     this.live = false; this.sky = null; this.wx = null; this.mix = 1; this.mixT0 = 0;
     this.acc = 0; this.fb = {}; this._lastMove = 0; this._dts = [];
+    this._reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.wave = Object.assign({}, WAVE);
     var gl = this.gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true });
     if (!gl) { this.failed = true; return; }
     this.prog = this._program(VS, FS);
@@ -695,9 +943,9 @@
     this.u = this._uniforms(this.prog, ['uElev', 'uBio', 'uWxA', 'uWxB', 'uRain', 'uLights', 'uRes', 'uCtr', 'uTex', 'uR',
       'uLon0', 'uLat0', 'uDim', 'uHasTex', 'uLight', 'uDisp', 'uSun', 'uMoon', 'uLive', 'uMoonK', 'uWx', 'uFlat', 'uMix',
       'uHasRain', 'uHasLights', 'uRainOn', 'cAbyss', 'cShelf', 'cForest', 'cDesert', 'cRock', 'cIce', 'cShore', 'cAtmo', 'cGround', 'cLand',
-      'uDet', 'uDetBox', 'uHasDet', 'uDetLod', 'uSoft', 'uLk3']);
+      'uDet', 'uDetBox', 'uHasDet', 'uDetLod', 'uSoft', 'uLk3', 'uWind', 'uWG', 'uWN', 'uWindOn', 'uWvG']);
     gl.useProgram(this.prog);
-    [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uDet', U_DET]]
+    [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uRain', U_RAIN], ['uLights', U_LIGHTS], ['uDet', U_DET], ['uWind', U_WIND]]
       .forEach(function (s) { gl.uniform1i(this.u[s[0]], s[1]); }, this);
     // The main globe's displacement law (src/web/globe.js:193-207).
     var RE = 6371000, TOP_M = 8500;
@@ -872,6 +1120,7 @@
     gl.uniform4f(u.uLight, +v('--relief-ambient') || 0.42, +v('--relief-contrast') || 0.86,
                  +v('--relief-sea-ambient') || 0.8, +v('--relief-sun') || 0.42);
     this.ground = hex(v('--ground'));
+    this._mk = markStyle(v); this._sprites = {};
     this.dirty = true;
   };
 
@@ -889,12 +1138,16 @@
       if (this.opts.moon) this._image(this.opts.moon, U_MOON, true).then(function () { self.hasMoon = 1; self.dirty = true; }).catch(function () {});
       try {
         this.kprog = this._program(VS, KFS);
-        this.ku = this._uniforms(this.kprog, ['uCl', 'uRes', 'uDim', 'uFade', 'uDpr', 'cGround', 'uSunS', 'uGlobe']);
+        this.ku = this._uniforms(this.kprog, ['uCl', 'uRes', 'uDim', 'uFade', 'uDpr', 'cGround', 'uSunS', 'uGlobe', 'uFl', 'uFl2', 'uFlN']);
         this.gl.uniform1i(this.ku.uCl, U_CL);
         this.mprog = this._program(MVS, MFS);
         this.mu = this._uniforms(this.mprog, ['uPos', 'uSize', 'uTexM', 'uMv', 'uSun', 'uUp', 'uFade']);
         this.gl.uniform1i(this.mu.uTexM, U_MOON);
       } catch (e) { this.kprog = this.mprog = null; }
+      try {
+        this.bprog = this._program(VS, BFS);
+        this.gl.uniform1i(this._uniforms(this.bprog, ['uB']).uB, U_CL);
+      } catch (e) { this.bprog = null; }
     }
   };
 
@@ -1018,8 +1271,143 @@
     if (k === 'soft' || k === 'types') { this[k] = !!v; this.c.dataset[k] = v ? '1' : '0'; }
     this.acc = 0; this.dirty = true;
   };
+  /* Lightning drawn as light on the scene (bolts.js): whether the stage can
+   * - it needs the 3-D cloud buffer to know where cloud is drawn; the flat
+   * layer and a docked globe fall back to bolts' own sprites - and the
+   * flashes of this frame, [{x, y, r, a, cl}] in CSS px (null: none). */
+  Stage.prototype.flashOK = function () { return !!(this.kprog && this._volW > 0 && !this.failed); };
+  Stage.prototype.setFlashes = function (list, key) {
+    if (key === this._flKey) return;
+    this._flKey = key; this.flashes = list && list.length ? list : null; this._flDirty = true;
+  };
+
   /* The Sun direction, overridden for tuning (a world vector, or null). */
   Stage.prototype.setSunOverride = function (v) { this.sunOv = v; this.acc = 0; this.dirty = true; };
+
+  /* The 10 m wind for the sea (wind.js): grid {lon: [lon0, dlon, nc],
+   * lat: [lat0, dlat, nr]} and the field {u, v} (Float32, m/s, row-major
+   * from lat0) for the page clock; null takes the wind off the sea. The
+   * glint and whitecaps (FS) change with it at once; the waves (WFS) are
+   * animated over the stored globe when the view rests. Changing the field
+   * re-shades the globe but keeps the finished clouds. */
+  Stage.prototype.setWind = function (grid, field) {
+    if (this.failed) return;
+    var gl = this.gl;
+    if (!grid || !field) {
+      if (this.wind) { this.wind = null; this.dirty = true; }
+      this.c.dataset.wind = '0';
+      return;
+    }
+    var nc = grid.lon[2], nr = grid.lat[2], n = nc * nr, d = new Float32Array(n * 2);
+    for (var i = 0; i < n; i++) { d[i * 2] = field.u[i]; d[i * 2 + 1] = field.v[i]; }
+    gl.activeTexture(gl.TEXTURE0 + U_WIND);
+    this._windTex = this._windTex || gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this._windTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, nc, nr, 0, gl.RG, gl.FLOAT, d);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    this.wind = { g: [grid.lon[0], grid.lon[1], grid.lat[0], grid.lat[1]], n: [nc, nr] };
+    this.c.dataset.wind = '1';
+    this.dirty = true; this._waveDone = false;
+  };
+
+  /* The wind uniforms on a bound program (FS or WFS). */
+  Stage.prototype._windU = function (u, live) {
+    var gl = this.gl, W = this.wind, on = !!(W && live);
+    gl.uniform1f(u.uWindOn, on ? 1 : 0);
+    if (!on) return;
+    gl.uniform4f(u.uWG, W.g[0], W.g[1], W.g[2], W.g[3]);
+    gl.uniform2f(u.uWN, W.n[0], W.n[1]);
+    var V = this.wave;
+    if (u.uWvG) gl.uniform3f(u.uWvG, V.glint, V.caps, V.wind);
+    if (u.uWv0) gl.uniform4f(u.uWv0, V.steep, V.sky, V.sparkle, V.foam);
+    if (u.uWv1) gl.uniform4f(u.uWv1, V.speed, V.wind, 0, 0);
+  };
+
+  /* The wave look (WAVE), or part of it; null resets to the defaults.
+   * Re-shades the globe (glint, whitecaps) but keeps the finished clouds. */
+  Stage.prototype.setWave = function (o) {
+    this.wave = o ? Object.assign({}, this.wave, o) : Object.assign({}, WAVE0);
+    this.dirty = true; this._waveDone = false;
+    return this.wave;
+  };
+  Stage.prototype.waveDefaults = function () { return Object.assign({}, WAVE0); };
+  Stage.prototype._wavePx = function () {
+    return [Math.max(2, this.wave.long), Math.max(2, this.wave.chop)];
+  };
+
+  Stage.prototype._waveProgram = function () {
+    if (this.wprog !== undefined) return this.wprog;
+    var gl = this.gl;
+    try {
+      this.wprog = this._program(VS, WFS);
+      var wu = this.wu = this._uniforms(this.wprog, ['uElev', 'uBio', 'uWxA', 'uWxB', 'uWave', 'uWind', 'uWG', 'uWN', 'uWindOn',
+        'uCtr', 'uR', 'uLon0', 'uLat0', 'uT', 'uFade', 'uMix', 'uWx', 'uFlat', 'uMoonK', 'uLam', 'uSun', 'uMoon', 'uWv0', 'uWv1']);
+      [['uElev', U_ELEV], ['uBio', U_BIO], ['uWxA', U_WXA], ['uWxB', U_WXB], ['uWave', U_WAVE], ['uWind', U_WIND]]
+        .forEach(function (s) { gl.uniform1i(wu[s[0]], s[1]); });
+      var N = 128, t = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0 + U_WAVE);
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, waveTile(N));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    } catch (e) {
+      if (global.console) console.warn('live sky: waves unavailable', e);
+      this.wprog = null;
+    }
+    return this.wprog;
+  };
+
+  /* Whether the view is one the waves are drawn on, and how strongly: the
+   * wind on the sea, the live sky, the globe near and undimmed. Crests only
+   * ever show over a resting view (they are screen-sized, and would swim
+   * over a moving globe); they ease in over half a second once it rests. */
+  Stage.prototype._waveWant = function () {
+    var c = this.cam;
+    if (!this.wind || !this.live || !this.sky || !this.hasTex || this.failed) return 0;
+    return Math.max(0, Math.min(1, (0.3 - c.dim) / 0.15)) * Math.max(0, Math.min(1, (c.k - 0.3) / 0.08));
+  };
+
+  /* How many times the crests are drawn larger than a real wind sea at
+   * 10 m/s (peak wavelength ~0.83 U^2 m, Pierson-Moskowitz: ~83 m), in the
+   * current view; null when no waves show. */
+  Stage.prototype.waveScale = function () {
+    if (!this._waveWant()) return null;
+    // The tile's energy-weighted crest spacing is 1.02x 'long' (waveTile),
+    // and a globe radius at the disc centre is _radius() CSS px.
+    var km = this._wavePx()[0] * 1.02 / this._radius() * 6371;
+    return { km: km, times: km * 1000 / REAL_SEA_M };
+  };
+
+  Stage.prototype._drawWaves = function (gl, c, w, h, R, dpr, S, Mo, volW, wx, now, fade) {
+    if (fade <= 0 || !this._waveProgram()) return false;
+    var wu = this.wu;
+    gl.useProgram(this.wprog);
+    gl.bindVertexArray(this.vaoGlobe);
+    gl.uniform2f(wu.uCtr, c.cx * w, h - c.cy * h);
+    gl.uniform1f(wu.uR, R);
+    gl.uniform1f(wu.uLon0, c.lon * DEG); gl.uniform1f(wu.uLat0, c.lat * DEG);
+    gl.uniform1f(wu.uT, this._reduce ? 0 : (now / 1000) % 1000);
+    gl.uniform1f(wu.uFade, fade);
+    gl.uniform1f(wu.uMix, this.mix);
+    gl.uniform1f(wu.uWx, wx ? 1 : 0);
+    gl.uniform1f(wu.uFlat, 1 - volW);
+    gl.uniform1f(wu.uMoonK, this.sky.moonK);
+    var px = this._wavePx();
+    gl.uniform2f(wu.uLam, px[0] * dpr / R, px[1] * dpr / R);
+    gl.uniform3fv(wu.uSun, S); gl.uniform3fv(wu.uMoon, Mo);
+    this._windU(wu, true);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    this.waveN = (this.waveN || 0) + 1;       // wave frames drawn (perf_atlas.py, check_atlas.py)
+    return true;
+  };
   Stage.prototype._lookU = function (u) {
     var L = this.look, gl = this.gl;
     if (u.uLk0) gl.uniform4f(u.uLk0, L.density, L.rim, L.rimWidth, L.veil);
@@ -1072,7 +1460,6 @@
   };
 
   Stage.prototype.setMarkers = function (list) {
-    if (list !== this.markers) this._nodes = null;   // rebuild the SVG for a new set
     this.markers = list; this.dirty = true;
   };
 
@@ -1181,7 +1568,7 @@
   var MIX_MS = 6000, VOL_IN_MS = 700;
 
   Stage.prototype._frame = function (now) {
-    var moving = false;
+    var moving = false, dt = Math.min(100, Math.max(0, now - (this._prev || now)));
     if (this.to) {
       var t = this.dur ? Math.min(1, (now - this.t0) / this.dur) : 1, e = ease(t), f = this.from, g = this.to;
       ['lon', 'lat', 'k', 'cx', 'cy', 'dim'].forEach(function (k) {
@@ -1190,7 +1577,11 @@
       if (t >= 1) this.to = null;
       this.dirty = true; moving = true;
     } else if (this.spin && !document.hidden) {
-      this.cam.lon += this.spin; this.dirty = true; moving = true;
+      // spin is degrees per 60 Hz frame; by the clock, so a 120 Hz screen
+      // turns as fast and no faster. Dimmed behind the chapters, 1.8 deg/s
+      // of turn needs no more than ~30 redraws a second.
+      this.cam.lon += this.spin * dt * 0.06; moving = true;
+      if (this.cam.dim < 0.5 || now - (this._spunT || 0) >= 30) { this.dirty = true; this._spunT = now; }
     }
     if (now - this._lastMove < 160) moving = true;
     /* The two IR frames cross-fade. This is not camera motion: treated as
@@ -1207,12 +1598,37 @@
     var fadeIn = this.volT0 !== undefined && this._volOn ? (now - this.volT0) / VOL_IN_MS : 1;
     if (fadeIn < 1) { this.dirty = true; if (!moving) this.acc = 0; }
     var refine = this._volOn && q && !moving && this.acc < q.acc;
-    if (!this.dirty && !refine) { this._prev = now; return; }
+    // Lightning changed: redraw the globe and the composite over the cloud
+    // buffer already built - no new ray-march - at most 30 times a second.
+    var flash = this._flDirty && now - (this._flT || 0) >= 32;
+    // The city ring pulses only over a still, undimmed globe: moved while it
+    // animates, it made Chrome re-layerize the whole page every frame (the
+    // reading view at 2x spent all its main thread there; perf_atlas.py).
+    var still = !moving && !this.spin && !this.to && this.cam.dim < 0.2;
+    if (still !== this._still) { this._still = still; this._pulseDirty = true; }
+    /* Waves: over a resting view only, eased in from when it came to rest,
+     * at 24 fps (one still frame with reduced motion). A wave frame is a
+     * lightning-style frame: the stored globe, the waves, the finished
+     * clouds over them. */
+    var ww = this._waveWant(), rest = ww > 0 && !moving && !this.to && !this.spin && !document.hidden;
+    if (!rest) { this._restT = null; this._waveDone = false; }
+    else if (this._restT == null) this._restT = now;
+    this._wfade = rest ? ww * (this._reduce ? 1 : Math.min(1, (now - this._restT) / 500)) : 0;
+    var wave = rest && (this._reduce ? !this._waveDone : now - (this._waveT || 0) >= 1000 / Math.max(1, this.wave.fps) - 1);
+    // The last frame drew waves and none are due now: one clean frame.
+    if (!rest && this._waveDrawn) { this.dirty = true; this._waveDrawn = false; }
+    if (!this.dirty && !refine && !flash && !wave) {
+      if (this._pulseDirty) this._placePulse();
+      this._prev = now; return;
+    }
+    var flashOnly = !this.dirty && !refine;
+    if (flash || !flashOnly) { this._flDirty = false; this._flT = now; }
+    if (rest) { this._waveT = now; this._waveDone = true; }
     this.dirty = false;
     if (moving) { this.acc = 0; this._tStill = now / 1000; }
     var t0 = performance.now();
-    this._draw(moving, now);
-    this._drawMarkers();
+    this._draw(moving, now, flashOnly);
+    if (!flashOnly) this._drawMarkers();
     // CPU-side cost of the frame, smoothed (the ?tune=1 panel shows it; the
     // GPU time is only visible as the frame interval, frameMs).
     this.cpuMs = (this.cpuMs || 0) * 0.9 + (performance.now() - t0) * 0.1;
@@ -1230,7 +1646,7 @@
     this._prev = now;
   };
 
-  Stage.prototype._draw = function (moving, now) {
+  Stage.prototype._draw = function (moving, now, flashOnly) {
     if (this.failed) return;
     var gl = this.gl, dpr = this.dpr();
     var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
@@ -1242,7 +1658,59 @@
     var S = live ? mul(M, this.sunOv || this.sky.sun) : [0, 0, 1], Mo = live ? mul(M, this.sky.moon) : [0, 0, 1];
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // premultiplied
-    // Stars first; the Moon; the globe (opaque where it covers, glow elsewhere) on top.
+    // How much of the volume to show: none behind reading or docked.
+    var q = TIERS[this.tier], wx = live && this.hasWx && this.showClouds;
+    var rainOn = live && this.hasRain && this.showRain;
+    var volW = wx && q && this.hasNoise && this._volProgram()
+      ? Math.max(0, Math.min(1, (0.55 - c.dim) / 0.2)) * Math.max(0, Math.min(1, (c.k - 0.14) / 0.08)) : 0;
+    if (volW > 0 && this.volT0 !== undefined) {
+      var vin = Math.max(0, Math.min(1, (now - this.volT0) / VOL_IN_MS));
+      volW *= vin * vin * (3 - 2 * vin);
+      if (vin >= 1) mark('volume');
+    }
+    // Kept on through the fade, so the frame loop keeps drawing it.
+    this._volOn = volW > 0 || (wx && q && this.hasNoise && this.volT0 !== undefined && now - this.volT0 < VOL_IN_MS);
+    this._volW = volW;
+    /* A lightning frame changes only the composite's light. The stars, Moon
+     * and globe under it are the last still frame's, kept in fb.base, so it
+     * copies them back instead of shading the terrain again: a flash frame
+     * cost a full globe draw, 30 times a second while any storm flashed
+     * (2.4-3.5 ms of GPU each on the city view; perf_atlas.py). */
+    var base = this.fb.base;
+    if (flashOnly && this._baseOK && base && base.w === w && base.h === h) {
+      gl.bindVertexArray(this.vaoGlobe);
+      gl.useProgram(this.bprog);
+      gl.activeTexture(gl.TEXTURE0 + U_CL);
+      gl.bindTexture(gl.TEXTURE_2D, base.t);
+      gl.disable(gl.BLEND);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.enable(gl.BLEND);
+      this.baseN = (this.baseN || 0) + 1;   // flash frames served from fb.base
+    } else {
+      this._drawGlobe(gl, c, u, w, h, R, F, dpr, live, M, S, Mo, volW, rainOn, wx);
+      // Keep this still frame for the lightning and wave frames that follow
+      // (only when those can show: the volume or the waves are on and
+      // nothing moves).
+      this._baseOK = false;
+      if (!moving && live && this.bprog && (volW > 0 || this._wfade > 0 || this._waveWant() > 0)) {
+        base = this._fbo('base', w, h);
+        gl.activeTexture(gl.TEXTURE0 + U_CL);
+        gl.bindTexture(gl.TEXTURE_2D, base.t);
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, w, h);
+        this._baseOK = true;
+      }
+    }
+    var drew = !moving && live && this._drawWaves(gl, c, w, h, R, dpr, S, Mo, volW, wx, now, this._wfade || 0);
+    // Only on a change, so the DOM is not touched 24 times a second.
+    if (drew !== this._waveAttr) { this._waveAttr = drew; this.c.dataset.waves = drew ? '1' : '0'; }
+    this._waveDrawn = drew;
+    if (!live || !this.kprog) return;
+    this._composite(gl, c, w, h, R, F, dpr, M, S, Mo, q, volW, rainOn, moving, now, flashOnly);
+  };
+
+  /* Stars first; the Moon; the globe (opaque where it covers, glow
+   * elsewhere) on top. */
+  Stage.prototype._drawGlobe = function (gl, c, u, w, h, R, F, dpr, live, M, S, Mo, volW, rainOn, wx) {
     if (this.nStars) {
       var su = this.su;
       gl.useProgram(this.sprog); gl.bindVertexArray(this.vaoStars);
@@ -1268,18 +1736,6 @@
       gl.drawArrays(gl.POINTS, 0, 1);
       this.moonPx = [(w / 2 + mx) / dpr, (h / 2 - my) / dpr];
     }
-    // How much of the volume to show: none behind reading or docked.
-    var q = TIERS[this.tier], wx = live && this.hasWx && this.showClouds;
-    var rainOn = live && this.hasRain && this.showRain;
-    var volW = wx && q && this.hasNoise && this._volProgram()
-      ? Math.max(0, Math.min(1, (0.55 - c.dim) / 0.2)) * Math.max(0, Math.min(1, (c.k - 0.14) / 0.08)) : 0;
-    if (volW > 0 && this.volT0 !== undefined) {
-      var vin = Math.max(0, Math.min(1, (now - this.volT0) / VOL_IN_MS));
-      volW *= vin * vin * (3 - 2 * vin);
-      if (vin >= 1) mark('volume');
-    }
-    // Kept on through the fade, so the frame loop keeps drawing it.
-    this._volOn = volW > 0 || (wx && q && this.hasNoise && this.volT0 !== undefined && now - this.volT0 < VOL_IN_MS);
     gl.useProgram(this.prog);
     gl.uniform2f(u.uRes, w, h);
     gl.uniform2f(u.uCtr, c.cx * w, h - c.cy * h);
@@ -1298,13 +1754,19 @@
     gl.uniform1f(u.uHasLights, this.hasLights ? 1 : 0);
     gl.uniform1f(u.uRainOn, rainOn ? 1 : 0);
     gl.uniform1f(u.uSoft, this.soft ? 1 : 0);
+    this._windU(u, live);
     this._lookU(u);
     this._detUniforms(u, R);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (!live || !this.kprog) return;
+  };
 
+  /* The cloud volume (ray-marched into its buffer, or the finished still
+   * buffer reused) composited over the globe with the Sun's glare and the
+   * lightning. */
+  Stage.prototype._composite = function (gl, c, w, h, R, F, dpr, M, S, Mo, q, volW, rainOn, moving, now, flashOnly) {
     var src = null;
-    if (volW > 0) {
+    if (volW > 0 && flashOnly && this.fb.still && this.acc >= q.acc) src = this.fb.still.t;
+    else if (volW > 0) {
       var mode = moving ? 'move' : 'still', sc = q[mode];
       var fw = Math.max(64, Math.round(w * sc)), fh = Math.max(64, Math.round(h * sc));
       var fb = this._fbo(mode, fw, fh), cu = this.cu;
@@ -1360,44 +1822,114 @@
     var sunUp = S[2] < -0.05;
     gl.uniform3f(ku.uSunS, sunUp ? w / 2 + S[0] / -S[2] * F : 0, sunUp ? h / 2 + S[1] / -S[2] * F : 0, sunUp ? 1 : 0);
     gl.uniform3f(ku.uGlobe, c.cx * w, h - c.cy * h, R);
+    var fl = src && this.flashes, nf = fl ? Math.min(16, fl.length) : 0;
+    if (nf) {
+      var A = this._flA || (this._flA = new Float32Array(64)), B = this._flB || (this._flB = new Float32Array(64));
+      for (var i = 0; i < nf; i++) {
+        var e = fl[i];
+        A[i * 4] = e.x * dpr; A[i * 4 + 1] = h - e.y * dpr; A[i * 4 + 2] = Math.max(2, e.r * dpr); A[i * 4 + 3] = e.a;
+        B[i * 4] = e.cl;
+      }
+      gl.uniform4fv(ku.uFl, A); gl.uniform4fv(ku.uFl2, B);
+    }
+    gl.uniform1i(ku.uFlN, nf);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
-  /* Markers: plain SVG circles, one per item, visibility by the z sign. */
+  /* Markers: one 2D canvas (#marks), each marker stamped from a sprite drawn
+   * once per look, size and pixel ratio. They used to be SVG nodes, and a
+   * moving globe restyled and re-layerized all of them every frame and
+   * re-rastered their drop-shadow glows: src/perf_atlas.py measured about
+   * 60 % of a core spinning in the world view and 35 % in the reading view.
+   * The looks are the old CSS ones (.mk.* in atlas.css, now gone), read from
+   * the theme's custom properties. The "here" pulse is an HTML ring (#pulse)
+   * whose CSS animation runs on the compositor; only its place is set here.
+   * As SVG it repainted 60 times a second on a still page (~30 % of a core). */
+  function markStyle(v) {
+    var s = { accent: v('--accent').trim() || '#5cc8ff', acc: v('--accent-rgb').trim() || '92, 200, 255',
+              warn: v('--warn').trim() || '#f5bd4f', bad: v('--bad').trim() || '#ff6f61',
+              ink: v('--ink-strong').trim() || '#fff', mono: v('--mono').trim() || 'monospace', tc: [] };
+    for (var i = 0; i < 5; i++) s.tc.push(v('--t' + i).trim());
+    return s;
+  }
+
+  Stage.prototype._sprite = function (m, d) {
+    var r = m.r || 4, cls = ' ' + (m.cls || '') + ' ', key = cls + r + '|' + d;
+    var sp = this._sprites[key];
+    if (sp) return sp;
+    var s = this._mk, fill = s.accent, stroke = null, lw = 0, glow = 0, gcol = null, t;
+    function has(c) { return cls.indexOf(' ' + c + ' ') >= 0; }
+    if (has('city')) fill = (t = /\bt(\d)\b/.exec(cls)) && s.tc[+t[1]] ? 'rgba(' + s.tc[+t[1]] + ', .85)' : 'rgba(' + s.acc + ', .55)';
+    if (has('here')) { fill = '#fff'; stroke = s.accent; lw = 3; glow = 8; gcol = 'rgba(' + s.acc + ', .9)'; }
+    if (has('ok')) { fill = 'rgba(' + s.acc + ', .85)'; glow = 5; gcol = 'rgba(' + s.acc + ', .8)'; }
+    if (has('broken')) { fill = null; stroke = s.warn; lw = 1.4; }
+    if (has('none')) { fill = 'rgba(255, 111, 97, .12)'; stroke = s.bad; lw = 1.2; }
+    // CSS drop-shadow's length is the blur's standard deviation; canvas
+    // shadowBlur is twice it, in device pixels. Room for three of them.
+    var pad = Math.ceil(r + lw / 2 + glow * 3 + 1), n = Math.ceil(2 * pad * d);
+    var shape = document.createElement('canvas');
+    shape.width = shape.height = n;
+    var g = shape.getContext('2d');
+    g.setTransform(d, 0, 0, d, pad * d, pad * d);
+    g.beginPath(); g.arc(0, 0, r, 0, 2 * Math.PI);
+    if (fill) { g.fillStyle = fill; g.fill(); }
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+    var c = shape;
+    if (glow) {   // the shadow of the whole shape, as drop-shadow() casts it
+      c = document.createElement('canvas');
+      c.width = c.height = n;
+      var h = c.getContext('2d');
+      h.shadowColor = gcol; h.shadowBlur = 2 * glow * d;
+      h.drawImage(shape, 0, 0);
+    }
+    return (this._sprites[key] = { c: c, o: pad });
+  };
+
   Stage.prototype._drawMarkers = function () {
-    var svg = this.svg;
-    if (!this._nodes || this._nodes.length !== this.markers.length) {
-      svg.textContent = '';
-      this._nodes = this.markers.map(function (m) {
-        var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('class', 'mk ' + (m.cls || ''));
-        var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        c.setAttribute('r', m.r || 4);
-        g.appendChild(c);
-        if (m.pulse) {
-          var p = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          p.setAttribute('r', m.r || 4); p.setAttribute('class', 'pulse'); g.appendChild(p);
-        }
-        if (m.label) {
-          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          t.textContent = m.label; t.setAttribute('x', (m.r || 4) + 10); t.setAttribute('y', 5);
-          g.appendChild(t);
-        }
-        if (m.title) {
-          var ti = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-          ti.textContent = m.title; g.appendChild(ti);
-        }
-        svg.appendChild(g);
-        return g;
-      });
+    var cv = this.mc;
+    if (!cv || !cv.getContext) return;
+    var d = Math.min(devicePixelRatio || 1, 2);
+    var W = Math.round(innerWidth * d), H = Math.round(innerHeight * d);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    var g = this._mg || (this._mg = cv.getContext('2d')), s = this._mk, here = null;
+    if (!this._fontHook && document.fonts) {   // the label's web font may land later
+      var self = this;
+      this._fontHook = true;
+      document.fonts.ready.then(function () { self.dirty = true; });
     }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha = 1;
+    g.clearRect(0, 0, W, H);
     for (var i = 0; i < this.markers.length; i++) {
-      var m = this.markers[i], p = this.project(m.lon, m.lat), n = this._nodes[i];
-      if (p[2] <= 0.02) { n.style.display = 'none'; continue; }
-      n.style.display = '';
-      n.setAttribute('transform', 'translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')');
-      n.style.opacity = Math.min(1, p[2] * 4).toFixed(2);
+      var m = this.markers[i], p = this.project(m.lon, m.lat);
+      if (p[2] <= 0.02) continue;
+      var a = Math.min(1, p[2] * 4), sp = this._sprite(m, d);
+      g.globalAlpha = a;
+      g.drawImage(sp.c, (p[0] - sp.o) * d, (p[1] - sp.o) * d);
+      if (m.pulse) here = [p[0], p[1], a];
+      if (m.label) {
+        g.setTransform(d, 0, 0, d, 0, 0);
+        g.font = '600 13px ' + s.mono;
+        if ('letterSpacing' in g) g.letterSpacing = '0.78px';
+        g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = 'rgba(0, 0, 0, .8)'; g.fillStyle = s.ink;
+        var tx = p[0] + (m.r || 4) + 10, ty = p[1] + 5, txt = String(m.label).toUpperCase();
+        g.strokeText(txt, tx, ty); g.fillText(txt, tx, ty);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+      }
     }
+    this._here = here;
+    this._placePulse();
+  };
+
+  Stage.prototype._placePulse = function () {
+    var pu = this.opts.pulse, here = this._still ? this._here : null;
+    this._pulseDirty = false;
+    if (!pu) return;
+    if (here) {
+      pu.style.transform = 'translate(' + here[0].toFixed(1) + 'px,' + here[1].toFixed(1) + 'px)';
+      pu.style.opacity = here[2].toFixed(2);
+    }
+    if (pu.hidden !== !here) pu.hidden = !here;
   };
 
   global.AtlasStage = Stage;

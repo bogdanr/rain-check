@@ -581,7 +581,7 @@
     if (!window.WebGL2RenderingContext) { document.body.classList.add('nogl'); return null; }
     var C = D.coverage;
     var st = new AtlasStage($('#stage'), $('#marks'), {
-      elev: CFG.elev, biome: CFG.biome, dragTarget: $('#stage-hit'), stars: CFG.stars,
+      elev: CFG.elev, biome: CFG.biome, dragTarget: $('#stage-hit'), stars: CFG.stars, pulse: $('#pulse'),
       moon: CFG.moon, lights: CFG.lights, onTier: function () { skyLegend(); },
       onFail: function () { document.body.classList.add('nogl'); skyLegend(); },
       onPick: function (m) { if (m.slug !== S.h.slug) select(m.slug); },
@@ -661,13 +661,14 @@
     if (stage && window.AtlasBolts) SKY.bolt = new AtlasBolts($('#bolts'), stage);
     if (stage && window.AtlasSats && CFG.sats) SKY.sat = new AtlasSats($('#sats'), stage, { hit: $('#stage-hit'), tip: $('#tip'), now: now });
     if (stage) skyLayers();
+    if (stage) windInit();
     skyApply();
     // ?tune=1: the look panel (tune.js), for tuning the clouds and lightning
     // by eye. Loaded only then, so readers never download it.
     if (stage && CFG.tuneJs && new URLSearchParams(location.search).get('tune') === '1') {
       var ts = document.createElement('script');
       ts.src = CFG.tuneJs;
-      ts.onload = function () { window.AtlasTune && AtlasTune(stage, SKY.bolt, { vec: AtlasSky.vec }); };
+      ts.onload = function () { window.AtlasTune && AtlasTune(stage, SKY.bolt, { vec: AtlasSky.vec, wind: function () { return SKY.wind; } }); };
       document.head.appendChild(ts);
     }
     // The Sun and Moon move a pixel every few minutes; the satellites publish
@@ -748,6 +749,57 @@
   // Frames come every 5 minutes; an hour without one means the feed stalled.
   var BOLT_STALE = 3600000;
 
+  /* Wind: a model forecast on a 10-degree grid, baked by the site build
+   * (src/wind_grid.py), drawn by wind.js. Off until the reader asks for it,
+   * remembered like the other layers; its script and its ~15 KB grid are
+   * fetched only then. A build without a grid hides the switch. */
+  var WIND_STALE = 6 * 3600000;
+  function windInit() {
+    var btn = $('#sky-wind'); if (!btn) return;
+    if (!CFG.wind || !CFG.windJs) { btn.hidden = true; return; }
+    var q = new URLSearchParams(location.search).get('wind'), saved = null;
+    try { saved = localStorage.getItem('rc-sky-wind'); } catch (e) { /* private mode */ }
+    SKY.winds = q ? q !== 'off' : saved === 'on';
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      SKY.winds = !SKY.winds;
+      try { localStorage.setItem('rc-sky-wind', SKY.winds ? 'on' : 'off'); } catch (e) { /* private mode */ }
+      windApply();
+      skyLegend();
+    });
+  }
+
+  function windApply() {
+    var btn = $('#sky-wind'); if (!btn || btn.hidden) return;
+    btn.setAttribute('aria-pressed', !!SKY.winds);
+    if (SKY.wind) SKY.wind.show(SKY.winds, SKY.on);
+    if (!(SKY.on && SKY.winds) || SKY.wind || SKY.wLoading) return;
+    SKY.wLoading = true;
+    var js = new Promise(function (ok, no) {
+      if (window.AtlasWind) return ok();
+      var s = document.createElement('script');
+      s.src = CFG.windJs; s.onload = ok; s.onerror = function () { no(new Error('wind.js')); };
+      document.head.appendChild(s);
+    });
+    var data = fetch(CFG.wind).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    Promise.all([js, data]).then(function (r) {
+      SKY.wLoading = false; SKY.wErr = null;
+      // ?wind=debug: the grid's arrows over the sea, to check the data.
+      var wq = new URLSearchParams(location.search).get('wind');
+      // The ?tune=1 panel's "arrows" box is remembered in rc-wind-arrows.
+      var arrows = null;
+      try { arrows = localStorage.getItem('rc-wind-arrows'); } catch (e) { /* private mode */ }
+      SKY.wind = new AtlasWind($('#wind'), stage, { now: now, debug: wq === 'debug' || arrows === 'on' });
+      SKY.wind.setData(r[1]);
+      SKY.wind.show(SKY.winds, SKY.on);
+      pmark('wind');
+      skyLegend();
+    }, function (e) {
+      SKY.wLoading = false; SKY.wErr = String(e && e.message || e);
+      skyLegend();
+    });
+  }
+
   /* Satellites: drawn from the roster the site was built with, then from
    * CelesTrak's current elements. CelesTrak updates them every two hours and
    * asks clients not to fetch more often, so the reply is kept that long in
@@ -814,6 +866,7 @@
     if (stage) stage.setLive(SKY.on);
     if (SKY.on) { skyTick(); weather(false); }
     boltsApply();
+    windApply();
     satsApply();
     skyLegend();
     if (S.h) overCity(S.h);
@@ -828,6 +881,9 @@
     });
     SKY.bodies = b;
     if (SKY.bolt) SKY.bolt.setSun(stage.sunOv || AtlasSky.vec(b.sun.lon, b.sun.lat));
+    // The wind's hourly frames, interpolated for the clock; past the last
+    // one the layer stops drawing.
+    if (SKY.wind) { SKY.wind.tick(); SKY.wind.show(SKY.winds, SKY.on); }
     skyLegend();
   }
 
@@ -1011,6 +1067,25 @@
         (fr < nS ? ' \u00b7 ' + (nS - fr) + ' orbit only, data too old' : ' \u00b7 true positions') +
         '<i class="sat-key geo"></i><span class="sky-key">ring, not to scale</span><i class="sat-key leo"></i><span class="sky-key">polar</span>'));
     } else if (sat && SKY.sErr && !SKY.sLoading) parts.push('Satellites unavailable right now.');
+    var wd = SKY.wind && SKY.wind.data;
+    if (wd && SKY.winds) {
+      var run = Date.parse(wd.fetched), span = SKY.wind.span();
+      if (SKY.wind.expired()) parts.push('Wind forecast has run out (fetched ' + ago(run) + ').');
+      else {
+        // How far apart the crests are drawn: fixed on screen, so it depends
+        // on the zoom; the city view's figure when the waves are not showing.
+        // Crest spacing is 1.02x the tile's 'long' setting (stage.js waveScale);
+        // compared with a fully developed 10 m/s sea (~88 m).
+        var ws = stage.waveScale && stage.waveScale(), realM = AtlasStage.REAL_SEA_M || 88;
+        var km = ws ? ws.km : (stage.wave ? stage.wave.long : 18) * 1.02 / (0.43 * Math.min(innerWidth, innerHeight)) * 6371;
+        var big = Math.round(km * 1000 / realM / 100) * 100;
+        parts.push(line('Wind', 'A model forecast, not an observation: Open-Meteo\u2019s wind 10 m above the ground, on a 10\u00b0 grid (about 1,000 km between points), hourly from ' +
+        utc(span[0]) + ' to ' + utc(span[1]) + ', fetched when the site was last built. It is drawn in the sea: the Sun\u2019s glint spreads and dulls as the wind rises (Cox and Munk) and whitecaps brighten where it blows hard (Monahan). Zoomed in on a still globe, wave crests run downwind, steeper and whiter the stronger the wind. ' +
+        'The waves are exaggerated about ' + big.toLocaleString('en') + '\u00d7: the crests are drawn about ' + Math.round(km) + ' km apart' + (ws ? '' : ' in the city view') +
+        ', against about ' + Math.round(realM) + ' m for a fully developed sea in a 10 m/s wind, so they show at all. The grid shows the trade winds, the westerlies and monsoon flow; it is too coarse for hurricanes, fronts or sea breezes. Over land it shows nothing. Not part of the audit.',
+        'model forecast', run, false, now() - run > WIND_STALE ? ' \u00b7 <b>stale</b>' : ''));
+      }
+    } else if (SKY.winds && SKY.wErr && !SKY.wLoading) parts.push('Wind unavailable right now.');
     if (!wx && SKY.loading) parts.push('Loading the latest satellite images\u2026');
     if (!wx && !SKY.loading && SKY.err) parts.push('Satellite images unavailable right now.');
     // Cloud frames arrive every 3 h and rain every 30 min; well past that,
@@ -1057,7 +1132,7 @@
     box.setAttribute('aria-busy', 'true');
     overCity(h);
     var url = CFG.forecast + '?latitude=' + h.lat + '&longitude=' + h.lon +
-      '&current=temperature_2m,weather_code,is_day,precipitation' +
+      '&current=temperature_2m,weather_code,is_day,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
       '&hourly=precipitation_probability' +
       '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max' +
       '&forecast_days=2&timezone=auto';
@@ -1096,6 +1171,7 @@
     var at = /T(\d\d:\d\d)/.exec(cur.time || '');
     $('#now-range').textContent = (hi != null ? 'H ' + minus(Math.round(hi)) + '\u00b0 \u00b7 L ' + minus(Math.round(lo)) + '\u00b0' : '') +
       (at ? ' \u00b7 ' + at[1] + ' local' : '');
+    windLine(cur);
     // Every figure is a vendor value or a number from the city's own table.
     var b = binOf(h, pop == null ? null : pop / 100), said = '';
     if (pop == null) said = 'No chance of rain was published for today.';
@@ -1111,6 +1187,33 @@
     $('#now-said').innerHTML = said;
     $('#now-tom').textContent = popT != null ? 'Tomorrow: ' + popT + '% chance of rain.' : '';
     ribbon(j);
+  }
+
+  /* The wind the same forecast gives for the city now (10 m, km/h, the
+   * direction it blows from, as forecasters say it). The arrow points where
+   * the air is going. Gusts only when they are clearly stronger. */
+  var COMPASS = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east',
+    'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'];
+  // Beaufort scale upper bounds, km/h.
+  var BEAUFORT = [[1, 'calm'], [6, 'light air'], [12, 'light breeze'], [20, 'gentle breeze'], [29, 'moderate breeze'], [39, 'fresh breeze'],
+    [50, 'strong breeze'], [62, 'near gale'], [75, 'gale'], [89, 'strong gale'], [103, 'storm'], [118, 'violent storm'], [1e9, 'hurricane force']];
+  function beaufort(kmh) { for (var i = 0; i < BEAUFORT.length; i++) if (kmh < BEAUFORT[i][0]) return BEAUFORT[i][1]; return ''; }
+  function compass(deg) { return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]; }
+  function windLine(cur) {
+    var el = $('#now-wind'); if (!el) return;
+    var v = cur.wind_speed_10m, d = cur.wind_direction_10m, g = cur.wind_gusts_10m;
+    if (v == null) { el.textContent = ''; el.removeAttribute('title'); return; }
+    var kmh = Math.round(v), word = beaufort(v), html;
+    // The arrow carries the direction on screen; its label keeps it for
+    // screen readers, and the hover text names it too.
+    var from = kmh < 1 || d == null ? '' : 'from the ' + compass(d);
+    if (!from) html = 'Wind calm';
+    else html = '<i class="now-arrow" role="img" aria-label="' + from + '" style="transform:rotate(' + Math.round((d + 180) % 360) + 'deg)"></i>' +
+      'Wind ' + kmh + ' km/h';
+    if (g != null && g >= Math.max(v * 1.3, v + 10)) html += ', gusts ' + Math.round(g);
+    el.innerHTML = html;
+    el.title = word.charAt(0).toUpperCase() + word.slice(1) + ' (Beaufort)' +
+      (from ? ', ' + from + '. The arrow shows where the wind is blowing to.' : '.');
   }
 
   /* The next 12 hours of hourly chance, as small bars. */

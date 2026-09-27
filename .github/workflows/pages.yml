@@ -9,6 +9,13 @@
 #
 # Re-running the analysis stays a deliberate, local act: `./run_all.sh`, then
 # commit the changed artefacts and review the diff like any other change.
+#
+# The one exception is the globe's Wind layer: a model forecast, not part of
+# the audit, that goes stale in hours. So the site is also rebuilt every 3
+# hours (the schedule below), fetching a fresh wind grid (src/wind_grid.py)
+# straight into the built site. It never enters git, and every audited number
+# still comes from the committed artefacts. If the fetch fails the build
+# carries on without it and the page hides the Wind switch.
 
 name: Deploy report to Pages
 
@@ -22,6 +29,10 @@ on:
       - 'figures/**'
       - 'requirements-site.txt'
       - '.github/workflows/pages.yml'
+  schedule:
+    # Off the hour: Open-Meteo's hourly runs have landed, and GitHub's
+    # top-of-the-hour queue is avoided.
+    - cron: '17 */3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -75,6 +86,16 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
 
+      - name: Fetch the wind grid (model forecast, not part of the audit)
+        # 576 Open-Meteo calls, about a minute. Allowed to fail: the build
+        # then leaves the Wind layer out.
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          cd src
+          python wind_grid.py --self-test
+          python wind_grid.py --out ../build/wind.json
+
       - name: Build the Atlas site
         # The base path and the public origin come from the Pages settings, so
         # the custom domain (bogdan.nimblex.net) lands in every canonical URL,
@@ -89,7 +110,9 @@ jobs:
           origin="${BASE_URL%"$BASE_PATH"}"
           origin="https://${origin#*://}"
           cd src
-          python atlas.py --base "${BASE_PATH}/" --origin "$origin"
+          wind=()
+          if [ -f ../build/wind.json ]; then wind=(--wind ../build/wind.json); fi
+          python atlas.py --base "${BASE_PATH}/" --origin "$origin" "${wind[@]}"
 
       - name: Verify in a browser at the published base path
         env:

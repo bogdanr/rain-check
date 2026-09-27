@@ -59,36 +59,33 @@ body {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 
 /* ── Stage ─────────────────────────────────────────────── */
-#stage, #bolts, #sats, #marks, #stage-hit, .vignette { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+#stage, #wind, #bolts, #sats, #marks, #stage-hit, .vignette { position: fixed; inset: 0; width: 100vw; height: 100vh; }
 #stage { z-index: 0; display: block; }
-#bolts, #sats { z-index: 0; pointer-events: none; display: block; }
-.sky-off #bolts, .nogl #bolts, .sky-off #sats, .nogl #sats { display: none; }
-#marks { z-index: 1; pointer-events: none; overflow: visible; }
+#wind, #bolts, #sats { z-index: 0; pointer-events: none; display: block; }
+.sky-off #bolts, .nogl #bolts, .sky-off #sats, .nogl #sats, .sky-off #wind, .nogl #wind { display: none; }
+#marks { z-index: 1; pointer-events: none; display: block; }
 #stage-hit { z-index: 1; cursor: grab; }
 #stage-hit.grabbing { cursor: grabbing; }
 #stage-hit.pick { cursor: pointer; }
 #stage-hit.sat:not(.pick):not(.grabbing) { cursor: help; }
-.mk.city circle { transition: r .2s; }
 .loading .card, .loading .dense-in { opacity: .6; transition: opacity .2s; }
 .vignette { z-index: 1; pointer-events: none;
   background: radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(0, 0, 0, .35) 100%); }
 .nogl #stage { background: radial-gradient(60vmin 60vmin at 68% 52%, #0f3552 0, #081a2b 60%, var(--ground) 61%); }
 
-.mk circle { fill: var(--accent); stroke: none; }
-.mk.city circle { fill: rgba(var(--accent-rgb), .55); }
+/* The markers are drawn on the #marks canvas (stage.js _sprite); their looks
+ * live there. The city ring's pulse is this element: transform and opacity
+ * only, so it runs on the compositor and costs the page no repaints. The
+ * ring is the "here" marker's size (r 6, atlas.js setCity). */
 .t0 { --tc: var(--t0); } .t1 { --tc: var(--t1); } .t2 { --tc: var(--t2); } .t3 { --tc: var(--t3); } .t4 { --tc: var(--t4); }
-.mk.city circle { fill: rgba(var(--tc), .85); }
 .tc { color: rgb(var(--tc)); }
-.mk.here circle { fill: #fff; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), .9)); }
-.mk.here .pulse { fill: none; stroke: var(--accent); stroke-width: 1.5; transform-origin: 0 0;
-  animation: pulse 2.4s var(--ease) infinite; }
-.mk text { fill: var(--ink-strong); font: 600 13px var(--mono); letter-spacing: .06em; text-transform: uppercase;
-  paint-order: stroke; stroke: rgba(0, 0, 0, .8); stroke-width: 4px; }
-.mk.ok circle { fill: rgba(var(--accent-rgb), .85); filter: drop-shadow(0 0 5px rgba(var(--accent-rgb), .8)); }
-.mk.broken circle { fill: none; stroke: var(--warn); stroke-width: 1.4; }
-.mk.none circle { fill: rgba(255, 111, 97, .12); stroke: var(--bad); stroke-width: 1.2; }
+#pulse { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 1; pointer-events: none; }
+#pulse::after { content: ""; position: absolute; left: -6.75px; top: -6.75px; width: 13.5px; height: 13.5px;
+  box-sizing: border-box; border: 1.5px solid var(--accent); border-radius: 50%;
+  animation: pulse 2.4s var(--ease) infinite; will-change: transform, opacity; }
 @keyframes pulse { from { transform: scale(1); opacity: .9; } to { transform: scale(5); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .mk.here .pulse { animation: none; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #pulse { display: none; } }
+.nogl #pulse { display: none; }
 
 /* ── Top bar ───────────────────────────────────────────── */
 .bar {
@@ -243,6 +240,10 @@ code { font-size: .88em; color: var(--ink); background: var(--glass-2); padding:
 .now-cond { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .now-cond b { color: var(--ink-strong); font-weight: 600; font-size: 15px; }
 .now-cond .mono { font-size: 11px; }
+.now-wind { font-size: 12px; color: var(--ink); }
+.now-wind:empty { display: none; }
+.now-arrow { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px;
+  background: currentColor; clip-path: polygon(50% 0, 100% 70%, 58% 58%, 58% 100%, 42% 100%, 42% 58%, 0 70%); }
 .now-said { margin: 10px 0 6px; color: var(--ink); text-wrap: pretty; }
 .now-pop { color: var(--ink-strong); }
 .now-meant { display: block; margin-top: 4px; color: var(--muted); }
@@ -646,7 +647,7 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 .dir li a:hover { color: var(--accent); }
 .dir li .mono { font-size: 11px; color: var(--muted); margin-left: 6px; }
 @media print {
-  #stage, #bolts, #sats, #marks, #stage-hit, .vignette, .bar, .palette, .tip { display: none !important; }
+  #stage, #wind, #bolts, #sats, #marks, #pulse, #stage-hit, .vignette, .bar, .palette, .tip { display: none !important; }
   :root { --ground: #fff; --ink: #111; --ink-strong: #000; --muted: #444; --faint: #666;
           --glass: transparent; --glass-2: #eee; --edge: #bbb; --edge-2: #999; }
   .hl { color: #000; background: none; }

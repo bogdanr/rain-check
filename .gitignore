@@ -42,6 +42,9 @@ paper/
 # and must never be committed. dist.check/ is src/check_site.py's scratch copy.
 dist/
 dist.check/
+# The Wind layer's grid (src/wind_grid.py): fetched by the Pages build every
+# 3 hours and copied into dist/. A model forecast, never committed.
+build/
 
 # Editor leftovers. Vim writes both alongside the file being edited, so without
 # these they show up as untracked siblings of real source and get swept into a

@@ -28,7 +28,10 @@
   // Flash rate per frame age: the newest storms are the busy ones.
   var AGE_RATE = [1, 0.45, 0.2];
   /* The lightning look (the ?tune=1 panel edits it live, setLook):
-   *  bright   - peak opacity of a flash
+   *  bright   - how much light a flash puts out, x BRIGHT_K (1 = the tuned
+   *             baseline). It scales the flash's strength before two soft
+   *             limits (here and in the stage's light pass), so doubling it
+   *             brightens faint flashes a lot and bright ones only a little
    *  size     - glow radius, x the lit cloud's size
    *  rate     - flashes per second of the busiest storm
    *  day      - how much of a flash shows against sunlit cloud (0..1)
@@ -36,7 +39,10 @@
    *             wear thin cover away, so a glow there hangs in clear sky)
    *  contrast - how far strong storms stand out from weak ones (0 = alike)
    *  spread   - how uneven single flashes are (0 = all equal) */
-  var LOOK = { bright: 2.0, size: 0.8, rate: 0.05, day: 0.8, minCover: 0.4, contrast: 2.0, spread: 1.0 };
+  var LOOK = { bright: 0.8, size: 0.8, rate: 0.06, day: 1.0, minCover: 0.2, contrast: 2.0, spread: 1.4 };
+  // The raw strength that bright = 1 stands for (tuned on the ?tune=1 panel:
+  // what was 3 on the old scale).
+  var BRIGHT_K = 3.0;
   var SHAPES = 6;                  // irregular glow shapes, picked per flash
   // Lightning's colour through cloud (scattered, bluish) and at its core.
   var GLOW = [175, 195, 255], CORE = [235, 240, 255];
@@ -171,6 +177,16 @@
     });
     // Busiest first, so MAX_DRAW keeps the storms that matter.
     storms.sort(function (a, b) { return b.n - a.n; });
+    // How many of them fit in MAX_DRAW cells, and each one's flash rate and
+    // next flash (so a frame only looks at storms that are flashing).
+    var L = this.look, used = 0, nUse = 0;
+    while (nUse < storms.length && used < MAX_DRAW) used += storms[nUse++].cells.length;
+    storms.forEach(function (sm) {
+      sm.ss = clamp01(0.5 + (sm.score - 0.5) * L.contrast);
+      sm.rate = L.rate * (0.2 + 1.3 * sm.ss) * AGE_RATE[sm.age];
+      sm.next = 0;
+    });
+    this.nUse = nUse; this.nCells = used;
     this.storms = storms;
     this.c.dataset.clear = String(clear);   // cells held back over clear sky (for the check)
     this.c.dataset.storms = String(storms.length);
@@ -202,40 +218,76 @@
 
   Bolts.prototype._clear = function () {
     this.g.clearRect(0, 0, this.c.width, this.c.height);
+    if (this.st.setFlashes) this.st.setFlashes(null, '');
     this.c.dataset.drawn = '0';
+  };
+
+  /* The storms flashing now (the first nUse, busiest first). Each storm's
+   * next flash is kept, so between flashes a storm costs one comparison:
+   * the layer used to evaluate every storm's flash law every frame (about
+   * 20 ms of script a second on the city view; perf_atlas.py). */
+  Bolts.prototype._due = function (t) {
+    var out = [], storms = this.storms;
+    for (var i = 0; i < this.nUse; i++) {
+      var sm = storms[i];
+      if (t < sm.next) continue;
+      var u = t * sm.rate + hash(sm.id), b = Math.floor(u), dt = (u - b - hash(sm.id * 131 + b) * 0.7) / sm.rate;
+      if (dt < 0) sm.next = t - dt;                       // later in this cycle
+      else if (dt >= 0.8) sm.next = (b + 1 + hash(sm.id * 131 + b + 1) * 0.7 - hash(sm.id)) / sm.rate;
+      else out.push(sm);                                  // flashing: look again next frame
+    }
+    return out;
   };
 
   Bolts.prototype._frame = function (now) {
     var st = this.st, cam = st.cam, dpr = st.dpr ? st.dpr() : Math.min(devicePixelRatio || 1, 1.5);
     var w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+    // Compared as numbers, not a formatted string: this runs every frame.
+    // (_cam = '' elsewhere asks for a repaint.)
+    var kv = this._kv || (this._kv = []), key = this._cam, now3 = [cam.lon, cam.lat, cam.k, cam.cx, cam.cy, cam.dim, w, h];
+    if (!key) key = now3.join();
+    else for (var ki = 0; ki < 8; ki++) if (!(Math.abs(now3[ki] - kv[ki]) <= 5e-4)) { key = now3.join(); break; }
+    if (key !== this._cam) this._kv = now3;
+    if (this.c.width !== w || this.c.height !== h) { this.c.width = w; this.c.height = h; this._cam = ''; }
     // Nothing moves in reduced motion but the camera: redraw only for it.
-    var key = [cam.lon, cam.lat, cam.k, cam.cx, cam.cy, cam.dim, w, h].map(function (v) { return v.toFixed(3); }).join();
-    if (this.c.width !== w || this.c.height !== h) { this.c.width = w; this.c.height = h; }
-    if (this.reduce && key === this._cam) return;
+    // Otherwise redraw for the camera, a storm flashing, or to put out the
+    // last flash; a still camera between flashes costs nothing.
+    var due = this.reduce ? this.storms.slice(0, this.nUse) : this._due(now / 1000);
+    var moved = key !== this._cam;
+    if (!moved && (this.reduce || (!due.length && !this._lit))) return;
     this._cam = key;
+    // With the 3-D clouds on, a flash is light on the scene: the stage lights
+    // the cloud drawn there (and faintly the ground), so it takes the cloud's
+    // shape. Without them (flat layer, a driver with no volume), the old
+    // sprites stand in.
+    var scene = !!(st.flashOK && st.flashOK()), list = scene ? [] : null;
+    // In scene mode this canvas holds only the box outline, so a flash that
+    // leaves the camera still does not repaint it.
+    var paint = moved || !scene || this._mode !== 'scene';
+    this._mode = scene ? 'scene' : 'sprite';
     var g = this.g;
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, w, h);
+    if (paint) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); }
     // Hidden behind the reading chapters and when docked, like the volume.
     var fade = Math.max(0, Math.min(1, (0.6 - cam.dim) / 0.25)) * Math.max(0, Math.min(1, (cam.k - 0.12) / 0.06));
     if (this.stale) fade *= 0.45;
-    if (fade <= 0) { this.c.dataset.drawn = '0'; return; }
+    if (fade <= 0) { this.c.dataset.drawn = '0'; this._lit = 0; if (st.setFlashes) st.setFlashes(null, ''); return; }
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.globalCompositeOperation = 'lighter';
     var R = st._radius(), cellPx = Math.max(1.2, R * 0.3 * DEG), t = now / 1000;
-    var sun = this.sun, L = this.look, drawn = 0, lit = 0, storms = this.storms;
-    this._outline(g, fade);
-    for (var si = 0; si < storms.length && drawn < MAX_DRAW; si++) {
+    var sun = this.sun, L = this.look, drawn = this.nCells || 0, lit = 0, storms = due;
+    if (this.c.dataset.mode !== this._mode) this.c.dataset.mode = this._mode;
+    if (paint) this._outline(g, fade);
+    for (var si = 0; si < storms.length; si++) {
       var sm = storms[si], cells = sm.cells;
       // The storm's strength, stretched or flattened by the contrast
-      // control (0: every storm alike).
-      var ss = clamp01(0.5 + (sm.score - 0.5) * L.contrast), f = 0, amp = 0, c = null, b = 0, grow = 0;
+      // control (0: every storm alike; _shade).
+      var ss = sm.ss, f = 0, amp = 0, c = null, b = 0, grow = 0;
       if (this.reduce) {
         // No flicker: a faint, steady light at the storm's busiest cell.
         f = 0.25 * [1, 0.6, 0.35][sm.age]; amp = 0.4 + 0.4 * ss; c = cells[0];
       } else {
         // One flash at a time per storm, strong storms far more often.
-        var rate = L.rate * (0.2 + 1.3 * ss) * AGE_RATE[sm.age];
+        var rate = sm.rate;
         var u = t * rate + hash(sm.id), dt;
         b = Math.floor(u); dt = (u - b - hash(sm.id * 131 + b) * 0.7) / rate;
         if (dt >= 0 && dt < 0.8) {
@@ -261,7 +313,6 @@
           c = c || cells[0];
         }
       }
-      drawn += cells.length;
       if (f < 0.03 || !c) continue;
       var p = st.project(c.lon, c.lat);
       if (p[2] <= 0.02) continue;
@@ -273,7 +324,7 @@
         var dk = Math.max(0, Math.min(1, 0.5 - (v[0] * sun[0] + v[1] * sun[1] + v[2] * sun[2]) * 3));
         night = L.day + (1 - L.day) * dk;
       }
-      var cl = c.cl, a = f * amp * limb * night * fade * L.bright;
+      var cl = c.cl, a = f * amp * limb * night * fade * L.bright * BRIGHT_K;
       if (a < 0.01) continue;
       lit++;
       // The lit patch: larger for a stronger flash and thicker cloud,
@@ -281,6 +332,11 @@
       // and squashed at random, nudged off the data grid.
       var r = cellPx * (2 + 4 * cl) * (0.55 + 0.6 * Math.sqrt(amp)) * (1 + 0.25 * grow) * L.size + 2;
       var jx = (hash(sm.id * 59 + b) - 0.5) * cellPx * 1.6, jy = (hash(sm.id * 61 + b) - 0.5) * cellPx * 1.6;
+      if (scene) {
+        // Light spreads wider through cloud than the sprite's visible core.
+        list.push({ x: p[0] + jx, y: p[1] + jy, r: r * 1.8, a: 1 - Math.exp(-a * 1.6), cl: cl });
+        continue;
+      }
       // A soft limit, not a cap: bright flashes stay brighter than medium.
       g.globalAlpha = 0.95 * (1 - Math.exp(-a * (0.6 + 0.5 * cl) * 1.6));
       g.save();
@@ -298,9 +354,15 @@
         g.drawImage(this.core, p[0] + jx - rc, p[1] + jy - rc, rc * 2, rc * 2);
       }
     }
-    this.c.dataset.lit = String(lit);
+    if (scene) {
+      // The brightest 16 (the stage's limit); a key so an unchanged frame
+      // (no flash) does not make the stage redraw.
+      list.sort(function (x, y) { return y.a - x.a; }).length = Math.min(list.length, 16);
+      st.setFlashes(list, list.map(function (e) { return e.x.toFixed(1) + ',' + e.y.toFixed(1) + ',' + e.a.toFixed(3); }).join(';'));
+    } else if (st.setFlashes) st.setFlashes(null, '');
+    if (lit !== this._lit || moved) { this.c.dataset.lit = String(lit); this.c.dataset.drawn = String(drawn); }
+    this._lit = lit;
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-    this.c.dataset.drawn = String(drawn);
   };
 
   /* Where the satellite stops seeing: a faint dashed edge of its box, so

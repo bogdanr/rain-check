@@ -17,9 +17,11 @@
 
 <!-- The stage: one fixed WebGL globe behind every chapter. -->
 <canvas id="stage" aria-hidden="true"></canvas>
+<canvas id="wind" aria-hidden="true"></canvas>
 <canvas id="bolts" aria-hidden="true"></canvas>
 <canvas id="sats" aria-hidden="true"></canvas>
-<svg id="marks" aria-hidden="true"></svg>
+<canvas id="marks" aria-hidden="true"></canvas>
+<div id="pulse" aria-hidden="true" hidden></div>
 <div id="stage-hit" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
 
@@ -82,7 +84,7 @@
     <p class="kicker" id="now-h">Right now · <span data-k="name"></span></p>
     <div class="now-main">
       <span class="now-temp tnum" id="now-temp">—</span>
-      <span class="now-cond"><b id="now-cond">Loading the forecast…</b><span class="dim mono" id="now-range"></span></span>
+      <span class="now-cond"><b id="now-cond">Loading the forecast…</b><span class="dim mono" id="now-range"></span><span class="now-wind" id="now-wind"></span></span>
     </div>
     <p class="now-said" id="now-said"></p>
     <div class="now-hours" id="now-hours" role="img"></div>
@@ -99,6 +101,8 @@
                   title="Satellite rain and snow rate (NASA IMERG)">Rain</button>
           <button type="button" class="sky-q" id="sky-bolts" aria-pressed="true"
                   title="Satellite lightning, last 15 minutes (EUMETSAT Meteosat Lightning Imager)">Lightning</button>
+          <button type="button" class="sky-q" id="sky-wind" aria-pressed="false" hidden
+                  title="Wind 10 m above the ground, shown in the sea: glint, whitecaps and (zoomed in) exaggerated waves. A model forecast on a ~1,000 km grid, not observed (Open-Meteo)">Wind</button>
         </div>
       </div>
       <p class="sky-src mono" id="sky-src"></p>
@@ -282,7 +286,11 @@
         <a href="https://earthdata.nasa.gov/gibs">NASA GIBS</a>; city lights from NASA Black Marble; the Moon
         from the NASA LRO / SVS CGI Moon Kit; satellite orbits from <a href="https://celestrak.org/">CelesTrak</a>
         (each satellite is drawn where it really is, to within about 15 km, under a pixel at globe scale; the
-        geostationary ring is drawn about 4× closer than it is). Cloud heights are exaggerated about 20×. None of it enters the audit.</p>
+        geostationary ring is drawn about 4× closer than it is). Cloud heights are exaggerated about 20×.
+        Wind, when switched on, is not observed: it is Open-Meteo’s model forecast 10 m above the ground on a
+        10° grid (about 1,000 km), fetched each time the site is rebuilt, every 3 hours; too coarse for hurricanes,
+        fronts or sea breezes. It is drawn in the sea; the wave crests are exaggerated some 2,000 to 4,000× so they
+        show at globe scale. None of it enters the audit.</p>
       <p><a href="{BASE}cities/">All {N_CITIES} cities</a> · <a href="https://github.com/bogdanr/rain-check">Code and data</a>
         · by <a href="https://bogdan.nimblex.net/" rel="author">Bogdan Rădulescu</a> · data as of {AS_OF}</p>
     </footer>

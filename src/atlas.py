@@ -34,6 +34,7 @@ from pathlib import Path
 
 import atlas_data
 import city_report
+import wind_grid
 from config import API_FORECAST
 from sitebuild import DIST, WEB, Site, ship
 
@@ -312,6 +313,8 @@ def main() -> None:
     ap.add_argument("--origin", default="http://127.0.0.1:8000",
                     help="scheme and host for canonical, Open Graph and sitemap URLs")
     ap.add_argument("--dist", default=None, help="output directory (default dist/)")
+    ap.add_argument("--wind", type=Path, default=None,
+                    help="wind grid from src/wind_grid.py; without it the Wind layer is left out")
     args = ap.parse_args()
 
     k = city_report.load_all()
@@ -339,6 +342,7 @@ def main() -> None:
         "sky": site.add_text("assets", "sky.js", ship(ATLAS / "sky.js")),
         "stage": site.add_text("assets", "stage.js", ship(ATLAS / "stage.js")),
         "bolts": site.add_text("assets", "bolts.js", ship(ATLAS / "bolts.js")),
+        "windjs": site.add_text("assets", "wind.js", ship(ATLAS / "wind.js")),
         "sats": site.add_text("assets", "sats.js", ship(ATLAS / "sats.js")),
         # The ?tune=1 look panel; loaded on demand only, never by a reader.
         "tune": site.add_text("assets", "tune.js", ship(ATLAS / "tune.js")),
@@ -356,6 +360,20 @@ def main() -> None:
         "og": site.add_file("assets", og_file),
     }
     a["og_abs"] = args.origin.rstrip("/") + a["og"]
+    # The Wind layer's grid: fetched by the Pages build (src/wind_grid.py),
+    # never committed, never part of the audit. A missing or malformed file
+    # leaves the layer out and the page hides its toggle.
+    wind = None
+    if args.wind:
+        try:
+            w = json.loads(args.wind.read_text())
+        except (OSError, ValueError) as e:
+            w = None
+            print(f"wind grid not used: {e}")
+        if w is not None and wind_grid.valid(w):
+            wind = site.add_json("assets", "wind.json", w)
+        elif w is not None:
+            print(f"wind grid not used: {args.wind} is malformed")
     og = {"url": a["og_abs"], "w": 1200, "h": 630,
           "alt": "The Bucharest rain forecast verdict card beside a globe of the 216 audited cities"}
 
@@ -381,6 +399,7 @@ def main() -> None:
                "elev": a["elev"], "biome": a["biome"], "stars": a["stars"],
                "moon": a["moon"], "lights": a["lights"], "starsEpoch": stars_epoch,
                "forecast": API_FORECAST, "wx": WX, "sats": a["satdata"], "satsLive": SATS_LIVE,
+               "wind": wind, "windJs": a["windjs"],
                # sky.js again, as the sky's Web Worker (same URL, so it is cached).
                "skyJs": a["sky"], "tuneJs": a["tune"]}
         html = prerender(template, kv, counts, ti)

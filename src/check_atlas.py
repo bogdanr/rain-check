@@ -30,6 +30,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from sitebuild import DIST
+from wind_grid import fixture as wind_fixture
 
 FIX = Path(__file__).resolve().parent / "fixtures" / "atlas"
 # The fixture set's frames: IR newest at 03:00 UTC (ir-caps.xml), IMERG
@@ -121,6 +122,10 @@ def live_fixtures(ctx, blocked: list[str]) -> None:
     ctx.route("**://view.eumetsat.int/**", eumetsat)
     ctx.route("**://gibs.earthdata.nasa.gov/**", gibs)
     ctx.route("**://celestrak.org/**", celestrak)
+    # The wind grid the build fetched is real and dated; the check serves a
+    # made-up one timed to the frozen clock instead (wind_grid.fixture).
+    ctx.route(re.compile(r".*/assets/wind\.[0-9a-f]+\.json$"), lambda r: r.fulfill(
+        status=200, content_type="application/json", body=json.dumps(wind_fixture(NOW))))
 
 
 def release(held: list) -> None:
@@ -289,12 +294,50 @@ def main() -> None:
         s = p.inner_text("#sky-src")
         check("29 h ago · true positions" in s, f"legend says the satellite positions are true: {s!r}")
         check("drawn where it really is" in p.inner_text("footer"), "credits state the positions are accurate")
+        # Wind: a model grid baked by the build. Off by default; when on, it
+        # goes to the sea (the stage takes the field and draws the waves over
+        # the resting city view), no arrows unless ?wind=debug, and the legend
+        # says it is a model forecast on a coarse grid, exaggerated. A build
+        # without a grid hides it.
+        if p.evaluate("() => !document.querySelector('#sky-wind').hidden"):
+            check(p.get_attribute("#sky-wind", "aria-pressed") == "false"
+                  and p.evaluate("() => !performance.getEntriesByName('rc:wind').length"),
+                  "wind is off by default and its grid is not fetched")
+            p.click("#sky-wind")
+            try:
+                p.wait_for_function("() => document.querySelector('#stage').dataset.waves === '1'", timeout=10000)
+            except Exception:
+                pass
+            check(p.get_attribute("#wind", "data-sea") == "1" and p.get_attribute("#stage", "data-wind") == "1",
+                  "wind field handed to the sea")
+            check(p.get_attribute("#stage", "data-waves") == "1", "waves drawn over the resting city view")
+            check((p.get_attribute("#wind", "data-arrows") or "0") == "0", "no arrows without ?wind=debug")
+            s = legend(p, "Wind")
+            check("Wind model forecast" in s and "2 h ago" in s and "grid" not in s and "waves ~" not in s,
+                  f"legend line says the wind is a model forecast, details left to the tooltip: {s!r}")
+            tt = p.evaluate("""() => { const b = [...document.querySelectorAll('#sky-src span[data-tt] > b')]
+                .find(x => x.textContent === 'Wind'); return b ? b.parentElement.dataset.tt : '' }""")
+            check("about 1,000 km between points" in tt and "exaggerated about" in tt and "\u00d7" in tt,
+                  f"wind tooltip gives the grid size and the wave exaggeration: {tt[:160]!r}")
+            p.click("#sky-wind")
+            p.wait_for_timeout(300)
+            check(p.get_attribute("#stage", "data-wind") == "0" and p.get_attribute("#stage", "data-waves") != "1"
+                  and "Wind" not in p.inner_text("#sky-src"),
+                  "wind switches off: wind=%s waves=%s legend=%r" % (p.get_attribute("#stage", "data-wind"),
+                  p.get_attribute("#stage", "data-waves"), p.inner_text("#sky-src")[-200:]))
+        else:
+            print("skip wind layer: this build has no wind grid (src/atlas.py --wind)")
         p.wait_for_function("() => !document.querySelector('#now').classList.contains('pending')",
                             timeout=15000)
         card = p.locator("#now")
         check(card.is_visible() and "fail" not in (card.get_attribute("class") or ""),
               "forecast card fills from the (mocked) live forecast")
         check("%" in p.inner_text("#now-said"), "card states the chance of rain")
+        w = p.inner_text("#now-wind")
+        check("Wind 18 km/h" in w and "gusts 34" in w and "from the" not in w,
+              "card states the wind and gusts, direction left to the arrow" + ("" if w else " (empty) %r" % w))
+        check(p.get_attribute("#now-wind .now-arrow", "aria-label") == "from the south-west",
+              "wind arrow names its direction for screen readers")
         check("Bucharest" in p.text_content("#now-h"), "card names the city")
         check("Stale" not in s, "fresh frames carry no stale warning")
 
