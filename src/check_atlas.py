@@ -372,15 +372,22 @@ def main() -> None:
         # Its own tab, closed straight after: ultra on a software renderer
         # keeps a small CI runner's CPU busy and would starve every page
         # after it (and "networkidle" may never come; the legend waits).
+        # The main tab stops drawing first: two software-rendered globes at
+        # once (the volume, and since the wind layer the waves too) starve
+        # the 2-core Pages runner so the ultra page never reaches "load".
+        p.goto("about:blank")
         u = ctx.new_page()
         u.on("pageerror", lambda e: errs.append(str(e)))
-        u.goto(B + f"?now={NOW}&sky=ultra", wait_until="load")
-        legend(u, "Elsewhere")
+        u.goto(B + f"?now={NOW}&sky=ultra", wait_until="domcontentloaded", timeout=60000)
+        legend(u, "Elsewhere", 60000)
         u.wait_for_timeout(1500)
         check(u.get_attribute("#stage", "data-tier") == "ultra" and "flat" not in u.inner_text("#sky-src"),
               "the ultra tier compiles on SwiftShader")
         u.close()
-        p.goto(B + f"?now={NOW}", wait_until="networkidle")
+        # Not "networkidle": on a starved runner the globe's feeds may keep
+        # it busy past the timeout; the league table is all the next check needs.
+        p.goto(B + f"?now={NOW}", wait_until="domcontentloaded", timeout=60000)
+        p.wait_for_selector("#lg tbody a", timeout=30000)
 
         # Rapid switch: the card ends on the last city, not the slowest reply.
         links = p.locator("#lg tbody a")
