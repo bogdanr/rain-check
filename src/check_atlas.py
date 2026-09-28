@@ -372,10 +372,12 @@ def main() -> None:
         # Its own tab, closed straight after: ultra on a software renderer
         # keeps a small CI runner's CPU busy and would starve every page
         # after it (and "networkidle" may never come; the legend waits).
-        # The main tab stops drawing first: two software-rendered globes at
-        # once (the volume, and since the wind layer the waves too) starve
-        # the 2-core Pages runner so the ultra page never reaches "load".
-        p.goto("about:blank")
+        # The main tab goes first: two software-rendered globes at once (the
+        # volume, and since the wind layer the waves too) starve the 2-core
+        # Pages runner so the ultra page never reaches "load". Closed, not
+        # sent to about:blank - a navigation away waits on the busy page and
+        # timed out there too; close does not wait.
+        p.close()
         u = ctx.new_page()
         u.on("pageerror", lambda e: errs.append(str(e)))
         u.goto(B + f"?now={NOW}&sky=ultra", wait_until="domcontentloaded", timeout=60000)
@@ -384,6 +386,9 @@ def main() -> None:
         check(u.get_attribute("#stage", "data-tier") == "ultra" and "flat" not in u.inner_text("#sky-src"),
               "the ultra tier compiles on SwiftShader")
         u.close()
+        p = ctx.new_page()
+        p.on("pageerror", lambda e: errs.append(str(e)))
+        p.on("response", lambda r: r.status >= 400 and bad.append(f"{r.status} {r.url}"))
         # Not "networkidle": on a starved runner the globe's feeds may keep
         # it busy past the timeout; the league table is all the next check needs.
         p.goto(B + f"?now={NOW}", wait_until="domcontentloaded", timeout=60000)
