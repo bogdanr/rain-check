@@ -320,7 +320,13 @@ def main() -> None:
             check("about 1,000 km between points" in tt and "exaggerated about" in tt and "\u00d7" in tt,
                   f"wind tooltip gives the grid size and the wave exaggeration: {tt[:160]!r}")
             p.click("#sky-wind")
-            p.wait_for_timeout(300)
+            # data-wind and the legend change at once, data-waves only on the
+            # stage's next frame - which on the 2-core Pages runner (software
+            # GL, volume on) can take well over 300 ms.
+            try:
+                p.wait_for_function("() => document.querySelector('#stage').dataset.waves !== '1'", timeout=10000)
+            except Exception:
+                pass
             check(p.get_attribute("#stage", "data-wind") == "0" and p.get_attribute("#stage", "data-waves") != "1"
                   and "Wind" not in p.inner_text("#sky-src"),
                   "wind switches off: wind=%s waves=%s legend=%r" % (p.get_attribute("#stage", "data-wind"),
